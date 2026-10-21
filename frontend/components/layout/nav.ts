@@ -1,12 +1,13 @@
 import type * as React from 'react';
 import { CubeIcon, DashboardIcon, StackIcon, TargetIcon } from '@radix-ui/react-icons';
-import type { IconProps } from '@radix-ui/react-icons/dist/types';
+import { Mic } from 'lucide-react';
 
-type RadixIcon = React.ForwardRefExoticComponent<IconProps & React.RefAttributes<SVGSVGElement>>;
-export interface NavItem { label: string; to?: string; icon: RadixIcon; children?: { label: string; to: string }[] }
+export type NavIcon = React.ComponentType<{ className?: string }>;
+export interface NavItem { label: string; to?: string; icon: NavIcon; children?: { label: string; to: string }[] }
 
 export const NAV: (NavItem | 'divider')[] = [
   { label: 'Dashboard', to: '/', icon: DashboardIcon },
+  { label: 'Uji Suara Mic (Live)', to: '/live-test', icon: Mic },
   'divider',
   { label: 'Devices', icon: CubeIcon, children: [{ label: 'Device List', to: '/devices' }, { label: 'Add Device', to: '/devices/new' }] },
   { label: 'Data Batuk', icon: StackIcon, children: [

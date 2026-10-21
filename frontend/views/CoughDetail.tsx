@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Gauge } from '@/components/tb/common';
 import { CoughAudio, DoaChart, CameraFrame } from '@/components/tb/Analysis';
+import { AiClinicalCopilot } from '@/components/tb/AiClinicalCopilot';
 import { EditDetectionDialog } from '@/components/tb/EditDetectionDialog';
 import { useStore } from '@/lib/store';
 import { azText, fmt } from '@/lib/format';
@@ -92,6 +93,9 @@ export default function CoughDetail() {
             <div className="grid grid-cols-[56px_1fr_56px] items-center gap-3 text-sm"><span>Non-TB</span><Progress value={(1 - pTB) * 100} /><span className="text-right num">{fmt.pct(1 - pTB)}</span></div>
           </div>
         </div>
+
+        {/* AI Training & LLM Clinical Integration */}
+        <AiClinicalCopilot d={d} dev={dev} />
 
         {/* audio */}
         <div ref={audioRef} id="audio" className="intro-y box col-span-12 scroll-mt-6 p-5">
