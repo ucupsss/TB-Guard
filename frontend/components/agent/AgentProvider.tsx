@@ -14,7 +14,7 @@ type Args = Record<string, unknown>;
 export type StepStatus = 'running' | 'done' | 'error' | 'awaiting' | 'rejected';
 export interface Step { id: string; name: string; kind: string; label: string; args: Args; status: StepStatus; result?: unknown; error?: string; confirm?: string }
 export type Part = { kind: 'text'; text: string } | { kind: 'reasoning'; text: string } | { kind: 'step'; step: Step };
-export interface Turn { id: string; role: 'user' | 'assistant'; text: string; parts: Part[]; error?: string; done?: boolean }
+export interface Turn { id: string; role: 'user' | 'assistant'; text: string; parts: Part[]; error?: string; done?: boolean; notice?: string }
 
 interface ToolCall { id: string; type: 'function'; function: { name: string; arguments: string } }
 type ApiMessage = { role: 'user'; content: string } | { role: 'assistant'; content: string; tool_calls?: ToolCall[] } | { role: 'tool'; tool_call_id: string; content: string };
@@ -67,6 +67,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const appendDelta = (turnId: string, kind: 'text' | 'reasoning', delta: string) =>
     patch(turnId, (t) => {
       const last = t.parts[t.parts.length - 1];
+      t = t.notice ? { ...t, notice: undefined } : t;
       if (last && last.kind === kind) return { ...t, parts: [...t.parts.slice(0, -1), { kind, text: last.text + delta }] };
       return { ...t, parts: [...t.parts, { kind, text: delta }] };
     });
@@ -93,8 +94,9 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
         const ev = JSON.parse(line);
         if (ev.type === 'reasoning') appendDelta(turnId, 'reasoning', ev.delta);
         else if (ev.type === 'content') appendDelta(turnId, 'text', ev.delta);
+        else if (ev.type === 'wait') patch(turnId, (t) => ({ ...t, notice: `Kuota Groq per menit habis, melanjutkan dalam ${ev.seconds} detik…` }));
         else if (ev.type === 'error') throw new Error(ev.error);
-        else if (ev.type === 'done') return ev.message;
+        else if (ev.type === 'done') { patch(turnId, (t) => (t.notice ? { ...t, notice: undefined } : t)); return ev.message; }
       }
     }
     throw new Error('Koneksi ke agen terputus.');
@@ -145,7 +147,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
         // jalankan berurutan: aksi tulis bisa bergantung pada hasil sebelumnya; tiap tool_call wajib punya balasan tool
         for (const c of calls) {
           const result = ctl.signal.aborted ? { ok: false, error: 'Dibatalkan pengguna.' } : await runTool(turnId, c, ctl.signal);
-          history.current.push({ role: 'tool', tool_call_id: c.id, content: JSON.stringify(result).slice(0, 12000) });
+          history.current.push({ role: 'tool', tool_call_id: c.id, content: JSON.stringify(result).slice(0, 6000) });
         }
         if (ctl.signal.aborted) return;
       }

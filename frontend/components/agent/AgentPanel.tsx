@@ -141,6 +141,7 @@ function AssistantTurn({ turn, last }: { turn: Turn; last: boolean }) {
         if (p.kind === 'text') return <Markdown key={i} text={p.text} />;
         return <StepRow key={p.step.id} step={p.step} onDecide={(ok) => decide(p.step.id, ok)} />;
       })}
+      {busy && turn.notice && <div className="flex items-center gap-2 text-xs text-pending"><Spinner />{turn.notice}</div>}
       {busy && (!tail || tail.kind === 'step') && !(tail?.kind === 'step' && tail.step.status === 'awaiting') && <Dots />}
       {turn.error && (
         <div className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
