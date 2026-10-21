@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { toast } from 'sonner';
-import { Cpu, MapPin, Camera, CircleCheck } from 'lucide-react';
+import { CameraIcon, CheckCircledIcon, CubeIcon, SewingPinIcon } from '@radix-ui/react-icons';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -115,19 +115,19 @@ export default function AddDevice() {
           <div className="intro-y box p-5">
             <div className="mb-4 font-medium">Pratinjau</div>
             <div className="flex items-center gap-4">
-              <div className="grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary dark:text-blue-300"><Cpu className="h-7 w-7" strokeWidth={1.4} /></div>
+              <div className="grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary dark:text-blue-300"><CubeIcon className="h-7 w-7" /></div>
               <div className="min-w-0"><div className="truncate font-medium">{f.name || 'Nama perangkat'}</div><div className="text-xs text-muted-foreground">TB Guard Device · ID {f.id || '–'}</div></div>
             </div>
-            <div className="mt-4 flex items-center gap-1 text-muted-foreground"><MapPin className="h-4 w-4" />{f.location || 'Lokasi'}{f.zone && ` · ${f.zone}`}</div>
+            <div className="mt-4 flex items-center gap-1 text-muted-foreground"><SewingPinIcon className="h-4 w-4" />{f.location || 'Lokasi'}{f.zone && ` · ${f.zone}`}</div>
             <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-slate-200/70 pt-4 dark:border-white/10">
               <DeviceStatus status={f.status} /><span className="text-muted-foreground">·</span><span>{f.type}</span><span className="text-muted-foreground">·</span><span>{f.mics} mic</span>
-              {f.camera && <span className="flex items-center gap-1"><Camera className="h-4 w-4" />kamera</span>}
+              {f.camera && <span className="flex items-center gap-1"><CameraIcon className="h-4 w-4" />kamera</span>}
             </div>
           </div>
           <div className="intro-y box mt-5 p-5">
             <div className="mb-4 font-medium">Checklist pemasangan</div>
             {[['Pasang mic array setinggi ±2 m', 'Hindari dekat speaker pengumuman / AC'], ['Arahkan kamera ke area duduk', 'FOV kamera harus mencakup sudut DoA ±39°'], ['Sambungkan ke jaringan', 'Perangkat mengirim data ke server setiap deteksi'], ['Uji dengan rekaman batuk', 'Pastikan muncul di Device Data']].map(([t, s]) => (
-              <div key={t} className="mt-3 flex gap-3 first:mt-0"><CircleCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" /><div><div className="font-medium">{t}</div><div className="text-xs text-muted-foreground">{s}</div></div></div>
+              <div key={t} className="mt-3 flex gap-3 first:mt-0"><CheckCircledIcon className="mt-0.5 h-4 w-4 shrink-0 text-success" /><div><div className="font-medium">{t}</div><div className="text-xs text-muted-foreground">{s}</div></div></div>
             ))}
           </div>
         </div>

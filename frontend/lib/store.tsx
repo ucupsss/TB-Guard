@@ -6,7 +6,7 @@ import * as React from 'react';
 import { seed, NOW, STAGES } from './data';
 import type { Device, Detection, Patient, User, WebformRow, OfflineRow, PrimerRow } from './types';
 
-interface Store {
+export interface Store {
   user: User | null;
   ready: boolean;   // sesi sudah dibaca dari sessionStorage (hanya di browser)
   devices: Device[];
@@ -16,8 +16,13 @@ interface Store {
   login: (u: User) => void;
   logout: () => void;
   updateDetection: (uuid: string, patch: Partial<Detection>) => void;   // nanti: PATCH /api/detections/:uuid
+  removeDetections: (uuids: string[]) => void;                         // nanti: DELETE /api/detections/:uuid
   addDevice: (d: Device) => void;                                     // nanti: POST /api/devices
+  updateDevice: (id: number, patch: Partial<Device>) => void;          // nanti: PATCH /api/devices/:id
+  removeDevice: (id: number) => void;                                  // nanti: DELETE /api/devices/:id
   addPatient: (p: Patient) => void;                                   // nanti: POST /api/patients
+  updatePatient: (id: string, patch: Partial<Patient>) => void;        // nanti: PATCH /api/patients/:id
+  removePatient: (id: string) => void;                                 // nanti: DELETE /api/patients/:id
   device: (id: number | string) => Device | undefined;
   detection: (uuid: string) => Detection | undefined;
 }
@@ -41,8 +46,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     login: (u) => { setUser(u); try { sessionStorage.setItem(KEY, JSON.stringify(u)); } catch { /* mode privat */ } },
     logout: () => { setUser(null); try { sessionStorage.removeItem(KEY); } catch { /* mode privat */ } },
     updateDetection: (uuid, patch) => setDetections((all) => all.map((d) => (d.uuid === uuid ? { ...d, ...patch } : d))),
+    removeDetections: (uuids) => setDetections((all) => all.filter((d) => !uuids.includes(d.uuid))),
     addDevice: (d) => setDevices((all) => [...all, d]),
+    updateDevice: (id, patch) => setDevices((all) => all.map((d) => (d.id === id ? { ...d, ...patch } : d))),
+    removeDevice: (id) => setDevices((all) => all.filter((d) => d.id !== id)),
     addPatient: (p) => setPatients((all) => [p, ...all]),
+    updatePatient: (id, patch) => setPatients((all) => all.map((p) => (p.id === id ? { ...p, ...patch } : p))),
+    removePatient: (id) => setPatients((all) => all.filter((p) => p.id !== id)),
     device: (id) => devices.find((d) => d.id === +id),
     detection: (uuid) => detections.find((d) => d.uuid === uuid),
   };

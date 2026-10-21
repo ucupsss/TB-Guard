@@ -3,12 +3,13 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Bell, Search, LogOut, User as UserIcon, ShieldCheck, AudioWaveform, Menu } from 'lucide-react';
+import { BellIcon, ExitIcon, HamburgerMenuIcon, LockClosedIcon, MagicWandIcon, MagnifyingGlassIcon, PersonIcon, SpeakerLoudIcon } from '@radix-ui/react-icons';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useStore } from '@/lib/store';
+import { useAgent } from '@/components/agent/AgentProvider';
 import { fmt, initials } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +18,7 @@ export interface Crumb { label: string; to?: string }
 export function TopBar({ crumbs, onMenu }: { crumbs: Crumb[]; onMenu: () => void }) {
   const { user, detections, devices, patients, device, logout } = useStore();
   const router = useRouter();
+  const agent = useAgent();
   const pending = detections.filter((d) => d.result === 'TB' && !d.reviewed).sort((a, b) => b.time - a.time);
   const [q, setQ] = React.useState('');
   const [open, setOpen] = React.useState(false);
@@ -41,7 +43,7 @@ export function TopBar({ crumbs, onMenu }: { crumbs: Crumb[]; onMenu: () => void
 
   return (
     <div className="relative z-[51] flex h-[67px] items-center border-b border-slate-200 dark:border-white/10">
-      <button className="mr-3 rounded-md p-1.5 text-muted-foreground hover:bg-black/5 lg:hidden" onClick={onMenu} aria-label="Buka menu"><Menu className="h-5 w-5" /></button>
+      <button className="mr-3 rounded-md p-1.5 text-muted-foreground hover:bg-black/5 lg:hidden" onClick={onMenu} aria-label="Buka menu"><HamburgerMenuIcon className="h-5 w-5" /></button>
       <Breadcrumb className="mr-auto hidden sm:block">
         <BreadcrumbList>
           <BreadcrumbItem><BreadcrumbLink asChild><Link href="/">Application</Link></BreadcrumbLink></BreadcrumbItem>
@@ -63,7 +65,7 @@ export function TopBar({ crumbs, onMenu }: { crumbs: Crumb[]; onMenu: () => void
               onKeyDown={(e) => { if (e.key === 'Enter' && hits[0]) go(hits[0].to); if (e.key === 'Escape') setOpen(false); }}
               placeholder="Search..." aria-label="Cari perangkat, UUID, atau pasien"
               className="h-9 w-56 rounded-full border-transparent bg-slate-300/50 px-4 pr-8 text-sm shadow-none outline-none transition-[width] placeholder:text-slate-500 focus:w-72 focus:ring-2 focus:ring-primary/30 dark:bg-white/10 dark:placeholder:text-slate-400" />
-            <Search className="absolute inset-y-0 right-0 my-auto mr-3 h-4 w-4 text-slate-600 dark:text-slate-400" />
+            <MagnifyingGlassIcon className="absolute inset-y-0 right-0 my-auto mr-3 h-4 w-4 text-slate-600 dark:text-slate-400" />
           </div>
         </PopoverAnchor>
         <PopoverContent align="end" className="w-80 p-2" onOpenAutoFocus={(e) => e.preventDefault()}>
@@ -84,17 +86,26 @@ export function TopBar({ crumbs, onMenu }: { crumbs: Crumb[]; onMenu: () => void
         </PopoverContent>
       </Popover>
 
+      {/* agen AI */}
+      <button type="button" onClick={agent.toggle} aria-pressed={agent.open} title="TB Guard Agent (Ctrl+I)"
+        className={cn('mr-4 inline-flex h-9 items-center gap-2 rounded-full px-3 text-sm font-medium outline-none transition focus-visible:ring-2 focus-visible:ring-ring sm:mr-6',
+          agent.open ? 'bg-primary text-white shadow-box' : 'bg-primary/10 text-primary hover:bg-primary/15 dark:bg-white/10 dark:text-blue-200')}>
+        <MagicWandIcon className="h-4 w-4" />
+        <span className="hidden sm:inline">Agent</span>
+        {agent.running && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-pending" />}
+      </button>
+
       {/* notifikasi */}
       <DropdownMenu>
         <DropdownMenuTrigger className="relative mr-4 rounded-full p-1 text-slate-600 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring sm:mr-6 dark:text-slate-300" aria-label={`${pending.length} peringatan TB belum ditinjau`}>
-          <Bell className="h-5 w-5" strokeWidth={1.6} />
+          <BellIcon className="h-5 w-5" />
           {pending.length > 0 && <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-danger ring-2 ring-page" />}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-80 p-4 sm:w-[350px]">
           <div className="mb-4 font-medium">Notifikasi <span className="text-muted-foreground">· {pending.length} peringatan TB</span></div>
           {pending.slice(0, 5).map((d) => (
             <DropdownMenuItem key={d.uuid} className="mb-3 items-start gap-3 p-1 last:mb-0" onSelect={() => router.push(`/detections/${d.uuid}`)}>
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-danger/10 text-danger"><AudioWaveform className="h-5 w-5" /></span>
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-danger/10 text-danger"><SpeakerLoudIcon className="h-5 w-5" /></span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center justify-between gap-2"><b className="truncate font-medium">{device(d.deviceId)?.name}</b><span className="whitespace-nowrap text-xs text-muted-foreground">{fmt.ago(d.time)}</span></span>
                 <span className="block truncate text-muted-foreground">Batuk terindikasi TB · conf. {d.confidence.toFixed(2)}</span>
@@ -116,10 +127,10 @@ export function TopBar({ crumbs, onMenu }: { crumbs: Crumb[]; onMenu: () => void
             <div className="text-xs text-white/60">{user?.role} · {user?.email}</div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator className="bg-white/10" />
-          <DropdownMenuItem className="focus:bg-white/10 focus:text-white" onSelect={() => router.push('/patients')}><UserIcon />Pelacakan pasien</DropdownMenuItem>
-          <DropdownMenuItem className="focus:bg-white/10 focus:text-white" onSelect={() => router.push('/devices')}><ShieldCheck />Perangkat</DropdownMenuItem>
+          <DropdownMenuItem className="focus:bg-white/10 focus:text-white" onSelect={() => router.push('/patients')}><PersonIcon />Pelacakan pasien</DropdownMenuItem>
+          <DropdownMenuItem className="focus:bg-white/10 focus:text-white" onSelect={() => router.push('/devices')}><LockClosedIcon />Perangkat</DropdownMenuItem>
           <DropdownMenuSeparator className="bg-white/10" />
-          <DropdownMenuItem className="focus:bg-white/10 focus:text-white" onSelect={() => { logout(); router.push('/login'); }}><LogOut />Logout</DropdownMenuItem>
+          <DropdownMenuItem className="focus:bg-white/10 focus:text-white" onSelect={() => { logout(); router.push('/login'); }}><ExitIcon />Logout</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

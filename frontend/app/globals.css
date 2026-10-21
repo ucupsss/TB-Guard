@@ -125,6 +125,27 @@
   .side-sub { @apply mb-1 overflow-hidden rounded-xl bg-black/10; }
   .side-sub a { @apply flex h-[44px] items-center gap-3 pl-9 text-white/75 hover:text-white; }
   .side-sub a.on { @apply font-medium text-white; }
+  /* sidebar rel (hover only): label & sub-menu disembunyikan sampai sidebar di-hover / difokus */
+  .side-label { @apply opacity-0 transition-opacity duration-150 group-hover/side:opacity-100 group-focus-within/side:opacity-100; }
+  .group\/side:not(:hover):not(:focus-within) .side-rail-sub { display: none; }
+
+  /* jawaban agen (markdown) */
+  .agent-md { @apply text-sm leading-relaxed break-words; }
+  .agent-md > * + * { @apply mt-2; }
+  .agent-md h1, .agent-md h2, .agent-md h3 { @apply mt-3 text-sm font-medium; }
+  .agent-md ul { @apply list-disc pl-5; }
+  .agent-md ol { @apply list-decimal pl-5; }
+  .agent-md li + li { @apply mt-0.5; }
+  .agent-md a { @apply font-medium text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary dark:text-blue-300; }
+  .agent-md strong { @apply font-medium text-foreground; }
+  .agent-md code { @apply rounded bg-slate-100 px-1 py-0.5 font-mono text-[12px] dark:bg-white/10; }
+  .agent-md pre { @apply overflow-x-auto rounded-md bg-slate-100 p-2 dark:bg-white/10; }
+  .agent-md pre code { @apply bg-transparent p-0; }
+  .agent-md blockquote { @apply border-l-2 pl-3 text-muted-foreground; }
+  .agent-md-table { @apply overflow-x-auto rounded-md border; }
+  .agent-md table { @apply w-full text-xs; }
+  .agent-md th { @apply whitespace-nowrap bg-slate-50 px-2 py-1.5 text-left font-medium dark:bg-white/5; }
+  .agent-md td { @apply border-t px-2 py-1.5 align-top; }
 
   /* tabel laporan: tiap baris kartu putih terpisah */
   .table-report { border-collapse: separate; border-spacing: 0 10px; }

@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useParams } from 'next/navigation';
-import { Activity, AudioWaveform, CircleCheck, Download, FlaskConical, Search, Users, TriangleAlert, Clock } from 'lucide-react';
+import { ActivityLogIcon, CheckCircledIcon, ClockIcon, DownloadIcon, ExclamationTriangleIcon, MagnifyingGlassIcon, MixIcon, PersonIcon, SpeakerLoudIcon } from '@radix-ui/react-icons';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,27 +52,27 @@ function DataView({ src }: { src: Src }) {
   };
 
   const boxes = src === 'webform' ? [
-    { icon: Users, color: 'text-primary', value: web.length, label: 'Responden' },
-    { icon: AudioWaveform, color: 'text-pending', value: web.reduce((s, r) => s + r.recordings, 0), label: 'Rekaman' },
-    { icon: TriangleAlert, color: 'text-danger', value: web.filter((r) => r.result === 'TB').length, label: 'Terindikasi TB', pill: fmt.pct(web.filter((r) => r.result === 'TB').length / web.length, 0), pv: 'destructive' as const },
-    { icon: Clock, color: 'text-warning', value: web.filter((r) => r.weeks >= 2).length, label: 'Batuk ≥ 2 minggu' },
+    { icon: PersonIcon, color: 'text-primary', value: web.length, label: 'Responden' },
+    { icon: SpeakerLoudIcon, color: 'text-pending', value: web.reduce((s, r) => s + r.recordings, 0), label: 'Rekaman' },
+    { icon: ExclamationTriangleIcon, color: 'text-danger', value: web.filter((r) => r.result === 'TB').length, label: 'Terindikasi TB', pill: fmt.pct(web.filter((r) => r.result === 'TB').length / web.length, 0), pv: 'destructive' as const },
+    { icon: ClockIcon, color: 'text-warning', value: web.filter((r) => r.weeks >= 2).length, label: 'Batuk ≥ 2 minggu' },
   ] : src === 'offline' ? [
-    { icon: Users, color: 'text-primary', value: off.length, label: 'Naracoba' },
-    { icon: AudioWaveform, color: 'text-pending', value: off.reduce((s, r) => s + r.recordings, 0), label: 'Rekaman' },
-    { icon: TriangleAlert, color: 'text-danger', value: off.filter((r) => r.label === 'TB').length, label: 'Label TB' },
-    { icon: CircleCheck, color: 'text-success', value: fmt.pct(off.filter((r) => r.label === r.pred).length / off.length), label: 'Prediksi sesuai label' },
+    { icon: PersonIcon, color: 'text-primary', value: off.length, label: 'Naracoba' },
+    { icon: SpeakerLoudIcon, color: 'text-pending', value: off.reduce((s, r) => s + r.recordings, 0), label: 'Rekaman' },
+    { icon: ExclamationTriangleIcon, color: 'text-danger', value: off.filter((r) => r.label === 'TB').length, label: 'Label TB' },
+    { icon: CheckCircledIcon, color: 'text-success', value: fmt.pct(off.filter((r) => r.label === r.pred).length / off.length), label: 'Prediksi sesuai label' },
   ] : [
-    { icon: Users, color: 'text-primary', value: pri.length, label: 'Pasien' },
-    { icon: AudioWaveform, color: 'text-pending', value: pri.reduce((s, r) => s + r.recordings, 0), label: 'Rekaman' },
-    { icon: FlaskConical, color: 'text-danger', value: pri.filter((r) => r.lab === 'Positif').length, label: 'Lab positif' },
-    { icon: Activity, color: 'text-success', value: fmt.pct(pri.filter((r) => r.lab === 'Positif' && r.pred === 'TB').length / Math.max(1, pri.filter((r) => r.lab === 'Positif').length)), label: 'Recall pada data ini' },
+    { icon: PersonIcon, color: 'text-primary', value: pri.length, label: 'Pasien' },
+    { icon: SpeakerLoudIcon, color: 'text-pending', value: pri.reduce((s, r) => s + r.recordings, 0), label: 'Rekaman' },
+    { icon: MixIcon, color: 'text-danger', value: pri.filter((r) => r.lab === 'Positif').length, label: 'Lab positif' },
+    { icon: ActivityLogIcon, color: 'text-success', value: fmt.pct(pri.filter((r) => r.lab === 'Positif' && r.pred === 'TB').length / Math.max(1, pri.filter((r) => r.lab === 'Positif').length)), label: 'Recall pada data ini' },
   ];
 
   return (
     <AppLayout crumbs={[{ label: 'Data' }, { label: title }]}>
       <div className="intro-y mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="mr-auto"><h2 className="text-lg font-medium">{title}</h2><p className="mt-1 max-w-2xl text-muted-foreground">{desc}</p></div>
-        <Button onClick={exportCSV}><Download />Export CSV</Button>
+        <Button onClick={exportCSV}><DownloadIcon />Export CSV</Button>
       </div>
 
       <div className="mt-5 grid grid-cols-12 gap-6">
@@ -86,7 +86,7 @@ function DataView({ src }: { src: Src }) {
         <div className="hidden text-muted-foreground md:block">Menampilkan {rows.length} data</div>
         <div className="relative w-full sm:ml-auto sm:w-56">
           <Input value={q} onChange={(e) => { setQ(e.target.value); pg.setPage(1); }} placeholder="Search..." className="box border-0 pr-9" aria-label="Cari" />
-          <Search className="absolute inset-y-0 right-0 my-auto mr-3 h-4 w-4 text-muted-foreground" />
+          <MagnifyingGlassIcon className="absolute inset-y-0 right-0 my-auto mr-3 h-4 w-4 text-muted-foreground" />
         </div>
       </div>
 
@@ -106,7 +106,7 @@ function DataView({ src }: { src: Src }) {
             <tbody>{(pg.slice as OfflineRow[]).map((r) => (
               <tr key={r.id}><td className={td + ' font-medium'}>{r.id}</td><td className={td + ' whitespace-nowrap'}>{fmt.dateShort(r.time)}</td><td className={td}>{r.site}</td><td className={td}>{g(r.gender)}</td><td className={td + ' num'}>{r.age}</td><td className={td}>{r.mic}</td><td className={td + ' text-center num'}>{r.recordings}</td>
                 <td className={td}><Badge variant={r.label === 'TB' ? 'soft-danger' : 'soft-success'}>{r.label === 'TB' ? 'TB' : 'Non-TB'}</Badge></td>
-                <td className={td}>{r.pred === r.label ? <span className="flex items-center gap-1 text-success"><CircleCheck className="h-4 w-4" />{r.pred === 'TB' ? 'TB' : 'Non-TB'}</span> : <Badge variant="soft-warning">{r.pred === 'TB' ? 'TB' : 'Non-TB'} · meleset</Badge>}</td>
+                <td className={td}>{r.pred === r.label ? <span className="flex items-center gap-1 text-success"><CheckCircledIcon className="h-4 w-4" />{r.pred === 'TB' ? 'TB' : 'Non-TB'}</span> : <Badge variant="soft-warning">{r.pred === 'TB' ? 'TB' : 'Non-TB'} · meleset</Badge>}</td>
                 <td className={td}>{r.collector}</td></tr>))}</tbody>
           </>}
           {src === 'primer' && <>

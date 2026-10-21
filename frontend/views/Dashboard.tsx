@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RTooltip } from 'recharts';
-import { ArrowRight, AudioWaveform, ChevronLeft, ChevronRight, Copy, EllipsisVertical, Eye, FileSpreadsheet, FileText, MapPin, Pencil, Plus, X } from 'lucide-react';
+import { ArrowRightIcon, ChevronLeftIcon, ChevronRightIcon, CopyIcon, Cross2Icon, DotsVerticalIcon, EyeOpenIcon, FileTextIcon, Pencil1Icon, PlusIcon, SewingPinIcon, SpeakerLoudIcon, TableIcon } from '@radix-ui/react-icons';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -93,7 +93,7 @@ export default function Dashboard() {
       {notice && pending.length > 0 && (
         <div className="intro-y mt-5 flex items-center rounded-md bg-primary px-4 py-3 text-white shadow-box">
           <span className="flex-1">Ada {pending.length} batuk terindikasi TB yang belum ditinjau. Tinjau sekarang di <Link href={`/detections/${pending[0].uuid}`} className="font-medium underline underline-offset-2">antrean peringatan</Link>.</span>
-          <button onClick={() => setNotice(false)} className="ml-3 rounded p-1 hover:bg-white/10" aria-label="Tutup pemberitahuan"><X className="h-4 w-4" /></button>
+          <button onClick={() => setNotice(false)} className="ml-3 rounded p-1 hover:bg-white/10" aria-label="Tutup pemberitahuan"><Cross2Icon className="h-4 w-4" /></button>
         </div>
       )}
 
@@ -108,13 +108,13 @@ export default function Dashboard() {
           </SectionHeader>
           <div className="box intro-y flex flex-col md:flex-row">
             <div className="flex-1 px-8 py-12">
-              <AudioWaveform className="h-10 w-10 text-pending" strokeWidth={1.4} />
+              <SpeakerLoudIcon className="h-10 w-10 text-pending" />
               <div className="mt-6 flex items-end gap-1 text-3xl font-medium xl:text-4xl"><span className="num">{cur.length}</span><span className="mb-1 text-base font-normal text-muted-foreground">suara</span></div>
               <div className="mt-4 flex items-center gap-2"><DeltaPill value={pctChange(cur.length, prev.length)} goodWhenUp /><span className="text-xs text-muted-foreground">vs {days} hari sebelumnya</span></div>
               <div className="mt-4 text-muted-foreground">Suara terekam oleh {active.length} perangkat aktif dalam {days} hari terakhir, lalu diklasifikasi model LSTM.</div>
               <button onClick={exportCSV} className="relative mt-12 flex h-10 items-center justify-start rounded-full border border-dashed border-slate-300 pl-5 pr-14 text-sm font-medium hover:border-primary dark:border-white/20">
                 Download Laporan
-                <span className="absolute inset-y-0 right-0 my-auto mr-1 grid h-8 w-8 place-items-center rounded-full bg-primary text-white"><ArrowRight className="h-4 w-4" /></span>
+                <span className="absolute inset-y-0 right-0 my-auto mr-1 grid h-8 w-8 place-items-center rounded-full bg-primary text-white"><ArrowRightIcon className="h-4 w-4" /></span>
               </button>
             </div>
             <div className="flex flex-1 flex-col justify-center border-t border-dashed border-slate-200 px-8 py-12 md:border-l md:border-t-0 dark:border-white/10">
@@ -144,7 +144,7 @@ export default function Dashboard() {
             <div className="flex items-center">
               <div className="text-muted-foreground">Rekaman masuk hari ini</div>
               <DropdownMenu>
-                <DropdownMenuTrigger className="ml-auto rounded p-0.5 text-muted-foreground hover:bg-accent" aria-label="Opsi"><EllipsisVertical className="h-4 w-4" /></DropdownMenuTrigger>
+                <DropdownMenuTrigger className="ml-auto rounded p-0.5 text-muted-foreground hover:bg-accent" aria-label="Opsi"><DotsVerticalIcon className="h-4 w-4" /></DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onSelect={() => router.push('/devices')}>Daftar perangkat</DropdownMenuItem>
                   <DropdownMenuItem onSelect={exportCSV}>Export CSV</DropdownMenuItem>
@@ -212,7 +212,7 @@ export default function Dashboard() {
         <div className="col-span-12 xl:col-span-8">
           <SectionHeader title="Peta Perangkat">
             <div className="relative hidden sm:block">
-              <MapPin className="absolute inset-y-0 left-0 my-auto ml-3 h-4 w-4 text-muted-foreground" />
+              <SewingPinIcon className="absolute inset-y-0 left-0 my-auto ml-3 h-4 w-4 text-muted-foreground" />
               <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Filter berdasarkan kota" className="box h-9 w-56 border-0 pl-9" aria-label="Filter berdasarkan kota" />
             </div>
           </SectionHeader>
@@ -228,7 +228,7 @@ export default function Dashboard() {
           <div>
             {pending.slice(0, 4).map((d) => (
               <Link key={d.uuid} href={`/detections/${d.uuid}`} className="intro-y box mb-3 flex items-center px-4 py-4 transition hover:shadow-box-lg">
-                <span className="grid h-10 w-10 flex-none place-items-center overflow-hidden rounded-md bg-danger/10 text-danger"><AudioWaveform className="h-5 w-5" /></span>
+                <span className="grid h-10 w-10 flex-none place-items-center overflow-hidden rounded-md bg-danger/10 text-danger"><SpeakerLoudIcon className="h-5 w-5" /></span>
                 <span className="ml-4 mr-auto min-w-0">
                   <span className="block truncate font-medium">{device(d.deviceId)?.name} · {device(d.deviceId)?.zone.split(' – ')[0]}</span>
                   <span className="mt-0.5 block text-xs text-muted-foreground">{fmt.date(d.time)}</span>
@@ -257,7 +257,7 @@ export default function Dashboard() {
               <div className="relative mt-6 w-56 sm:mt-10">
                 <Input readOnly value="https://tbguard.id/batuk" aria-label="Tautan formulir" className="pr-10" />
                 <button className="absolute inset-y-0 right-0 my-auto mr-2 rounded p-1 text-muted-foreground hover:text-foreground" aria-label="Salin tautan"
-                  onClick={() => { navigator.clipboard?.writeText('https://tbguard.id/batuk').catch(() => {}); toast.success('Tautan formulir disalin'); }}><Copy className="h-4 w-4" /></button>
+                  onClick={() => { navigator.clipboard?.writeText('https://tbguard.id/batuk').catch(() => {}); toast.success('Tautan formulir disalin'); }}><CopyIcon className="h-4 w-4" /></button>
               </div>
             </div>
             <PhoneIllustration className="absolute bottom-2 right-4 hidden h-[85%] sm:block" />
@@ -269,8 +269,8 @@ export default function Dashboard() {
           <div className="intro-y mb-1 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
             <h2 className="section-title">Deteksi Terbaru</h2>
             <div className="flex gap-2 sm:ml-auto">
-              <Button variant="outline" className="box border-0" onClick={exportCSV}><FileSpreadsheet />Export ke Excel</Button>
-              <Button variant="outline" className="box border-0" onClick={() => window.print()}><FileText />Export ke PDF</Button>
+              <Button variant="outline" className="box border-0" onClick={exportCSV}><TableIcon />Export ke Excel</Button>
+              <Button variant="outline" className="box border-0" onClick={() => window.print()}><FileTextIcon />Export ke PDF</Button>
             </div>
           </div>
           <div className="intro-y overflow-auto">
@@ -292,8 +292,8 @@ export default function Dashboard() {
                     </td>
                     <td className="relative w-56 px-5 py-3 before:absolute before:inset-y-0 before:left-0 before:my-auto before:block before:h-8 before:w-px before:bg-slate-200 dark:before:bg-white/10">
                       <div className="flex items-center justify-center gap-4">
-                        <Link href={`/detections/${d.uuid}`} className="flex items-center gap-1 hover:text-primary"><Eye className="h-4 w-4" />Lihat</Link>
-                        <button onClick={() => setEditing(d.uuid)} className="flex items-center gap-1 text-pending hover:opacity-80"><Pencil className="h-4 w-4" />Edit</button>
+                        <Link href={`/detections/${d.uuid}`} className="flex items-center gap-1 hover:text-primary"><EyeOpenIcon className="h-4 w-4" />Lihat</Link>
+                        <button onClick={() => setEditing(d.uuid)} className="flex items-center gap-1 text-pending hover:opacity-80"><Pencil1Icon className="h-4 w-4" />Edit</button>
                       </div>
                     </td>
                   </tr>
@@ -307,8 +307,8 @@ export default function Dashboard() {
         {/* ===== Catatan penting (Important Notes) ===== */}
         <div className="col-span-12">
           <SectionHeader title="Catatan Penting">
-            <Button variant="outline" size="icon" className="box h-8 w-8 border-0" onClick={() => setNote((x) => (x - 1 + notes.length) % notes.length)} aria-label="Catatan sebelumnya"><ChevronLeft /></Button>
-            <Button variant="outline" size="icon" className="box h-8 w-8 border-0" onClick={() => setNote((x) => (x + 1) % notes.length)} aria-label="Catatan berikutnya"><ChevronRight /></Button>
+            <Button variant="outline" size="icon" className="box h-8 w-8 border-0" onClick={() => setNote((x) => (x - 1 + notes.length) % notes.length)} aria-label="Catatan sebelumnya"><ChevronLeftIcon /></Button>
+            <Button variant="outline" size="icon" className="box h-8 w-8 border-0" onClick={() => setNote((x) => (x + 1) % notes.length)} aria-label="Catatan berikutnya"><ChevronRightIcon /></Button>
           </SectionHeader>
           <div className="box intro-y p-5" aria-live="polite">
             <div className="text-base font-medium">{n.title}</div>
@@ -323,7 +323,7 @@ export default function Dashboard() {
 
         {/* ===== Jadwal kontrol (Schedules) ===== */}
         <div className="col-span-12 md:col-span-6 xl:col-span-4">
-          <SectionHeader title="Jadwal Kontrol"><Link href="/patients" className="flex items-center gap-1 truncate text-sm text-primary dark:text-blue-300"><Plus className="h-4 w-4" />Tambah Jadwal</Link></SectionHeader>
+          <SectionHeader title="Jadwal Kontrol"><Link href="/patients" className="flex items-center gap-1 truncate text-sm text-primary dark:text-blue-300"><PlusIcon className="h-4 w-4" />Tambah Jadwal</Link></SectionHeader>
           <div className="box intro-y p-5">
             <Calendar mode="single" month={month} onMonthChange={setMonth} selected={new Date(NOW)} modifiers={{ visit: visitDays }}
               modifiersClassNames={{ visit: 'bg-success/20 text-[#4d6c0b] font-medium dark:text-success' }} className="w-full" />

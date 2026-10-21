@@ -4,7 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from 'recharts';
-import { Cpu, Download, Eye, MapPin, Mic, Camera, Pencil, Search, AudioWaveform, Clock } from 'lucide-react';
+import { CameraIcon, ClockIcon, CubeIcon, DownloadIcon, EyeOpenIcon, MagnifyingGlassIcon, Pencil1Icon, SewingPinIcon, SpeakerLoudIcon, SpeakerModerateIcon } from '@radix-ui/react-icons';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -44,7 +44,7 @@ export default function DeviceDetail() {
           <div className="-mx-5 flex flex-col border-b border-slate-200/60 pb-5 dark:border-white/10 lg:flex-row">
             <div className="flex flex-1 items-center justify-center px-5 lg:justify-start">
               <div className="relative grid h-20 w-20 flex-none place-items-center rounded-full bg-primary/10 text-primary sm:h-24 sm:w-24 lg:h-28 lg:w-28 dark:text-blue-300">
-                <Cpu className="h-10 w-10" strokeWidth={1.3} />
+                <CubeIcon className="h-10 w-10" />
                 <span className={`absolute bottom-1 right-1 h-5 w-5 rounded-full border-4 border-card ${dev.status === 'active' ? 'bg-success' : dev.status === 'inactive' ? 'bg-pending' : 'bg-danger'}`} />
               </div>
               <div className="ml-5">
@@ -56,9 +56,9 @@ export default function DeviceDetail() {
             <div className="mt-6 flex-1 border-t border-slate-200/60 px-5 pt-5 dark:border-white/10 lg:mt-0 lg:border-x lg:border-t-0 lg:pt-0">
               <div className="text-center font-medium lg:mt-3 lg:text-left">Detail Pemasangan</div>
               <div className="mt-4 flex flex-col items-center justify-center gap-3 lg:items-start">
-                <div className="flex items-center gap-2 truncate"><MapPin className="h-4 w-4" />{dev.location} · {dev.zone}</div>
-                <div className="flex items-center gap-2 truncate"><Mic className="h-4 w-4" />{dev.mics} mic · {dev.array}</div>
-                <div className="flex items-center gap-2 truncate"><Camera className="h-4 w-4" />{dev.camera}</div>
+                <div className="flex items-center gap-2 truncate"><SewingPinIcon className="h-4 w-4" />{dev.location} · {dev.zone}</div>
+                <div className="flex items-center gap-2 truncate"><SpeakerModerateIcon className="h-4 w-4" />{dev.mics} mic · {dev.array}</div>
+                <div className="flex items-center gap-2 truncate"><CameraIcon className="h-4 w-4" />{dev.camera}</div>
               </div>
             </div>
             <div className="mt-6 flex flex-1 items-center justify-center border-t border-slate-200/60 px-5 pt-5 dark:border-white/10 lg:mt-0 lg:border-0 lg:pt-0">
@@ -88,9 +88,9 @@ export default function DeviceDetail() {
             </ToggleGroup>
             <div className="relative w-full sm:ml-auto sm:w-56">
               <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari UUID, nama, tanggal" className="box border-0 pr-9" aria-label="Cari data" />
-              <Search className="absolute inset-y-0 right-0 my-auto mr-3 h-4 w-4 text-muted-foreground" />
+              <MagnifyingGlassIcon className="absolute inset-y-0 right-0 my-auto mr-3 h-4 w-4 text-muted-foreground" />
             </div>
-            <Button variant="outline" className="box border-0" onClick={() => downloadCSV(`tbguard-${dev.id}-data.csv`, [['uuid', 'waktu', 'nama', 'gender', 'umur', 'type', 'hasil', 'confidence', 'doa_azimuth']].concat(all.map((r) => [r.uuid, new Date(r.time).toISOString(), r.name, r.gender, String(r.age), r.type, r.result, String(r.confidence), String(r.doa.azimuth)])))}><Download />Export CSV</Button>
+            <Button variant="outline" className="box border-0" onClick={() => downloadCSV(`tbguard-${dev.id}-data.csv`, [['uuid', 'waktu', 'nama', 'gender', 'umur', 'type', 'hasil', 'confidence', 'doa_azimuth']].concat(all.map((r) => [r.uuid, new Date(r.time).toISOString(), r.name, r.gender, String(r.age), r.type, r.result, String(r.confidence), String(r.doa.azimuth)])))}><DownloadIcon />Export CSV</Button>
           </div>
           <div className="intro-y overflow-auto">
             <table className="table-report w-full min-w-[860px]">
@@ -108,9 +108,9 @@ export default function DeviceDetail() {
                     <td className="px-5 py-3"><ResultBadge result={r.result} />{r.result === 'TB' && !r.reviewed && <div className="mt-1 text-xs text-pending">● belum ditinjau</div>}</td>
                     <td className="relative w-64 px-5 py-3 before:absolute before:inset-y-0 before:left-0 before:my-auto before:block before:h-8 before:w-px before:bg-slate-200 dark:before:bg-white/10">
                       <div className="flex items-center justify-center gap-4">
-                        <Link href={`/detections/${r.uuid}`} className="flex items-center gap-1 hover:text-primary"><Eye className="h-4 w-4" />Lihat Detail</Link>
-                        <Link href={`/detections/${r.uuid}#audio`} className="flex items-center gap-1 text-primary dark:text-blue-300"><AudioWaveform className="h-4 w-4" />Cek Suara</Link>
-                        <button onClick={() => setEditing(r.uuid)} className="flex items-center gap-1 text-pending"><Pencil className="h-4 w-4" />Edit</button>
+                        <Link href={`/detections/${r.uuid}`} className="flex items-center gap-1 hover:text-primary"><EyeOpenIcon className="h-4 w-4" />Lihat Detail</Link>
+                        <Link href={`/detections/${r.uuid}#audio`} className="flex items-center gap-1 text-primary dark:text-blue-300"><SpeakerLoudIcon className="h-4 w-4" />Cek Suara</Link>
+                        <button onClick={() => setEditing(r.uuid)} className="flex items-center gap-1 text-pending"><Pencil1Icon className="h-4 w-4" />Edit</button>
                       </div>
                     </td>
                   </tr>
@@ -136,7 +136,7 @@ export default function DeviceDetail() {
               </dl>
             </div>
             <div className="intro-y box col-span-12 p-5 lg:col-span-5">
-              <div className="mb-5 flex items-center border-b border-slate-200/60 pb-5 dark:border-white/10"><span className="font-medium">Pola Waktu Deteksi</span><span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground"><Clock className="h-3.5 w-3.5" />jam ramai {peak.h}.00</span></div>
+              <div className="mb-5 flex items-center border-b border-slate-200/60 pb-5 dark:border-white/10"><span className="font-medium">Pola Waktu Deteksi</span><span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground"><ClockIcon className="h-3.5 w-3.5" />jam ramai {peak.h}.00</span></div>
               <div className="h-[220px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={hours} margin={{ left: -24, right: 4 }}>

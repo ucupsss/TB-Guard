@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Cpu, Plus, Search, Wifi, WifiOff, Wrench, MapPin, Clock } from 'lucide-react';
+import { ClockIcon, CubeIcon, GearIcon, Link2Icon, LinkBreak2Icon, MagnifyingGlassIcon, PlusIcon, SewingPinIcon } from '@radix-ui/react-icons';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,13 +27,13 @@ export default function Devices() {
     <AppLayout crumbs={[{ label: 'Devices', to: '/devices' }, { label: 'Device List' }]}>
       <div className="intro-y mt-8 flex items-center">
         <h2 className="mr-auto text-lg font-medium">Device List</h2>
-        <Button onClick={() => router.push('/devices/new')}><Plus />Add Device</Button>
+        <Button onClick={() => router.push('/devices/new')}><PlusIcon />Add Device</Button>
       </div>
 
       <div className="mt-5 grid grid-cols-12 gap-6">
-        <div className="col-span-12 sm:col-span-4"><ReportBox icon={Wifi} color="text-success" value={count('active')} label="Active" pill={`${fmt.pct(count('active') / devices.length, 0)}`} active={filter === 'active'} onClick={() => setFilter(filter === 'active' ? '' : 'active')} /></div>
-        <div className="col-span-12 sm:col-span-4"><ReportBox icon={WifiOff} color="text-pending" value={count('inactive')} label="Inactive" pill={`${fmt.pct(count('inactive') / devices.length, 0)}`} pillVariant="warning" active={filter === 'inactive'} onClick={() => setFilter(filter === 'inactive' ? '' : 'inactive')} /></div>
-        <div className="col-span-12 sm:col-span-4"><ReportBox icon={Wrench} color="text-danger" value={count('broken')} label="Broken" pill={`${fmt.pct(count('broken') / devices.length, 0)}`} pillVariant="destructive" active={filter === 'broken'} onClick={() => setFilter(filter === 'broken' ? '' : 'broken')} /></div>
+        <div className="col-span-12 sm:col-span-4"><ReportBox icon={Link2Icon} color="text-success" value={count('active')} label="Active" pill={`${fmt.pct(count('active') / devices.length, 0)}`} active={filter === 'active'} onClick={() => setFilter(filter === 'active' ? '' : 'active')} /></div>
+        <div className="col-span-12 sm:col-span-4"><ReportBox icon={LinkBreak2Icon} color="text-pending" value={count('inactive')} label="Inactive" pill={`${fmt.pct(count('inactive') / devices.length, 0)}`} pillVariant="warning" active={filter === 'inactive'} onClick={() => setFilter(filter === 'inactive' ? '' : 'inactive')} /></div>
+        <div className="col-span-12 sm:col-span-4"><ReportBox icon={GearIcon} color="text-danger" value={count('broken')} label="Broken" pill={`${fmt.pct(count('broken') / devices.length, 0)}`} pillVariant="destructive" active={filter === 'broken'} onClick={() => setFilter(filter === 'broken' ? '' : 'broken')} /></div>
       </div>
 
       <div className="intro-y mt-8 flex flex-wrap items-center gap-3">
@@ -46,7 +46,7 @@ export default function Devices() {
         <div className="hidden text-muted-foreground md:block">Menampilkan {list.length} dari {devices.length} perangkat</div>
         <div className="relative w-full sm:ml-auto sm:w-56">
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Type here to search..." className="box border-0 pr-9" aria-label="Cari perangkat" />
-          <Search className="absolute inset-y-0 right-0 my-auto mr-3 h-4 w-4 text-muted-foreground" />
+          <MagnifyingGlassIcon className="absolute inset-y-0 right-0 my-auto mr-3 h-4 w-4 text-muted-foreground" />
         </div>
       </div>
 
@@ -58,12 +58,12 @@ export default function Devices() {
               <div className="box">
                 <div className="flex flex-col items-center p-5 text-center">
                   <div className="relative grid h-16 w-16 place-items-center rounded-full bg-primary/10 text-primary dark:text-blue-300">
-                    <Cpu className="h-8 w-8" strokeWidth={1.4} />
+                    <CubeIcon className="h-8 w-8" />
                     <span className={`absolute bottom-0 right-0 h-4 w-4 rounded-full border-2 border-card ${d.status === 'active' ? 'bg-success' : d.status === 'inactive' ? 'bg-pending' : 'bg-danger'}`} />
                   </div>
                   <Link href={`/devices/${d.id}`} className="mt-3 text-base font-medium hover:text-primary">{d.name}</Link>
                   <div className="mt-0.5 text-muted-foreground">TB Guard Device · ID {d.id}</div>
-                  <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="h-3.5 w-3.5" />{d.location} · {d.zone.split(' – ')[0]}</div>
+                  <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground"><SewingPinIcon className="h-3.5 w-3.5" />{d.location} · {d.zone.split(' – ')[0]}</div>
                 </div>
                 <div className="grid grid-cols-3 border-y border-slate-200/70 text-center dark:border-white/10">
                   <div className="py-3"><div className="text-xs text-muted-foreground">Status</div><div className="mt-1 flex justify-center text-sm"><DeviceStatus status={d.status} /></div></div>
@@ -71,7 +71,7 @@ export default function Devices() {
                   <div className="py-3"><div className="text-xs text-muted-foreground">TB</div><div className="mt-1 font-medium text-danger num">{tb}</div></div>
                 </div>
                 <div className="flex items-center gap-2 p-5">
-                  <Badge variant="secondary" className="gap-1"><Clock />{fmt.ago(d.lastSeen)}</Badge>
+                  <Badge variant="secondary" className="gap-1"><ClockIcon />{fmt.ago(d.lastSeen)}</Badge>
                   <Button asChild size="sm" className="ml-auto"><Link href={`/devices/${d.id}`}>View Detail</Link></Button>
                 </div>
               </div>

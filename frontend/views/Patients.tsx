@@ -4,7 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { CalendarDays, CircleAlert, Plus, Search, AudioWaveform } from 'lucide-react';
+import { CalendarIcon, ExclamationTriangleIcon, MagnifyingGlassIcon, PlusIcon, SpeakerLoudIcon } from '@radix-ui/react-icons';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,12 +57,12 @@ export default function Patients() {
     <AppLayout crumbs={[{ label: 'Pelacakan Pasien' }]}>
       <div className="intro-y mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="mr-auto"><h2 className="text-lg font-medium">Pelacakan Pasien</h2><p className="mt-1 text-muted-foreground">Dari terdeteksi hingga sembuh: pantau setiap individu yang terindikasi TB oleh perangkat.</p></div>
-        <Button onClick={() => startNew()}><Plus />Daftarkan Pasien</Button>
+        <Button onClick={() => startNew()}><PlusIcon />Daftarkan Pasien</Button>
       </div>
 
       {fromDet && banner && (
         <div className="intro-y mt-5 flex flex-wrap items-center gap-3 rounded-md bg-primary px-4 py-3 text-white shadow-box">
-          <CircleAlert className="h-5 w-5" />
+          <ExclamationTriangleIcon className="h-5 w-5" />
           <span className="flex-1">Deteksi <b>{fromDet.uuid}</b> terindikasi TB (confidence {fromDet.confidence.toFixed(2)}). Lengkapi identitas individu untuk mulai pelacakan.</span>
           <Button variant="white" size="sm" onClick={() => startNew({ uuid: fromDet.uuid, name: fromDet.name, age: String(fromDet.age || ''), gender: fromDet.gender || 'L' })}>Isi data pasien</Button>
         </div>
@@ -86,7 +86,7 @@ export default function Patients() {
       <div className="intro-y mt-6 flex items-center gap-3">
         <div className="relative w-full sm:w-72">
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama, ID, faskes..." className="box border-0 pr-9" aria-label="Cari pasien" />
-          <Search className="absolute inset-y-0 right-0 my-auto mr-3 h-4 w-4 text-muted-foreground" />
+          <MagnifyingGlassIcon className="absolute inset-y-0 right-0 my-auto mr-3 h-4 w-4 text-muted-foreground" />
         </div>
         <div className="ml-auto hidden text-muted-foreground sm:block">{list.length} pasien</div>
       </div>
@@ -107,7 +107,7 @@ export default function Patients() {
                   {p.adherence != null && <Progress value={p.adherence} className="mt-3 h-1.5" indicatorClassName={p.adherence < 85 ? 'bg-pending' : 'bg-success'} />}
                   <div className="mt-3 flex items-center justify-between text-xs">
                     <span>{p.adherence != null ? <>Kepatuhan <b className="num">{p.adherence}%</b></> : `Hari ke-${p.daysIn}`}</span>
-                    <span className="flex items-center gap-1 text-muted-foreground"><CalendarDays className="h-3.5 w-3.5" />{p.nextVisit ? fmt.dayShort(p.nextVisit) : 'Selesai'}</span>
+                    <span className="flex items-center gap-1 text-muted-foreground"><CalendarIcon className="h-3.5 w-3.5" />{p.nextVisit ? fmt.dayShort(p.nextVisit) : 'Selesai'}</span>
                   </div>
                 </button>
               ))}
@@ -139,7 +139,7 @@ export default function Patients() {
                 <li key={s} className="mb-4"><span className="absolute -left-1.5 mt-1 h-3 w-3 rounded-full border-2 border-dashed border-slate-300 bg-card" /><div className="text-muted-foreground">{s}</div><div className="text-xs text-muted-foreground">Belum tercapai</div></li>
               ))}
             </ol>
-            {open.uuid && open.uuid !== '—' && <Button asChild variant="outline" className="mt-2"><Link href={`/detections/${open.uuid}`}><AudioWaveform />Lihat deteksi awal</Link></Button>}
+            {open.uuid && open.uuid !== '—' && <Button asChild variant="outline" className="mt-2"><Link href={`/detections/${open.uuid}`}><SpeakerLoudIcon />Lihat deteksi awal</Link></Button>}
           </>}
         </SheetContent>
       </Sheet>

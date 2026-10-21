@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal } from 'lucide-react';
+import { ChevronLeftIcon, ChevronRightIcon, DotsHorizontalIcon, DoubleArrowLeftIcon, DoubleArrowRightIcon } from '@radix-ui/react-icons';
 import { cn } from '@/lib/utils';
 import { ButtonProps, buttonVariants } from '@/components/ui/button';
 
@@ -22,12 +22,12 @@ const PaginationLink = ({ className, isActive, size = 'icon', ...props }: Pagina
     className={cn(buttonVariants({ variant: isActive ? 'outline' : 'ghost', size }), 'h-8 w-8', isActive && 'bg-card shadow-box', className)} {...props} />
 );
 PaginationLink.displayName = 'PaginationLink';
-const PaginationFirst = (p: React.ComponentProps<typeof PaginationLink>) => <PaginationLink aria-label="Halaman pertama" {...p}><ChevronsLeft className="h-4 w-4" /></PaginationLink>;
-const PaginationPrevious = (p: React.ComponentProps<typeof PaginationLink>) => <PaginationLink aria-label="Sebelumnya" {...p}><ChevronLeft className="h-4 w-4" /></PaginationLink>;
-const PaginationNext = (p: React.ComponentProps<typeof PaginationLink>) => <PaginationLink aria-label="Berikutnya" {...p}><ChevronRight className="h-4 w-4" /></PaginationLink>;
-const PaginationLast = (p: React.ComponentProps<typeof PaginationLink>) => <PaginationLink aria-label="Halaman terakhir" {...p}><ChevronsRight className="h-4 w-4" /></PaginationLink>;
+const PaginationFirst = (p: React.ComponentProps<typeof PaginationLink>) => <PaginationLink aria-label="Halaman pertama" {...p}><DoubleArrowLeftIcon className="h-4 w-4" /></PaginationLink>;
+const PaginationPrevious = (p: React.ComponentProps<typeof PaginationLink>) => <PaginationLink aria-label="Sebelumnya" {...p}><ChevronLeftIcon className="h-4 w-4" /></PaginationLink>;
+const PaginationNext = (p: React.ComponentProps<typeof PaginationLink>) => <PaginationLink aria-label="Berikutnya" {...p}><ChevronRightIcon className="h-4 w-4" /></PaginationLink>;
+const PaginationLast = (p: React.ComponentProps<typeof PaginationLink>) => <PaginationLink aria-label="Halaman terakhir" {...p}><DoubleArrowRightIcon className="h-4 w-4" /></PaginationLink>;
 const PaginationEllipsis = ({ className, ...props }: React.ComponentProps<'span'>) => (
-  <span aria-hidden className={cn('flex h-8 w-8 items-center justify-center', className)} {...props}><MoreHorizontal className="h-4 w-4" /></span>
+  <span aria-hidden className={cn('flex h-8 w-8 items-center justify-center', className)} {...props}><DotsHorizontalIcon className="h-4 w-4" /></span>
 );
 
 export { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationFirst, PaginationLast };

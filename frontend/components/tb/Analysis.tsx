@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import type WaveSurfer from 'wavesurfer.js';
-import { Pause, Play } from 'lucide-react';
+import { PauseIcon, PlayIcon } from '@radix-ui/react-icons';
 import { Button } from '@/components/ui/button';
 import { synthCough, toWavBlob } from '@/lib/audio';
 import { azText } from '@/lib/format';
@@ -52,7 +52,7 @@ export function CoughAudio({ d, autoplayRef }: { d: Detection; autoplayRef?: Rea
     <div>
       <div ref={wave} />
       <div className="my-3 flex items-center justify-center gap-3">
-        <Button onClick={() => ws.current?.playPause()} className="w-28">{playing ? <Pause /> : <Play />}{playing ? 'Pause' : 'Play'}</Button>
+        <Button onClick={() => ws.current?.playPause()} className="w-28">{playing ? <PauseIcon /> : <PlayIcon />}{playing ? 'Pause' : 'Play'}</Button>
         <span className="text-muted-foreground num">{time}</span>
       </div>
       <div ref={spec} className="overflow-hidden rounded-md" />

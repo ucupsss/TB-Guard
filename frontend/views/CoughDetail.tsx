@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Area, AreaChart, ResponsiveContainer, XAxis } from 'recharts';
-import { ArrowLeft, AudioWaveform, Check, Pencil, Route as RouteIcon } from 'lucide-react';
+import { ArrowLeftIcon, CheckIcon, Pencil1Icon, SpeakerLoudIcon, TargetIcon } from '@radix-ui/react-icons';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -46,8 +46,8 @@ export default function CoughDetail() {
     <AppLayout crumbs={[{ label: 'Devices', to: '/devices' }, { label: dev.name, to: `/devices/${dev.id}` }, { label: d.uuid }]}>
       <div className="intro-y mt-8 flex flex-wrap items-center gap-2">
         <h2 className="mr-auto text-lg font-medium">Detail Data Batuk</h2>
-        <Button variant="outline" className="box border-0" onClick={() => setEditing(true)}><Pencil />Edit Data</Button>
-        <Button variant="secondary" onClick={() => router.push(`/devices/${dev.id}`)}><ArrowLeft />Kembali</Button>
+        <Button variant="outline" className="box border-0" onClick={() => setEditing(true)}><Pencil1Icon />Edit Data</Button>
+        <Button variant="secondary" onClick={() => router.push(`/devices/${dev.id}`)}><ArrowLeftIcon />Kembali</Button>
       </div>
 
       <div className="mt-5 grid grid-cols-12 gap-6">
@@ -74,9 +74,9 @@ export default function CoughDetail() {
             <Field k="Confidence Score" v={<span className="text-primary num dark:text-blue-300">{d.confidence.toFixed(4)}</span>} />
           </div>
           <div className="mt-6 flex flex-wrap gap-2">
-            <Button onClick={cek}><AudioWaveform />Cek Suara Batuk</Button>
-            {tb && !d.reviewed && <Button variant="outline" onClick={() => { updateDetection(d.uuid, { reviewed: true }); toast.success('Ditandai sudah ditinjau'); }}><Check />Tandai sudah ditinjau</Button>}
-            {tb && <Button variant="outline" onClick={() => router.push(`/patients?from=${d.uuid}`)}><RouteIcon />Daftarkan ke pelacakan pasien</Button>}
+            <Button onClick={cek}><SpeakerLoudIcon />Cek Suara Batuk</Button>
+            {tb && !d.reviewed && <Button variant="outline" onClick={() => { updateDetection(d.uuid, { reviewed: true }); toast.success('Ditandai sudah ditinjau'); }}><CheckIcon />Tandai sudah ditinjau</Button>}
+            {tb && <Button variant="outline" onClick={() => router.push(`/patients?from=${d.uuid}`)}><TargetIcon />Daftarkan ke pelacakan pasien</Button>}
           </div>
         </div>
 

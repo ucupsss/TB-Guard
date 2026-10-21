@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { SquareCheck, SquareX, Wrench } from 'lucide-react';
+import { CheckCircledIcon, CrossCircledIcon, GearIcon } from '@radix-ui/react-icons';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -20,7 +20,7 @@ export function SectionHeader({ title, children, className }: { title: React.Rea
 }
 
 export function DeviceStatus({ status, className }: { status: DeviceStatus; className?: string }) {
-  const Icon = status === 'active' ? SquareCheck : status === 'inactive' ? SquareX : Wrench;
+  const Icon = status === 'active' ? CheckCircledIcon : status === 'inactive' ? CrossCircledIcon : GearIcon;
   return (
     <span className={cn('inline-flex items-center gap-1.5 whitespace-nowrap', status === 'active' ? 'text-success' : 'text-danger', className)}>
       <Icon className="h-4 w-4" />{statusLabel[status]}
