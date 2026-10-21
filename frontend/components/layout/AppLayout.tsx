@@ -2,9 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { MoonIcon } from '@radix-ui/react-icons';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Switch } from '@/components/ui/switch';
 import { Logo } from './Logo';
 import { SideMenu } from './SideMenu';
 import { TopBar, type Crumb } from './TopBar';
@@ -24,11 +22,11 @@ export function useDarkMode() {
   return [dark, setDark] as const;
 }
 
-function Brand({ rail }: { rail?: boolean }) {
+function Brand() {
   return (
-    <Link href="/" className={cn('flex items-center pt-4 text-white', rail && 'pl-4')}>
+    <Link href="/" className="flex items-center pt-5 pl-2 text-white transition hover:opacity-95">
       <Logo className="h-7 w-7 shrink-0" />
-      <span className={cn('ml-3 whitespace-nowrap text-lg font-medium', rail && 'side-label')}>TB Guard</span>
+      <span className="ml-3 whitespace-nowrap text-lg font-bold tracking-wide">TB Guard</span>
     </Link>
   );
 }
@@ -80,31 +78,34 @@ export function AppLayout({ crumbs, children }: { crumbs: Crumb[]; children: Rea
   // panel agen: kolom kanan di desktop, sheet di layar kecil
   const wide = useWide();
   const aw = useAgentWidth();
+
   return (
     <div className={cn('flex min-h-screen bg-shell', aw.dragging && 'cursor-col-resize select-none')}>
-      {/* sidebar: rel ikon saja, melebar saat di-hover (atau difokus keyboard) menimpa konten */}
-      <aside className="group/side relative hidden w-[84px] shrink-0 lg:block">
-        <div className="fixed inset-y-0 left-0 z-50 w-[84px] overflow-y-auto overflow-x-hidden bg-shell pb-10 pl-5 transition-[width,box-shadow] duration-200 ease-out group-hover/side:w-[250px] group-hover/side:shadow-2xl group-focus-within/side:w-[250px]">
-          <div className="pr-5"><Brand rail /></div>
-          <div className="my-6 mr-5 h-px bg-white/[0.08]" />
-          <SideMenu rail />
+      {/* sidebar desktop: solid & rapi, tidak menutupi atau meng-overlap konten */}
+      <aside className="relative hidden w-[240px] shrink-0 lg:block">
+        <div className="sticky top-0 flex h-screen w-[240px] flex-col overflow-y-auto overflow-x-hidden bg-shell pb-8 pl-4 pr-0">
+          <div className="pr-4"><Brand /></div>
+          <div className="my-5 mr-4 h-px bg-white/10" />
+          <div className="flex-1">
+            <SideMenu />
+          </div>
         </div>
       </aside>
 
       {/* menu ponsel */}
       <Sheet open={menu} onOpenChange={setMenu}>
         <SheetContent side="left" className="w-[280px] border-0 bg-shell p-0 pl-5 text-white">
-          <SheetTitle className="sr-only">Menu</SheetTitle>
+          <SheetTitle className="sr-only">Menu Navigasi</SheetTitle>
           <SheetDescription className="sr-only">Navigasi TB Guard</SheetDescription>
           <div className="pr-5"><Brand /></div>
-          <div className="my-6 mr-5 h-px bg-white/[0.08]" />
+          <div className="my-6 mr-5 h-px bg-white/10" />
           <SideMenu onNavigate={() => setMenu(false)} />
         </SheetContent>
       </Sheet>
 
       {/* panel konten */}
-      <main className="relative min-h-screen min-w-0 flex-1 bg-page px-4 pb-10 md:px-[22px] lg:my-3 lg:mr-3 lg:min-h-[calc(100vh-24px)] lg:rounded-shell">
-        <TopBar crumbs={crumbs} onMenu={() => setMenu(true)} />
+      <main className="relative min-h-screen min-w-0 flex-1 bg-page px-4 pb-10 md:px-6 lg:my-3 lg:mr-3 lg:min-h-[calc(100vh-24px)] lg:rounded-shell">
+        <TopBar crumbs={crumbs} onMenu={() => setMenu(true)} dark={dark} onToggleDark={() => setDark(!dark)} />
         {children}
       </main>
 
@@ -130,13 +131,6 @@ export function AppLayout({ crumbs, children }: { crumbs: Crumb[]; children: Rea
           <AgentPanel className="h-full" onClose={() => agent.setOpen(false)} />
         </SheetContent>
       </Sheet>
-
-      {/* tombol mode gelap, melayang seperti template */}
-      <label style={wide && agent.open ? { right: aw.w + 24 } : undefined} className="box fixed bottom-6 right-6 z-40 hidden h-12 cursor-pointer items-center gap-3 rounded-full border px-5 shadow-box-lg md:flex">
-        <MoonIcon className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground">Dark Mode</span>
-        <Switch checked={dark} onCheckedChange={setDark} aria-label="Mode gelap" />
-      </label>
     </div>
   );
 }

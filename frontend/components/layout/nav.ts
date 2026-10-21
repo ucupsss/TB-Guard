@@ -7,7 +7,7 @@ export interface NavItem { label: string; to?: string; icon: NavIcon; children?:
 
 export const NAV: (NavItem | 'divider')[] = [
   { label: 'Dashboard', to: '/', icon: DashboardIcon },
-  { label: 'Uji Suara Mic (Live)', to: '/live-test', icon: Mic },
+  { label: 'Uji Suara Mikrofon', to: '/live-test', icon: Mic },
   'divider',
   { label: 'Devices', icon: CubeIcon, children: [{ label: 'Device List', to: '/devices' }, { label: 'Add Device', to: '/devices/new' }] },
   { label: 'Data Batuk', icon: StackIcon, children: [

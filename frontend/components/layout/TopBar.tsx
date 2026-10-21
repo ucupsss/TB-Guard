@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BellIcon, ExitIcon, HamburgerMenuIcon, LockClosedIcon, MagicWandIcon, MagnifyingGlassIcon, PersonIcon, SpeakerLoudIcon } from '@radix-ui/react-icons';
+import { BellIcon, ExitIcon, HamburgerMenuIcon, LockClosedIcon, MagicWandIcon, MagnifyingGlassIcon, MoonIcon, PersonIcon, SpeakerLoudIcon, SunIcon } from '@radix-ui/react-icons';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 
 export interface Crumb { label: string; to?: string }
 
-export function TopBar({ crumbs, onMenu }: { crumbs: Crumb[]; onMenu: () => void }) {
+export function TopBar({ crumbs, onMenu, dark, onToggleDark }: { crumbs: Crumb[]; onMenu: () => void; dark?: boolean; onToggleDark?: () => void }) {
   const { user, detections, devices, patients, device, logout } = useStore();
   const router = useRouter();
   const agent = useAgent();
@@ -85,6 +85,19 @@ export function TopBar({ crumbs, onMenu }: { crumbs: Crumb[]; onMenu: () => void
           })}
         </PopoverContent>
       </Popover>
+
+      {/* toggle mode gelap */}
+      {onToggleDark && (
+        <button
+          type="button"
+          onClick={onToggleDark}
+          title={dark ? 'Beralih ke mode terang' : 'Beralih ke mode gelap'}
+          aria-label={dark ? 'Mode terang' : 'Mode gelap'}
+          className="mr-3 inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-200/60 dark:text-slate-300 dark:hover:bg-white/10"
+        >
+          {dark ? <SunIcon className="h-4 w-4 text-amber-400" /> : <MoonIcon className="h-4 w-4" />}
+        </button>
+      )}
 
       {/* agen AI */}
       <button type="button" onClick={agent.toggle} aria-pressed={agent.open} title="TB Guard Agent (Ctrl+I)"

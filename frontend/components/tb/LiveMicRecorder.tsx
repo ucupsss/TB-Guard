@@ -332,29 +332,29 @@ export function LiveMicRecorder() {
 
   return (
     <div className="box p-5 border border-primary/20 shadow-md">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/60 pb-4 dark:border-white/10">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/70 pb-4 dark:border-white/10">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-sm">
             <Mic className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-semibold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              Uji Deteksi Batuk TB Langsung (Mikrofon Laptop / Device)
+            <h3 className="font-semibold text-sm sm:text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              Perekam Akustik Batuk (Edge Input)
               <Badge variant="soft-primary" className="text-[11px] gap-1 font-medium">
                 <Sparkles className="h-3 w-3 text-primary" /> Live AI Engine
               </Badge>
             </h3>
             <p className="text-xs text-muted-foreground">
-              Rekam suara batuk secara langsung dari mic laptop Anda untuk mengidentifikasi kecocokan pola akustik TB vs Sehat.
+              Sampling 16.000 Hz · Deteksi otomatis komponen glotis batuk TB vs Non-TB
             </p>
           </div>
         </div>
 
         {/* Volume Level indicator */}
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex items-center gap-2.5 rounded-full border border-slate-200/80 bg-slate-50/80 px-3 py-1.5 text-xs dark:border-white/10 dark:bg-slate-800/50">
           <Volume2 className="h-4 w-4 text-muted-foreground" />
-          <span className="text-muted-foreground">Sensitivitas Mic:</span>
-          <div className="w-20 h-2 bg-slate-200 rounded-full overflow-hidden dark:bg-slate-800">
+          <span className="text-muted-foreground text-[11px]">Level Mic:</span>
+          <div className="w-20 h-2 bg-slate-200 rounded-full overflow-hidden dark:bg-slate-700">
             <div
               className={cn(
                 'h-full transition-all duration-75',
@@ -363,6 +363,9 @@ export function LiveMicRecorder() {
               style={{ width: `${volumeLevel}%` }}
             />
           </div>
+          <span className="text-[11px] font-mono font-medium text-slate-600 dark:text-slate-300 w-7 text-right">
+            {volumeLevel}%
+          </span>
         </div>
       </div>
 
@@ -591,14 +594,37 @@ export function LiveMicRecorder() {
               </div>
             </div>
           ) : (
-            <div className="h-full min-h-[260px] rounded-xl border border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center p-6 text-center dark:border-slate-800 dark:bg-slate-900/30">
-              <Activity className="h-10 w-10 text-slate-300 mb-2 dark:text-slate-700" />
-              <h4 className="font-medium text-sm text-slate-700 dark:text-slate-300">
-                Hasil Klasifikasi Batuk Akan Muncul di Sini
-              </h4>
-              <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-                Klik tombol "Mulai Rekam Batuk" di sebelah kiri untuk menguji rekaman langsung mikrofon Anda.
-              </p>
+            <div className="h-full min-h-[290px] rounded-xl border border-dashed border-slate-200 bg-gradient-to-b from-slate-50/70 to-slate-100/30 p-6 flex flex-col justify-center dark:border-slate-800 dark:from-slate-900/40 dark:to-slate-900/10">
+              <div className="text-center mb-5">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary dark:bg-white/10 dark:text-blue-300">
+                  <Activity className="h-6 w-6" />
+                </div>
+                <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-100">
+                  Menunggu Sinyal Rekaman Audio
+                </h4>
+                <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                  Tekan tombol "Mulai Rekam Batuk" di sebelah kiri untuk memproses gelombang audio mikrofon Anda secara real-time.
+                </p>
+              </div>
+
+              {/* 3 Step Interactive Workflow Preview */}
+              <div className="grid grid-cols-3 gap-2.5 pt-4 border-t border-slate-200/60 dark:border-white/10 text-left">
+                <div className="rounded-lg bg-white/80 p-2.5 border border-slate-200/60 shadow-sm dark:bg-slate-800/40 dark:border-white/5">
+                  <span className="text-[10px] font-bold text-primary dark:text-blue-400">01. CAPTURE</span>
+                  <div className="text-xs font-medium text-slate-800 dark:text-slate-200 mt-0.5">3s Audio Mono</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">Resampling 16 kHz</div>
+                </div>
+                <div className="rounded-lg bg-white/80 p-2.5 border border-slate-200/60 shadow-sm dark:bg-slate-800/40 dark:border-white/5">
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">02. TRANSFORM</span>
+                  <div className="text-xs font-medium text-slate-800 dark:text-slate-200 mt-0.5">CWT Morlet</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">Matriks 224×224</div>
+                </div>
+                <div className="rounded-lg bg-white/80 p-2.5 border border-slate-200/60 shadow-sm dark:bg-slate-800/40 dark:border-white/5">
+                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">03. TRIAGE</span>
+                  <div className="text-xs font-medium text-slate-800 dark:text-slate-200 mt-0.5">Prediksi & LLM</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">Skor & Rekomendasi</div>
+                </div>
+              </div>
             </div>
           )}
         </div>
