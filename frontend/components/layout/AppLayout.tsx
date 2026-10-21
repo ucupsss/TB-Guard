@@ -14,7 +14,6 @@ import { cn } from '@/lib/utils';
 
 export function useDarkMode() {
   const [dark, setDarkState] = React.useState(false);
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- kelas dark baru diketahui setelah mount (SSR)
   React.useEffect(() => { setDarkState(document.documentElement.classList.contains('dark')); }, []);
   const setDark = React.useCallback((v: boolean) => {
     setDarkState(v);
@@ -24,11 +23,11 @@ export function useDarkMode() {
   return [dark, setDark] as const;
 }
 
-function Brand() {
+function Brand({ rail }: { rail?: boolean }) {
   return (
-    <Link href="/" className="flex items-center pt-5 pl-2 text-white transition hover:opacity-95">
+    <Link href="/" className={cn('flex items-center pt-4 text-white', rail && 'pl-4')}>
       <Logo className="h-7 w-7 shrink-0" />
-      <span className="ml-3 whitespace-nowrap text-lg font-bold tracking-wide">TB Guard</span>
+      <span className={cn('ml-3 whitespace-nowrap text-lg font-medium', rail && 'side-label')}>TB Guard</span>
     </Link>
   );
 }
@@ -47,7 +46,6 @@ function useAgentWidth() {
   const [w, setW] = React.useState(400);
   const [dragging, setDragging] = React.useState(false);
   React.useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage baru bisa dibaca setelah mount (SSR)
     try { const v = Number(localStorage.getItem(AGENT_W_KEY)); if (v) setW(Math.min(Math.max(v, AGENT_MIN), agentMax())); } catch { /* abaikan */ }
   }, []);
   const save = (v: number) => { try { localStorage.setItem(AGENT_W_KEY, String(Math.round(v))); } catch { /* abaikan */ } };
@@ -76,21 +74,24 @@ function useAgentWidth() {
 export function AppLayout({ crumbs, children }: { crumbs: Crumb[]; children: React.ReactNode }) {
   const [menu, setMenu] = React.useState(false);
   const [dark, setDark] = useDarkMode();
+  const [mounted, setMounted] = React.useState(false);
   const agent = useAgent();
   // panel agen: kolom kanan di desktop, sheet di layar kecil
   const wide = useWide();
   const aw = useAgentWidth();
 
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
-    <div className={cn('flex min-h-screen bg-shell', aw.dragging && 'cursor-col-resize select-none')}>
-      {/* sidebar desktop: solid & rapi, tidak menutupi atau meng-overlap konten */}
-      <aside className="relative hidden w-[240px] shrink-0 lg:block">
-        <div className="sticky top-0 flex h-screen w-[240px] flex-col overflow-y-auto overflow-x-hidden bg-shell pb-8 pl-4 pr-0">
-          <div className="pr-4"><Brand /></div>
-          <div className="my-5 mr-4 h-px bg-white/10" />
-          <div className="flex-1">
-            <SideMenu />
-          </div>
+    <div className={cn('flex min-h-screen bg-shell', aw.dragging && 'cursor-col-resize select-none')} suppressHydrationWarning>
+      {/* sidebar desktop: rel ikon kecil (84px), baru muncul teks saat di-hover (250px) */}
+      <aside className="group/side relative hidden w-[84px] shrink-0 lg:block">
+        <div className="sidebar-rail fixed inset-y-0 left-0 z-50 overflow-y-auto overflow-x-hidden bg-shell pb-10 pl-5">
+          <div className="pr-5"><Brand rail /></div>
+          <div className="my-6 mr-5 h-px bg-white/[0.08]" />
+          <SideMenu rail />
         </div>
       </aside>
 
@@ -114,13 +115,13 @@ export function AppLayout({ crumbs, children }: { crumbs: Crumb[]; children: Rea
       </Sheet>
 
       {/* panel konten */}
-      <main className="relative min-h-screen min-w-0 flex-1 bg-page px-4 pb-10 md:px-6 lg:my-3 lg:mr-3 lg:min-h-[calc(100vh-24px)] lg:rounded-shell">
+      <main className="relative min-h-screen min-w-0 flex-1 bg-page px-4 pb-10 md:px-[22px] lg:my-3 lg:mr-3 lg:min-h-[calc(100vh-24px)] lg:rounded-shell">
         <TopBar crumbs={crumbs} onMenu={() => setMenu(true)} dark={dark} onToggleDark={() => setDark(!dark)} />
         {children}
       </main>
 
       {/* panel agen (desktop) */}
-      {wide && agent.open && (
+      {mounted && wide && agent.open && (
         <aside aria-label="TB Guard Agent" style={{ width: aw.w }} className="sticky top-3 my-3 mr-3 h-[calc(100vh-24px)] shrink-0 rounded-shell bg-page">
           {/* pegangan geser lebar; klik ganda untuk kembali ke lebar awal */}
           <div role="separator" aria-orientation="vertical" aria-label="Ubah lebar panel agen" aria-valuenow={aw.w} tabIndex={0}
@@ -134,13 +135,15 @@ export function AppLayout({ crumbs, children }: { crumbs: Crumb[]; children: Rea
         </aside>
       )}
       {/* panel agen (ponsel / tablet) */}
-      <Sheet open={!wide && agent.open} onOpenChange={agent.setOpen}>
-        <SheetContent side="right" className="flex w-full flex-col overflow-hidden bg-page p-0 sm:max-w-md [&>button:last-child]:hidden">
-          <SheetTitle className="sr-only">TB Guard Agent</SheetTitle>
-          <SheetDescription className="sr-only">Chat agen untuk mengelola data TB Guard</SheetDescription>
-          <AgentPanel className="h-full" onClose={() => agent.setOpen(false)} />
-        </SheetContent>
-      </Sheet>
+      {mounted && !wide && (
+        <Sheet open={agent.open} onOpenChange={agent.setOpen}>
+          <SheetContent side="right" className="flex w-full flex-col overflow-hidden bg-page p-0 sm:max-w-md [&>button:last-child]:hidden">
+            <SheetTitle className="sr-only">TB Guard Agent</SheetTitle>
+            <SheetDescription className="sr-only">Chat agen untuk mengelola data TB Guard</SheetDescription>
+            <AgentPanel className="h-full" onClose={() => agent.setOpen(false)} />
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 }

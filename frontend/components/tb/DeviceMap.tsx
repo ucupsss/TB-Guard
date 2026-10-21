@@ -20,8 +20,9 @@ export function DeviceMap({ devices, detections, className }: { devices: Device[
     if (!alive || !el.current || map.current) return;
     lib.current = L;
     map.current = L.map(el.current, { zoomControl: true, attributionControl: true, scrollWheelZoom: false }).setView([-7.272, 112.772], 13);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19, attribution: '&copy; OpenStreetMap &copy; CARTO',
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
     }).addTo(map.current);
     layer.current = L.layerGroup().addTo(map.current);
     setReady(true);

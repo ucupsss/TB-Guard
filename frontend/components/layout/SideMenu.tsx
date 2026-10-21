@@ -8,23 +8,34 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { cn } from '@/lib/utils';
 import { NAV, isActive, type NavItem } from './nav';
 
-function Group({ item, path, onNavigate }: { item: NavItem; path: string; onNavigate?: () => void }) {
+function Group({ item, path, rail, onNavigate }: { item: NavItem; path: string; rail?: boolean; onNavigate?: () => void }) {
   const active = isActive(item, path);
-  const [open, setOpen] = React.useState(active);
-  React.useEffect(() => { if (active) setOpen(true); }, [active]);
+  const [open, setOpen] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+    if (active) {
+      setOpen(true);
+    }
+  }, [active]);
+
+  const isOpen = mounted ? open : false;
   const Icon = item.icon;
+
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className={cn('side-menu w-full text-left pr-4', active && 'side-menu--active')}>
+    <Collapsible open={isOpen} onOpenChange={setOpen}>
+      <CollapsibleTrigger className={cn('side-menu w-full text-left', active && 'side-menu--active')}>
         <Icon className="mr-3 h-5 w-5 shrink-0" />
-        <span className="flex-1 truncate">{item.label}</span>
-        <ChevronDownIcon className={cn('h-4 w-4 shrink-0 transition-transform', open && 'rotate-180')} />
+        <span className={cn('flex-1 whitespace-nowrap', rail && 'side-label')}>{item.label}</span>
+        <ChevronDownIcon className={cn('mr-5 h-4 w-4 shrink-0 transition-transform duration-200', isOpen && 'rotate-180', rail && 'side-label')} />
       </CollapsibleTrigger>
-      <CollapsibleContent className="side-sub mr-4 data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+      {/* mode rel: sub-menu hanya tampil saat sidebar melebar */}
+      <CollapsibleContent className={cn('side-sub mr-5 data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down', rail && 'side-rail-sub')}>
         {item.children!.map((c) => (
           <Link key={c.to} href={c.to} onClick={onNavigate} className={cn(path === c.to && 'on')}>
             <DotFilledIcon className={cn('h-4 w-4 shrink-0', path !== c.to && 'opacity-50')} />
-            <span className="truncate">{c.label}</span>
+            <span className="whitespace-nowrap">{c.label}</span>
           </Link>
         ))}
       </CollapsibleContent>
@@ -32,19 +43,21 @@ function Group({ item, path, onNavigate }: { item: NavItem; path: string; onNavi
   );
 }
 
-export function SideMenu({ onNavigate }: { onNavigate?: () => void; rail?: boolean }) {
+/** `rail`: sidebar desktop yang hanya menampilkan ikon sampai di-hover */
+export function SideMenu({ rail, onNavigate }: { rail?: boolean; onNavigate?: () => void }) {
   const pathname = usePathname() || '/';
+
   return (
-    <nav aria-label="Menu utama" className="space-y-0.5">
+    <nav aria-label="Menu utama" className="space-y-0.5" suppressHydrationWarning>
       {NAV.map((item, i) => {
-        if (item === 'divider') return <div key={i} className="my-5 mr-4 h-px bg-white/10" />;
-        if (item.children) return <Group key={item.label} item={item} path={pathname} onNavigate={onNavigate} />;
+        if (item === 'divider') return <div key={i} className="my-6 mr-5 h-px bg-white/[0.08]" />;
+        if (item.children) return <Group key={item.label} item={item} path={pathname} rail={rail} onNavigate={onNavigate} />;
         const Icon = item.icon;
         const active = isActive(item, pathname);
         return (
-          <Link key={item.label} href={item.to!} onClick={onNavigate} className={cn('side-menu pr-4', active && 'side-menu--active')} aria-current={active ? 'page' : undefined}>
+          <Link key={item.label} href={item.to!} onClick={onNavigate} className={cn('side-menu', active && 'side-menu--active')} aria-current={active ? 'page' : undefined}>
             <Icon className="mr-3 h-5 w-5 shrink-0" />
-            <span className="truncate">{item.label}</span>
+            <span className={cn('whitespace-nowrap', rail && 'side-label')}>{item.label}</span>
           </Link>
         );
       })}

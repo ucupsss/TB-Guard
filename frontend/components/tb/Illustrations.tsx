@@ -1,23 +1,15 @@
 'use client';
 
-/* ilustrasi orisinal untuk dua kartu promo di dashboard */
+import { cn } from '@/lib/utils';
+
+/* ilustrasi untuk dua kartu promo di dashboard */
 export function NurseIllustration({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 220 180" className={className} aria-hidden="true">
-      <ellipse cx="120" cy="170" rx="80" ry="8" fill="#000" opacity=".15" />
-      <circle cx="132" cy="38" r="20" fill="#1a1f36" />
-      <circle cx="128" cy="44" r="15" fill="#f2c4a8" />
-      <path d="M104 64c10-6 40-6 52 2l10 46-18 6-4 50h-32l-2-50-18-6z" fill="#dfe8fb" />
-      <path d="M118 66h28l-4 22h-20z" fill="#fff" />
-      <path d="M130 70v14M123 77h14" stroke="#D32929" strokeWidth="4" strokeLinecap="round" />
-      <path d="M156 72l30-24" stroke="#f2c4a8" strokeWidth="9" strokeLinecap="round" />
-      <path d="M104 72l-26 22" stroke="#f2c4a8" strokeWidth="9" strokeLinecap="round" />
-      <rect x="176" y="22" width="34" height="44" rx="4" fill="#fff" transform="rotate(14 193 44)" />
-      <path d="M184 34h18M184 42h18M184 50h12" stroke="#93b4f5" strokeWidth="3" transform="rotate(14 193 44)" />
-      <path d="M112 168v-40h14v40zM136 168v-40h14v40z" fill="#1a1f36" />
-      <path d="M48 120c-10-16-6-38 10-46" stroke="#fff" strokeOpacity=".5" strokeWidth="3" fill="none" />
-      <path d="M34 128c-16-24-10-56 14-68" stroke="#fff" strokeOpacity=".3" strokeWidth="3" fill="none" />
-    </svg>
+    <img
+      src="/images/nurse.png"
+      alt="Perawat TB-Guard"
+      className={cn('object-contain object-bottom pointer-events-none select-none', className)}
+    />
   );
 }
 

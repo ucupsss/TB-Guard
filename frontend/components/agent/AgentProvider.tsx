@@ -94,7 +94,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
         const ev = JSON.parse(line);
         if (ev.type === 'reasoning') appendDelta(turnId, 'reasoning', ev.delta);
         else if (ev.type === 'content') appendDelta(turnId, 'text', ev.delta);
-        else if (ev.type === 'wait') patch(turnId, (t) => ({ ...t, notice: `Kuota Groq per menit habis, melanjutkan dalam ${ev.seconds} detik…` }));
+        else if (ev.type === 'wait') patch(turnId, (t) => ({ ...t, notice: `Menunggu kuota pulih, melanjutkan dalam ${ev.seconds} detik…` }));
         else if (ev.type === 'error') throw new Error(ev.error);
         else if (ev.type === 'done') { patch(turnId, (t) => (t.notice ? { ...t, notice: undefined } : t)); return ev.message; }
       }

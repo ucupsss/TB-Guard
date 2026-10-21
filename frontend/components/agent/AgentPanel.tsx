@@ -194,7 +194,7 @@ export function AgentPanel({ className, onClose }: { className?: string; onClose
         <div className="min-w-0 flex-1">
           <div className="font-medium leading-tight">TB Guard Agent</div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className={cn('h-1.5 w-1.5 rounded-full', running ? 'animate-pulse bg-pending' : 'bg-success')} />{running ? 'Sedang bekerja…' : 'Siap · Groq Qwen3'}
+            <span className={cn('h-1.5 w-1.5 rounded-full', running ? 'animate-pulse bg-pending' : 'bg-success')} />{running ? 'Sedang bekerja…' : 'Siap · Gemini 2.5 Flash'}
           </div>
         </div>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { stopSpeaking(); reset(); }} title="Percakapan baru" aria-label="Percakapan baru"><PlusIcon /></Button>

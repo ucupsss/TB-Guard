@@ -4,7 +4,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
-  --font-sans: Poppins, ui-sans-serif, system-ui, sans-serif;
+  --font-sans: Roboto, ui-sans-serif, system-ui, sans-serif;
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
@@ -100,7 +100,7 @@
   }
   * { @apply border-border; }
   html { font-size: 14px; }
-  body { @apply bg-shell text-foreground antialiased; font-family: Poppins, ui-sans-serif, system-ui, sans-serif; }
+  body { @apply bg-shell text-foreground antialiased; font-family: Roboto, ui-sans-serif, system-ui, sans-serif; }
   .num { font-variant-numeric: tabular-nums; }
 }
 
@@ -113,22 +113,53 @@
   @media (prefers-reduced-motion: reduce) { .intro-y { animation: none; } }
 
   /* menu sidebar: item aktif "menyatu" ke panel konten dengan lekukan atas & bawah */
-  .side-menu { @apply relative mb-1 flex h-[50px] items-center rounded-l-full pl-5 text-white/80 transition-all cursor-pointer; }
-  .side-menu:not(.side-menu--active):hover { @apply bg-white/10 text-white pl-6; }
-  .side-menu--active, .side-menu--active:hover { @apply bg-page text-primary font-semibold shadow-none; }
-  .dark .side-menu--active, .dark .side-menu--active:hover { @apply bg-page text-white font-semibold shadow-none; }
+  .side-menu { @apply relative mb-1 flex h-[50px] items-center rounded-l-full pl-5 text-white/85 transition-colors cursor-pointer; }
+  .side-menu:hover { @apply text-white; }
+  .side-menu--active { @apply bg-page text-foreground; }
   .side-menu--active::before, .side-menu--active::after {
     content: ''; position: absolute; right: 0; width: 30px; height: 30px; pointer-events: none;
   }
   .side-menu--active::before { top: -30px; border-bottom-right-radius: 15px; box-shadow: 15px 15px 0 15px hsl(var(--page)); }
   .side-menu--active::after { bottom: -30px; border-top-right-radius: 15px; box-shadow: 15px -15px 0 15px hsl(var(--page)); }
-  .side-menu--open { @apply bg-white/10 text-white; }
-  .side-sub { @apply mb-2 mt-1 mr-5 overflow-hidden rounded-xl bg-black/15 py-1.5; }
-  .side-sub a { @apply mx-2 my-0.5 flex h-[38px] items-center gap-3 rounded-lg px-4 text-white/75 transition-colors hover:bg-white/10 hover:text-white cursor-pointer; }
-  .side-sub a.on { @apply bg-white/20 font-semibold text-white; }
-  /* sidebar rel (hover only): label & sub-menu disembunyikan sampai sidebar di-hover / difokus */
-  .side-label { @apply opacity-0 transition-opacity duration-150 group-hover/side:opacity-100 group-focus-within/side:opacity-100; }
-  .group\/side:not(:hover):not(:focus-within) .side-rail-sub { display: none; }
+  .side-menu--open { @apply bg-black/10 text-white; }
+  .side-sub { @apply mb-1 overflow-hidden rounded-xl bg-black/10; }
+  .side-sub a { @apply flex h-[44px] items-center gap-3 pl-9 text-white/75 hover:text-white; }
+  /* sidebar rel: awalnya hanya ikon kecil (84px), baru muncul teks saat di-hover (250px) */
+  .sidebar-rail {
+    width: 84px;
+    transition: width 200ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .group\/side:hover .sidebar-rail,
+  .group\/side:focus-within .sidebar-rail,
+  aside:hover .sidebar-rail,
+  aside:focus-within .sidebar-rail {
+    width: 250px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  }
+
+  .side-label {
+    opacity: 0;
+    transition: opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .group\/side:hover .side-label,
+  .group\/side:focus-within .side-label,
+  aside:hover .side-label,
+  aside:focus-within .side-label {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .side-rail-sub {
+    display: none;
+  }
+  .group\/side:hover .side-rail-sub,
+  .group\/side:focus-within .side-rail-sub,
+  aside:hover .side-rail-sub,
+  aside:focus-within .side-rail-sub {
+    display: block;
+  }
 
   /* jawaban agen (markdown) */
   .agent-md { @apply text-sm leading-relaxed break-words; }

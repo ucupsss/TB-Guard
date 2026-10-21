@@ -1,144 +1,302 @@
-/* Proxy agen ke Groq. API key hanya ada di server (.env → GROQ_API_KEY).
-   Client mengirim riwayat pesan; server menambah system prompt + definisi tool, lalu men-stream
-   balik event NDJSON: {type:'reasoning'|'content', delta} … {type:'wait', seconds} … {type:'done', message} atau {type:'error', error}.
-   Kuota Groq gratis dihitung per menit (ITPM ~7rb token), jadi riwayat dipangkas ke anggaran token
-   dan error 413/429 ditangani: pangkas lebih ketat atau tunggu kuota pulih lalu ulangi. */
-import Groq from 'groq-sdk';
-import type { ChatCompletionMessageParam, ChatCompletionMessageToolCall } from 'groq-sdk/resources/chat/completions';
-import { TOOL_SCHEMAS } from '@/lib/agent/tools';
+/* Proxy agen AI bertenaga Google Gemini 2.5 Flash.
+   Client mengirim riwayat pesan; server menambah system prompt + definisi tool Gemini,
+   lalu men-stream balik event NDJSON: {type:'reasoning'|'content', delta} ... {type:'done', message} atau {type:'error', error}. */
+
+import { TOOLS } from '@/lib/agent/tools';
 import { systemPrompt, type AgentContext } from '@/lib/agent/prompt';
 
-const MODEL = process.env.GROQ_MODEL || 'qwen/qwen3.8-27b';
-/** anggaran token untuk riwayat pesan (di luar system prompt + tool), bisa dinaikkan bila tier Groq lebih besar */
-const HISTORY_BUDGET = Number(process.env.GROQ_HISTORY_TOKENS) || 2500;
-const MAX_WAIT_S = 45;
+const API_KEY = process.env.GEMINI_API_KEY;
+const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
-interface InMessage { role: string; content?: unknown; tool_calls?: ChatCompletionMessageToolCall[]; tool_call_id?: string }
+interface InToolCall {
+  id: string;
+  type: 'function';
+  function: { name: string; arguments: string };
+}
 
-/** perkiraan kasar token (teks Indonesia/JSON ≈ 3 karakter per token) */
-const est = (m: ChatCompletionMessageParam) => Math.ceil((JSON.stringify(m).length) / 3) + 8;
-const cut = (s: string, n: number) => (s.length > n ? s.slice(0, n) + '…[dipotong]' : s);
+interface InMessage {
+  role: 'user' | 'assistant' | 'tool' | 'system';
+  content?: string;
+  tool_calls?: InToolCall[];
+  tool_call_id?: string;
+}
 
-function parse(raw: unknown): ChatCompletionMessageParam[] {
-  if (!Array.isArray(raw)) return [];
-  const out: ChatCompletionMessageParam[] = [];
-  for (const m of raw as InMessage[]) {
-    const content = typeof m.content === 'string' ? m.content.slice(0, 20000) : '';
-    if (m.role === 'user') out.push({ role: 'user', content });
-    else if (m.role === 'assistant') out.push(m.tool_calls?.length ? { role: 'assistant', content, tool_calls: m.tool_calls } : { role: 'assistant', content });
-    else if (m.role === 'tool' && m.tool_call_id) out.push({ role: 'tool', tool_call_id: m.tool_call_id, content });
+/** Bersihkan skema parameter agar valid 100% untuk Google Gemini Tool API */
+function cleanSchema(schema: unknown): Record<string, unknown> {
+  if (!schema || typeof schema !== 'object') return {};
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(schema as Record<string, unknown>)) {
+    if (k === 'type') {
+      if (Array.isArray(v)) {
+        const types = v.map((t) => String(t).toUpperCase());
+        if (types.includes('NULL')) {
+          const nonNull = types.find((t) => t !== 'NULL') || 'STRING';
+          out.type = nonNull;
+          out.nullable = true;
+        } else {
+          out.type = types[0];
+        }
+      } else {
+        out.type = String(v).toUpperCase();
+      }
+    } else if (k === 'properties' && v && typeof v === 'object') {
+      const props: Record<string, unknown> = {};
+      for (const [propName, propVal] of Object.entries(v as Record<string, unknown>)) {
+        props[propName] = cleanSchema(propVal);
+      }
+      out.properties = props;
+    } else if (k === 'items') {
+      out.items = cleanSchema(v);
+    } else if (k === 'enum' && Array.isArray(v)) {
+      const filtered = v.filter((x) => x !== null && x !== undefined && String(x).trim() !== '').map(String);
+      if (filtered.length > 0) out.enum = filtered;
+    } else {
+      out[k] = v;
+    }
   }
   return out;
 }
 
-/** muatkan riwayat ke anggaran token: hasil tool lama diringkas, giliran lama dibuang di batas pesan user
-    (pasangan tool_call/tool tetap utuh), hasil tool giliran ini dipotong bila masih terlalu besar */
-function fit(msgs: ChatCompletionMessageParam[], budget: number): ChatCompletionMessageParam[] {
-  const lastUser = msgs.map((m) => m.role).lastIndexOf('user');
-  let out = msgs.map((m, i) => (m.role === 'tool' ? { ...m, content: cut(String(m.content), i < lastUser ? 300 : 4000) } : m));
-  const total = () => out.reduce((n, m) => n + est(m), 0);
-  while (total() > budget) {
-    const next = out.findIndex((m, i) => i > 0 && m.role === 'user');
-    if (next < 0) break;
-    out = out.slice(next);
-  }
-  for (const n of [2000, 1000, 500]) {
-    if (total() <= budget) break;
-    out = out.map((m) => (m.role === 'tool' ? { ...m, content: cut(String(m.content), n) } : m));
-  }
-  return out;
-}
-
-type GroqErr = { status?: number; message?: string; headers?: unknown; error?: { error?: { code?: string; message?: string } } };
-
-/** detik tunggu dari header retry-after atau teks "try again in 7.66s" */
-function retryAfter(err: GroqErr) {
-  const h = err.headers as { get?: (k: string) => string | null } & Record<string, string> | undefined;
-  const v = Number(h?.get?.('retry-after') ?? h?.['retry-after']);
-  if (v > 0) return Math.ceil(v);
-  const m = /try again in (?:(\d+)m)?([\d.]+)s/i.exec(err.error?.error?.message || err.message || '');
-  return m ? Math.ceil(Number(m[1] || 0) * 60 + Number(m[2])) : 0;
-}
-
-const sleep = (ms: number, signal: AbortSignal) => new Promise<void>((r) => { const t = setTimeout(r, ms); signal.addEventListener('abort', () => { clearTimeout(t); r(); }, { once: true }); });
+const functionDeclarations = TOOLS.map((t) => ({
+  name: t.name,
+  description: t.description,
+  parameters: cleanSchema(t.parameters),
+}));
 
 export async function POST(req: Request) {
-  if (!process.env.GROQ_API_KEY) return Response.json({ error: 'GROQ_API_KEY belum diatur di frontend/.env' }, { status: 500 });
-  let body: { messages?: unknown; context?: AgentContext };
-  try { body = await req.json(); } catch { return Response.json({ error: 'Body bukan JSON' }, { status: 400 }); }
-  const all = parse(body.messages);
-  if (!all.length) return Response.json({ error: 'Pesan kosong' }, { status: 400 });
+  if (!API_KEY) {
+    return Response.json({ error: 'GEMINI_API_KEY belum dikonfigurasi.' }, { status: 500 });
+  }
 
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY, maxRetries: 0 });
+  let body: { messages?: InMessage[]; context?: AgentContext };
+  try {
+    body = await req.json();
+  } catch {
+    return Response.json({ error: 'Body bukan JSON' }, { status: 400 });
+  }
+
+  const rawMsgs = Array.isArray(body.messages) ? body.messages : [];
+  if (!rawMsgs.length) {
+    return Response.json({ error: 'Pesan kosong' }, { status: 400 });
+  }
+
+  // Peta ID tool call -> nama fungsi agar respons tool dapat dipasangkan dengan tepat
+  const toolNameMap = new Map<string, string>();
+  for (const m of rawMsgs) {
+    if (m.tool_calls) {
+      for (const tc of m.tool_calls) {
+        if (tc.id && tc.function?.name) {
+          toolNameMap.set(tc.id, tc.function.name);
+        }
+      }
+    }
+  }
+
+  // Format pesan ke format `contents` Google Gemini API
+  type GeminiPart =
+    | { text: string; thought?: boolean }
+    | { functionCall: { name: string; args: Record<string, unknown> } }
+    | { functionResponse: { name: string; response: Record<string, unknown> } };
+
+  interface GeminiContent {
+    role: 'user' | 'model';
+    parts: GeminiPart[];
+  }
+
+  const contents: GeminiContent[] = [];
+
+  for (const m of rawMsgs) {
+    if (m.role === 'user') {
+      contents.push({
+        role: 'user',
+        parts: [{ text: typeof m.content === 'string' ? m.content : '' }],
+      });
+    } else if (m.role === 'assistant') {
+      const parts: GeminiPart[] = [];
+      if (typeof m.content === 'string' && m.content) {
+        parts.push({ text: m.content });
+      }
+      if (m.tool_calls?.length) {
+        for (const tc of m.tool_calls) {
+          let parsedArgs = {};
+          try {
+            parsedArgs = JSON.parse(tc.function.arguments || '{}');
+          } catch {
+            parsedArgs = {};
+          }
+          parts.push({
+            functionCall: {
+              name: tc.function.name,
+              args: parsedArgs,
+            },
+          });
+        }
+      }
+      if (parts.length > 0) {
+        contents.push({ role: 'model', parts });
+      }
+    } else if (m.role === 'tool' && m.tool_call_id) {
+      const fnName = toolNameMap.get(m.tool_call_id) || 'tool';
+      let parsedResponse: Record<string, unknown> = {};
+      try {
+        parsedResponse = typeof m.content === 'string' ? JSON.parse(m.content) : m.content;
+      } catch {
+        parsedResponse = { output: m.content };
+      }
+
+      const responsePart: GeminiPart = {
+        functionResponse: {
+          name: fnName,
+          response: { result: parsedResponse },
+        },
+      };
+
+      // Jika pesan terakhir di contents sudah ber-role 'user', gabungkan functionResponse ke dalamnya
+      const last = contents[contents.length - 1];
+      if (last && last.role === 'user') {
+        last.parts.push(responsePart);
+      } else {
+        contents.push({
+          role: 'user',
+          parts: [responsePart],
+        });
+      }
+    }
+  }
+
+  // Siapkan payload request ke Gemini
+  const sysText = systemPrompt(body.context || {});
+  const payload = {
+    systemInstruction: {
+      parts: [{ text: sysText }],
+    },
+    contents,
+    tools: [
+      {
+        functionDeclarations,
+      },
+    ],
+    generationConfig: {
+      temperature: 0.5,
+      maxOutputTokens: 2048,
+    },
+  };
+
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:streamGenerateContent?key=${API_KEY}&alt=sse`;
+
   const enc = new TextEncoder();
-
   const stream = new ReadableStream({
     async start(ctl) {
       const send = (e: object) => ctl.enqueue(enc.encode(JSON.stringify(e) + '\n'));
-      let budget = HISTORY_BUDGET;
-      let toolRetries = 2;
-      let fix: ChatCompletionMessageParam[] = [];
-      for (let attempt = 0; attempt < 5; attempt++) {
-        let content = '';
-        const calls: ChatCompletionMessageToolCall[] = [];
-        try {
-          const completion = await groq.chat.completions.create({
-            model: MODEL,
-            messages: [{ role: 'system', content: systemPrompt(body.context || {}) }, ...fit(all, budget), ...fix],
-            tools: TOOL_SCHEMAS,
-            tool_choice: 'auto',
-            temperature: 0.6,
-            top_p: 0.95,
-            max_completion_tokens: 2048,
-            reasoning_effort: 'default',
-            reasoning_format: 'parsed',
-            stream: true,
-          }, { signal: req.signal });
-          for await (const chunk of completion) {
-            const d = chunk.choices[0]?.delta;
-            if (!d) continue;
-            if (d.reasoning) send({ type: 'reasoning', delta: d.reasoning });
-            if (d.content) { content += d.content; send({ type: 'content', delta: d.content }); }
-            for (const tc of d.tool_calls ?? []) {
-              const c = (calls[tc.index] ??= { id: '', type: 'function', function: { name: '', arguments: '' } });
-              if (tc.id) c.id = tc.id;
-              if (tc.function?.name) c.function.name += tc.function.name;
-              if (tc.function?.arguments) c.function.arguments += tc.function.arguments;
+
+      try {
+        const response = await fetch(geminiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: req.signal,
+        });
+
+        if (!response.ok) {
+          const errText = await response.text();
+          let parsedErr = errText;
+          try {
+            const j = JSON.parse(errText);
+            parsedErr = j.error?.message || errText;
+          } catch {
+            // abaikan
+          }
+          send({ type: 'error', error: `Gemini API Error (${response.status}): ${parsedErr}` });
+          ctl.close();
+          return;
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          send({ type: 'error', error: 'Response stream tidak tersedia' });
+          ctl.close();
+          return;
+        }
+
+        const dec = new TextDecoder();
+        let buffer = '';
+        let fullContent = '';
+        const collectedCalls: InToolCall[] = [];
+
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += dec.decode(value, { stream: true });
+
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith('data:')) continue;
+            const jsonStr = trimmed.slice(5).trim();
+            if (!jsonStr) continue;
+
+            try {
+              const data = JSON.parse(jsonStr);
+              const candidate = data.candidates?.[0];
+              const parts = candidate?.content?.parts;
+
+              if (Array.isArray(parts)) {
+                for (const part of parts) {
+                  // Text streaming
+                  if (typeof part.text === 'string' && part.text) {
+                    if (part.thought) {
+                      send({ type: 'reasoning', delta: part.text });
+                    } else {
+                      fullContent += part.text;
+                      send({ type: 'content', delta: part.text });
+                    }
+                  }
+
+                  // Function/Tool Call detection
+                  if (part.functionCall) {
+                    const callId = 'call_' + Math.random().toString(36).slice(2, 10);
+                    collectedCalls.push({
+                      id: callId,
+                      type: 'function',
+                      function: {
+                        name: part.functionCall.name,
+                        arguments: JSON.stringify(part.functionCall.args || {}),
+                      },
+                    });
+                  }
+                }
+              }
+            } catch {
+              // abaikan chunk yang belum utuh
             }
           }
-          send({ type: 'done', message: { role: 'assistant', content, tool_calls: calls.filter(Boolean) } });
-          break;
-        } catch (e) {
-          if (req.signal.aborted) break;
-          const err = e as GroqErr;
-          const msg = err.error?.error?.message || err.message || 'Gagal menghubungi Groq';
-          const canRetry = !content && attempt < 4;
-          // model kadang memanggil tool yang tidak ada / argumen rusak (tool_use_failed): ulangi dengan catatan koreksi
-          if (err.error?.error?.code === 'tool_use_failed' && toolRetries > 0 && canRetry) {
-            toolRetries--;
-            fix = [{ role: 'user', content: `(catatan sistem) Panggilan tool tadi ditolak: ${msg.slice(0, 200)}. Pakai hanya tool yang tersedia: ${TOOL_SCHEMAS.map((t) => t.function.name).join(', ')}.` }];
-            continue;
-          }
-          if (canRetry && (err.status === 413 || /request too large/i.test(msg)) && budget > 600) {
-            // satu request melebihi kuota per menit: pangkas riwayat lebih ketat lalu coba lagi
-            budget = Math.floor(budget / 2);
-            continue;
-          }
-          const wait = retryAfter(err);
-          if (canRetry && err.status === 429 && wait && wait <= MAX_WAIT_S) {
-            // kuota menit ini habis: tunggu sampai pulih
-            send({ type: 'wait', seconds: wait });
-            await sleep(wait * 1000 + 300, req.signal);
-            if (req.signal.aborted) break;
-            continue;
-          }
-          send({ type: 'error', error: msg, status: err.status });
-          break;
         }
+
+        send({
+          type: 'done',
+          message: {
+            role: 'assistant',
+            content: fullContent,
+            tool_calls: collectedCalls,
+          },
+        });
+      } catch (err: unknown) {
+        if (!req.signal.aborted) {
+          const e = err as Error;
+          send({ type: 'error', error: e.message || 'Terjadi kesalahan pada Gemini AI Agent' });
+        }
+      } finally {
+        ctl.close();
       }
-      ctl.close();
     },
   });
 
-  return new Response(stream, { headers: { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store' } });
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'application/x-ndjson; charset=utf-8',
+      'Cache-Control': 'no-store',
+    },
+  });
 }

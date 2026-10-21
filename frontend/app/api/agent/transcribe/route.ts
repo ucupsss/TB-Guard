@@ -1,23 +1,87 @@
-/* Transkripsi suara untuk input agen (Groq Whisper). Client mengirim multipart form berisi `audio`,
-   server membalas {text}. API key tetap di server. */
-import Groq from 'groq-sdk';
+/* Transkripsi suara untuk input mic agen menggunakan Google Gemini API (Multimodal Audio STT).
+   Client mengirim multipart form berisi `audio`, server membalas {text}. API key tetap di server. */
 
-const MODEL = process.env.GROQ_STT_MODEL || 'whisper-large-v3-turbo';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
 const MAX_BYTES = 20 * 1024 * 1024;
 
 export async function POST(req: Request) {
-  if (!process.env.GROQ_API_KEY) return Response.json({ error: 'GROQ_API_KEY belum diatur di frontend/.env' }, { status: 500 });
+  if (!GEMINI_API_KEY) {
+    return Response.json(
+      { error: 'GEMINI_API_KEY belum dikonfigurasi di environment' },
+      { status: 500 }
+    );
+  }
+
   let audio: FormDataEntryValue | null;
-  try { audio = (await req.formData()).get('audio'); } catch { return Response.json({ error: 'Body bukan multipart form' }, { status: 400 }); }
-  if (!(audio instanceof File) || !audio.size) return Response.json({ error: 'Rekaman kosong' }, { status: 400 });
-  if (audio.size > MAX_BYTES) return Response.json({ error: 'Rekaman terlalu panjang' }, { status: 413 });
+  try {
+    audio = (await req.formData()).get('audio');
+  } catch {
+    return Response.json({ error: 'Body bukan multipart form' }, { status: 400 });
+  }
+
+  if (!(audio instanceof File) || !audio.size) {
+    return Response.json({ error: 'Rekaman suara kosong' }, { status: 400 });
+  }
+
+  if (audio.size > MAX_BYTES) {
+    return Response.json({ error: 'Ukuran rekaman audio melebihi batas (20MB)' }, { status: 413 });
+  }
 
   try {
-    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-    const r = await groq.audio.transcriptions.create({ file: audio, model: MODEL, language: 'id', response_format: 'json', temperature: 0 }, { signal: req.signal });
-    return Response.json({ text: (r.text || '').trim() });
-  } catch (e) {
-    const err = e as { status?: number; message?: string; error?: { error?: { message?: string } } };
-    return Response.json({ error: err.error?.error?.message || err.message || 'Gagal mentranskripsi suara' }, { status: err.status || 502 });
+    // Konversi audio file ke Base64 untuk payload inlineData Gemini
+    const arrayBuffer = await audio.arrayBuffer();
+    const base64Audio = Buffer.from(arrayBuffer).toString('base64');
+    const mimeType = audio.type || 'audio/webm';
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                inline_data: {
+                  mime_type: mimeType,
+                  data: base64Audio,
+                },
+              },
+              {
+                text: 'Transkripsikan rekaman audio bahasa Indonesia ini secara persis dan akurat ke teks percakapan. Keluarkan HANYA teks hasil transkripsinya saja, tanpa tanda petik, tanpa awalan, dan tanpa penjelasan tambahan.',
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.1,
+        },
+      }),
+      signal: req.signal,
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('Gemini STT API error:', res.status, errText);
+      return Response.json(
+        { error: `Gemini STT error: HTTP ${res.status}` },
+        { status: res.status }
+      );
+    }
+
+    const data = await res.json();
+    const transcribedText =
+      data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+
+    return Response.json({ text: transcribedText });
+  } catch (e: unknown) {
+    const err = e as { message?: string };
+    console.error('Transcribe error:', err);
+    return Response.json(
+      { error: err.message || 'Gagal mentranskripsi suara dengan Gemini' },
+      { status: 502 }
+    );
   }
 }
