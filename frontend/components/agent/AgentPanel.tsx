@@ -25,7 +25,7 @@ function MicIcon({ className }: { className?: string }) {
 const turnText = (t: Turn) => t.parts.flatMap((p) => (p.kind === 'text' ? [p.text] : [])).join('\n\n');
 
 function pageLabel(path: string) {
-  if (path === '/design') return '3D Design';
+  if (path === '/design') return '3D Prototype';
   if (path === '/') return 'Dashboard';
   if (path === '/devices/new') return 'Add Device';
   if (/^\/devices\/\d+/.test(path)) return `Perangkat #${path.split('/')[2]}`;

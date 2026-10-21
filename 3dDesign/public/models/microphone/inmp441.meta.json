@@ -1,0 +1,16 @@
+{
+  "source": "inmp441.step",
+  "sourceUnits": "mm",
+  "glbUnits": "m",
+  "dimensionsMM": [
+    13.76573426573426,
+    11.25,
+    14.24
+  ],
+  "partitionNote": null,
+  "originalCenter": [
+    0,
+    -2.035,
+    0
+  ]
+}
