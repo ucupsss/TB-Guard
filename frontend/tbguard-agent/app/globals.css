@@ -1,0 +1,142 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: Roboto, ui-sans-serif, system-ui, sans-serif;
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-success: hsl(var(--success));
+  --color-warning: hsl(var(--warning));
+  --color-pending: hsl(var(--pending));
+  --color-danger: hsl(var(--danger));
+  --color-shell: hsl(var(--shell));
+  --color-page: hsl(var(--page));
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-shell: 30px;
+  --shadow-box: 0px 3px 20px #0000000b;
+  --shadow-box-lg: 0px 3px 30px #00000014;
+  --animate-collapsible-down: collapsible-down 0.2s ease-out;
+  --animate-collapsible-up: collapsible-up 0.2s ease-out;
+}
+
+@keyframes collapsible-down { from { height: 0; } to { height: var(--radix-collapsible-content-height); } }
+@keyframes collapsible-up { from { height: var(--radix-collapsible-content-height); } to { height: 0; } }
+
+
+/* Token tema shadcn/ui, dipetakan ke palet template referensi (Rubick-style):
+   biru primer #1C3FAA, hijau sukses #91C714, kuning #FBC500, oranye #F78B00, merah #D32929,
+   halaman #F1F5F8, kartu putih dengan bayangan tipis. */
+@layer base {
+  :root {
+    --background: 210 33% 96%;
+    --foreground: 215 28% 25%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 28% 25%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 28% 25%;
+    --primary: 225 72% 39%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 32% 91%;
+    --secondary-foreground: 215 28% 25%;
+    --muted: 210 33% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 214 32% 94%;
+    --accent-foreground: 215 28% 25%;
+    --destructive: 0 68% 49%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 88%;
+    --ring: 225 72% 39%;
+    --radius: 0.5rem;
+
+    --success: 79 81% 43%;
+    --warning: 47 100% 49%;
+    --pending: 34 100% 48%;
+    --danger: 0 68% 49%;
+    --shell: 225 72% 39%;      /* latar sidebar & bingkai */
+    --page: 210 33% 96%;       /* panel konten membulat */
+  }
+  .dark {
+    --background: 222 32% 21%;
+    --foreground: 214 32% 91%;
+    --card: 222 31% 28%;
+    --card-foreground: 214 32% 91%;
+    --popover: 222 31% 28%;
+    --popover-foreground: 214 32% 91%;
+    --primary: 225 72% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 26% 33%;
+    --secondary-foreground: 214 32% 91%;
+    --muted: 222 26% 33%;
+    --muted-foreground: 215 20% 70%;
+    --accent: 222 26% 33%;
+    --accent-foreground: 214 32% 91%;
+    --border: 222 24% 34%;
+    --input: 222 24% 38%;
+    --ring: 225 72% 60%;
+    --shell: 222 34% 24%;
+    --page: 222 32% 21%;
+  }
+  * { @apply border-border; }
+  html { font-size: 14px; }
+  body { @apply bg-shell text-foreground antialiased; font-family: Roboto, ui-sans-serif, system-ui, sans-serif; }
+  .num { font-variant-numeric: tabular-nums; }
+}
+
+@layer components {
+  /* kartu "box" seperti template */
+  .box { @apply rounded-md bg-card text-card-foreground shadow-box; }
+  .dark .box { box-shadow: none; }
+  .section-title { @apply mr-5 truncate text-base font-medium; }
+  .intro-y { animation: intro-y 0.4s ease-out both; }
+  @media (prefers-reduced-motion: reduce) { .intro-y { animation: none; } }
+
+  /* menu sidebar: item aktif "menyatu" ke panel konten dengan lekukan atas & bawah */
+  .side-menu { @apply relative mb-1 flex h-[50px] items-center rounded-l-full pl-5 text-white/85 transition-colors; }
+  .side-menu:hover { @apply text-white; }
+  .side-menu--active { @apply bg-page text-foreground; }
+  .side-menu--active::before, .side-menu--active::after {
+    content: ''; position: absolute; right: 0; width: 30px; height: 30px; pointer-events: none;
+  }
+  .side-menu--active::before { top: -30px; border-bottom-right-radius: 15px; box-shadow: 15px 15px 0 15px hsl(var(--page)); }
+  .side-menu--active::after { bottom: -30px; border-top-right-radius: 15px; box-shadow: 15px -15px 0 15px hsl(var(--page)); }
+  .side-menu--open { @apply bg-black/10 text-white; }
+  .side-sub { @apply mb-1 overflow-hidden rounded-xl bg-black/10; }
+  .side-sub a { @apply flex h-[44px] items-center gap-3 pl-9 text-white/75 hover:text-white; }
+  .side-sub a.on { @apply font-medium text-white; }
+
+  /* tabel laporan: tiap baris kartu putih terpisah */
+  .table-report { border-collapse: separate; border-spacing: 0 10px; }
+  .table-report td { @apply bg-card shadow-box; }
+  .dark .table-report td { box-shadow: none; }
+  .table-report td:first-child { @apply rounded-l-md; }
+  .table-report td:last-child { @apply rounded-r-md; }
+  .table-report th { @apply whitespace-nowrap border-b-0 px-5 pb-0 text-left text-xs font-medium uppercase text-foreground; }
+}
+
+/* leaflet */
+.leaflet-container { font: inherit; background: hsl(var(--muted)); }
+.tb-marker { display: grid; place-items: center; }
+
+@keyframes intro-y { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
