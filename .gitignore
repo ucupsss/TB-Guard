@@ -58,6 +58,7 @@ synapse_config.json
 _backup/
 .DS_Store
 Thumbs.db
+.tmp/
 
 # Frontend
 node_modules/

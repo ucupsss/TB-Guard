@@ -258,7 +258,7 @@ export function prepareTool(name: string, a: Args, env: ToolEnv, opts: { confirm
 
     case 'navigate': {
       const path = String(a.path || '');
-      if (!/^\/(devices(\/new|\/\d+)?|detections\/[\w-]+|data\/(webform|offline|primer)|patients(\?open=[\w-]+)?)?$/.test(path)) fail(`Path tidak dikenal: ${path}`);
+      if (!/^\/(design|devices(\/new|\/\d+)?|detections\/[\w-]+|data\/(webform|offline|primer)|patients(\?open=[\w-]+)?)?$/.test(path)) fail(`Path tidak dikenal: ${path}`);
       return { confirm: null, run: () => { env.navigate(path); return { ok: true, opened: path }; } };
     }
 

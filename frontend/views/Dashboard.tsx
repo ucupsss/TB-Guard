@@ -112,7 +112,7 @@ export default function Dashboard() {
               <div className="mt-6 flex items-end gap-1 text-3xl font-medium xl:text-4xl"><span className="num">{cur.length}</span><span className="mb-1 text-base font-normal text-muted-foreground">suara</span></div>
               <div className="mt-4 flex items-center gap-2"><DeltaPill value={pctChange(cur.length, prev.length)} goodWhenUp /><span className="text-xs text-muted-foreground">vs {days} hari sebelumnya</span></div>
               <div className="mt-4 text-muted-foreground">Suara terekam oleh {active.length} perangkat aktif dalam {days} hari terakhir, lalu diklasifikasi model LSTM.</div>
-              <button onClick={exportCSV} className="relative mt-12 flex h-10 items-center justify-start rounded-full border border-dashed border-slate-300 pl-5 pr-14 text-sm font-medium hover:border-primary dark:border-white/20">
+              <button onClick={exportCSV} className="relative mt-12 flex h-10 items-center justify-start rounded-full border border-dashed border-slate-300 pl-5 pr-14 text-sm font-medium transition-all cursor-pointer hover:border-primary hover:text-primary hover:bg-primary/5 active:scale-95 dark:border-white/20">
                 Download Laporan
                 <span className="absolute inset-y-0 right-0 my-auto mr-1 grid h-8 w-8 place-items-center rounded-full bg-primary text-white"><ArrowRightIcon className="h-4 w-4" /></span>
               </button>

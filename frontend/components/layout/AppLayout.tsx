@@ -2,7 +2,9 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { MoonIcon } from '@radix-ui/react-icons';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Switch } from '@/components/ui/switch';
 import { Logo } from './Logo';
 import { SideMenu } from './SideMenu';
 import { TopBar, type Crumb } from './TopBar';
@@ -94,12 +96,20 @@ export function AppLayout({ crumbs, children }: { crumbs: Crumb[]; children: Rea
 
       {/* menu ponsel */}
       <Sheet open={menu} onOpenChange={setMenu}>
-        <SheetContent side="left" className="w-[280px] border-0 bg-shell p-0 pl-5 text-white">
+        <SheetContent side="left" className="flex flex-col w-[280px] border-0 bg-shell p-0 pl-5 text-white">
           <SheetTitle className="sr-only">Menu Navigasi</SheetTitle>
           <SheetDescription className="sr-only">Navigasi TB Guard</SheetDescription>
           <div className="pr-5"><Brand /></div>
-          <div className="my-6 mr-5 h-px bg-white/10" />
-          <SideMenu onNavigate={() => setMenu(false)} />
+          <div className="my-6 mr-5 h-px bg-white/[0.08]" />
+          <div className="flex-1 overflow-y-auto">
+            <SideMenu onNavigate={() => setMenu(false)} />
+          </div>
+          <div className="my-4 mr-5 border-t border-white/10 pt-4 pb-6 flex items-center justify-between pr-4">
+            <span className="flex items-center gap-2 text-sm text-white/80">
+              <MoonIcon className="h-4 w-4" /> Mode Gelap
+            </span>
+            <Switch checked={dark} onCheckedChange={setDark} aria-label="Mode gelap" />
+          </div>
         </SheetContent>
       </Sheet>
 

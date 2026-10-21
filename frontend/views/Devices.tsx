@@ -55,7 +55,7 @@ export default function Devices() {
           const all = detections.filter((x) => x.deviceId === d.id), tb = all.filter((x) => x.result === 'TB').length;
           return (
             <div key={d.id} className="intro-y col-span-12 md:col-span-6 xl:col-span-3">
-              <div className="box">
+              <div className="box transition-all duration-200 hover:-translate-y-1 hover:shadow-box-lg">
                 <div className="flex flex-col items-center p-5 text-center">
                   <div className="relative grid h-16 w-16 place-items-center rounded-full bg-primary/10 text-primary dark:text-blue-300">
                     <CubeIcon className="h-8 w-8" />

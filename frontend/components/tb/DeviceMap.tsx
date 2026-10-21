@@ -43,7 +43,7 @@ export function DeviceMap({ devices, detections, className }: { devices: Device[
         html: `<div style="position:relative;width:44px;height:44px;display:grid;place-items:center">
           <span style="position:absolute;inset:0;border-radius:999px;background:${colour};opacity:.18"></span>
           <span style="position:absolute;inset:6px;border-radius:999px;background:${colour};opacity:.3"></span>
-          <span style="position:relative;width:26px;height:26px;border-radius:999px;background:${colour};color:#fff;font:500 12px Roboto,sans-serif;display:grid;place-items:center;border:2px solid #fff">${tb}</span></div>`,
+          <span style="position:relative;width:26px;height:26px;border-radius:999px;background:${colour};color:#fff;font:500 12px Poppins,sans-serif;display:grid;place-items:center;border:2px solid #fff">${tb}</span></div>`,
       });
       L.marker([d.lat, d.lng], { icon, title: d.name, keyboard: true })
         .bindPopup(`<b>${d.name}</b><br>${d.location} · ${d.zone}<br>${tb} batuk terindikasi TB<br><a href="/devices/${d.id}">Lihat perangkat →</a>`)

@@ -25,6 +25,7 @@ function MicIcon({ className }: { className?: string }) {
 const turnText = (t: Turn) => t.parts.flatMap((p) => (p.kind === 'text' ? [p.text] : [])).join('\n\n');
 
 function pageLabel(path: string) {
+  if (path === '/design') return '3D Prototype';
   if (path === '/') return 'Dashboard';
   if (path === '/devices/new') return 'Add Device';
   if (/^\/devices\/\d+/.test(path)) return `Perangkat #${path.split('/')[2]}`;
@@ -82,7 +83,7 @@ function StepRow({ step, onDecide }: { step: Step; onDecide: (ok: boolean) => vo
         <div className="border-t px-2.5 py-2.5">
           <div className="text-[13px]"><Markdown text={step.confirm || 'Lanjutkan aksi ini?'} /></div>
           <div className="mt-2 flex gap-2">
-            <Button size="sm" variant={step.kind === 'delete' ? 'destructive' : 'default'} onClick={() => onDecide(true)}>Setujui</Button>
+            <Button size="sm" variant={step.kind === 'delete' ? 'destructive' : 'default'} onClick={() => onDecide(true)}>Accept</Button>
             <Button size="sm" variant="outline" onClick={() => onDecide(false)}>Tolak</Button>
           </div>
         </div>

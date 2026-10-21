@@ -91,7 +91,7 @@ export const TOOLS: ToolDef[] = [
 
   // ---------- UI ----------
   { name: 'navigate', kind: 'ui',
-    parameters: obj({ path: str('/, /devices, /devices/new, /devices/{id}, /detections/{uuid}, /data/{webform|offline|primer}, /patients, /patients?open={id}') }, ['path']),
+    parameters: obj({ path: str('/, /design, /devices, /devices/new, /devices/{id}, /detections/{uuid}, /data/{webform|offline|primer}, /patients, /patients?open={id}') }, ['path']),
     description: 'Buka halaman untuk pengguna.' },
 ];
 

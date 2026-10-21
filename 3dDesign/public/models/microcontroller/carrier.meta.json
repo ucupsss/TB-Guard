@@ -1,0 +1,16 @@
+{
+  "source": "esp32-s3-wroom-1.step",
+  "sourceUnits": "mm",
+  "glbUnits": "m",
+  "dimensionsMM": [
+    27.9400000000001,
+    57.150000000000006,
+    12.860999960754292
+  ],
+  "partitionNote": "Geometry partition by module envelope; inspect source for manufacturing.",
+  "assemblyCenter": [
+    0,
+    -3.119999999999999,
+    4.440892098500626e-16
+  ]
+}
