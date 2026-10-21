@@ -54,5 +54,8 @@ synapse_config.json
 # IDE & OS
 .vscode/
 .idea/
+# Backup & OS
+_backup/
 .DS_Store
 Thumbs.db
+

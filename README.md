@@ -147,3 +147,4 @@ Tests cover:
 1. **Screening vs Diagnosis**: Cough acoustic frequency is non-specific and occurs across asthma, COPD, pneumonia, and viral infections. Acoustic screening can prioritize patients for microbiological testing (e.g. GeneXpert / culture) but cannot replace it.
 2. **Environmental Robustness**: Edge acoustic sensors are vulnerable to ambient reverberation, clinical alarms, and conversation interference. Future work requires testing in high-noise waiting areas.
 3. **Multimodal Expansion**: While clinical features (age, symptoms) are strictly excluded from the audio baseline to prevent leakage, future multimodal models should evaluate calibrated joint probability models.
+
