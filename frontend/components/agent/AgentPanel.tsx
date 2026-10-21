@@ -12,15 +12,8 @@ import { useStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { useAgent, type Step, type Turn } from './AgentProvider';
 import { Markdown } from './Markdown';
+import { MicIcon } from '@/components/tb/icons';
 import { speak, stopSpeaking, ttsSupported, useRecorder, useSpeakingId } from './audio';
-
-function MicIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" className={cn('h-[15px] w-[15px]', className)} aria-hidden>
-      <rect x="5" y="1.5" width="5" height="8" rx="2.5" /><path d="M3 7.5a4.5 4.5 0 0 0 9 0M7.5 12v1.5" />
-    </svg>
-  );
-}
 
 const turnText = (t: Turn) => t.parts.flatMap((p) => (p.kind === 'text' ? [p.text] : [])).join('\n\n');
 

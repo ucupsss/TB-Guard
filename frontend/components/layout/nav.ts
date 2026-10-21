@@ -1,13 +1,13 @@
 import type * as React from 'react';
 import { CubeIcon, DashboardIcon, StackIcon, TargetIcon, Component1Icon } from '@radix-ui/react-icons';
-import { Mic } from 'lucide-react';
+import { MicIcon } from '@/components/tb/icons';
 
 export type NavIcon = React.ComponentType<{ className?: string }>;
 export interface NavItem { label: string; to?: string; icon: NavIcon; children?: { label: string; to: string }[] }
 
 export const NAV: (NavItem | 'divider')[] = [
   { label: 'Dashboard', to: '/', icon: DashboardIcon },
-  { label: 'Uji Suara Mikrofon', to: '/live-test', icon: Mic },
+  { label: 'Uji Suara Mikrofon', to: '/live-test', icon: MicIcon },
   { label: '3D Prototype', to: '/design', icon: Component1Icon },
   'divider',
   { label: 'Devices', icon: CubeIcon, children: [{ label: 'Device List', to: '/devices' }, { label: 'Add Device', to: '/devices/new' }] },

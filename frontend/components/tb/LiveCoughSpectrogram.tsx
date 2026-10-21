@@ -1,9 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { Layers, Activity, BrainCircuit, ShieldCheck, Eye, Sparkles } from 'lucide-react';
+import { InfoCircledIcon, LayersIcon } from '@radix-ui/react-icons';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
 
 interface LiveCoughSpectrogramProps {
@@ -148,12 +148,12 @@ export function LiveCoughSpectrogram({
     ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
     ctx.fillRect(8, yTop + 6, 210, 20);
     ctx.fillStyle = '#38bdf8';
-    ctx.font = 'bold 10px sans-serif';
+    ctx.font = '500 10px Roboto, sans-serif';
     ctx.fillText('Pita Resonansi TB (1.200 - 3.500 Hz)', 14, yTop + 20);
 
     // Y-axis frequency ticks
     ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-    ctx.font = '9px monospace';
+    ctx.font = '9px Roboto, sans-serif';
     ctx.fillText('8 kHz', w - 36, 12);
     ctx.fillText('3.5 kHz', w - 48, yTop + 4);
     ctx.fillText('1.2 kHz', w - 48, yBottom - 4);
@@ -163,66 +163,33 @@ export function LiveCoughSpectrogram({
   if (!audioBuffer) return null;
 
   return (
-    <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">
-      {/* Header bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3 dark:border-slate-800">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Activity className="h-4 w-4" />
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="mr-auto">
+          <div className="flex items-center gap-2 font-medium">
+            Spektrogram Akustik &amp; CWT Scalogram Rekaman
+            <Badge variant="soft-primary">16 kHz</Badge>
           </div>
-          <div>
-            <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-2">
-              Spektrogram Akustik & CWT Scalogram Rekaman
-              <Badge variant="soft-primary" className="text-[10px] gap-1">
-                <Sparkles className="h-3 w-3 text-primary" /> 16 kHz Resolusi
-              </Badge>
-            </h4>
-            <p className="text-[11px] text-muted-foreground">
-              Visualisasi domain frekuensi-waktu dari batuk yang direkam mic untuk penyelarasan dengan pipeline training MobileNetV3.
-            </p>
+          <div className="mt-0.5 text-xs text-muted-foreground">
+            Visualisasi domain frekuensi-waktu dari batuk yang direkam, diselaraskan dengan pipeline training MobileNetV3.
           </div>
         </div>
-
-        {/* View toggle */}
-        <div className="flex items-center gap-1.5 text-xs bg-slate-100 p-1 rounded-lg dark:bg-slate-800">
-          <button
-            onClick={() => setViewMode('full')}
-            className={cn(
-              'px-2.5 py-1 rounded-md font-medium text-xs transition-colors',
-              viewMode === 'full'
-                ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-slate-100'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            Spektrogram Penuh (0–8 kHz)
-          </button>
-          <button
-            onClick={() => setViewMode('cwt_224')}
-            className={cn(
-              'px-2.5 py-1 rounded-md font-medium text-xs transition-colors',
-              viewMode === 'cwt_224'
-                ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-slate-100'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            Format Training (224×224)
-          </button>
-        </div>
+        <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'full' | 'cwt_224')} className="rounded-md bg-slate-100 p-1 dark:bg-white/5">
+          <ToggleGroupItem value="full" size="sm">Spektrogram Penuh (0–8 kHz)</ToggleGroupItem>
+          <ToggleGroupItem value="cwt_224" size="sm">Format Training (224×224)</ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
-      {/* Canvas View */}
-      <div className="grid grid-cols-12 gap-4 items-center">
-        <div className={cn('space-y-2', viewMode === 'full' ? 'col-span-12 lg:col-span-8' : 'col-span-12 lg:col-span-6')}>
-          <div className="relative rounded-lg overflow-hidden border border-slate-800 bg-slate-950 shadow-inner">
+      <div className="grid grid-cols-12 items-center gap-6">
+        <div className={cn(viewMode === 'full' ? 'col-span-12 lg:col-span-8' : 'col-span-12 lg:col-span-6')}>
+          <div className="overflow-hidden rounded-md bg-slate-900">
             <canvas
               ref={canvasRef}
               width={viewMode === 'full' ? 560 : 224}
               height={viewMode === 'full' ? 180 : 224}
-              className={cn('w-full block', viewMode === 'cwt_224' && 'max-w-[260px] mx-auto aspect-square')}
+              className={cn('block w-full', viewMode === 'cwt_224' && 'mx-auto aspect-square max-w-[260px]')}
             />
-
-            {/* Time progress indicators */}
-            <div className="flex justify-between px-2 py-1 text-[10px] font-mono text-slate-400 bg-slate-900 border-t border-slate-800">
+            <div className="num flex justify-between border-t border-white/10 px-2 py-1 text-[10px] text-slate-400">
               <span>0.0s (Onset Glotis)</span>
               <span>1.5s (Fase Peluruhan)</span>
               <span>3.0s</span>
@@ -230,38 +197,23 @@ export function LiveCoughSpectrogram({
           </div>
         </div>
 
-        {/* Transparency & Model Training Pipeline Comparison */}
-        <div className={cn('space-y-3', viewMode === 'full' ? 'col-span-12 lg:col-span-4' : 'col-span-12 lg:col-span-6')}>
-          <div className="rounded-lg border border-slate-200/80 bg-slate-50 p-3 text-xs dark:border-slate-800 dark:bg-slate-800/40 space-y-2">
-            <div className="font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-              <Layers className="h-4 w-4 text-primary" /> Transparansi Pipeline Training AI:
-            </div>
-            <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
-              Spektrogram batuk ini dipetakan ke format matriks <strong>CWT Morlet 224×224 piksel</strong>, identik dengan representasi pada dataset Kaggle <code className="bg-slate-200 dark:bg-slate-700 px-1 rounded">cwt_scalograms</code>.
+        <div className={cn('space-y-4', viewMode === 'full' ? 'col-span-12 lg:col-span-4' : 'col-span-12 lg:col-span-6')}>
+          <div className="rounded-md border border-slate-200/60 p-4 dark:border-white/10">
+            <div className="flex items-center gap-2 font-medium"><LayersIcon className="h-4 w-4 text-primary dark:text-blue-300" />Transparansi Pipeline Training</div>
+            <p className="mt-2 leading-relaxed text-muted-foreground">
+              Spektrogram batuk ini dipetakan ke format matriks <span className="font-medium text-foreground">CWT Morlet 224×224 piksel</span>, sama dengan representasi pada dataset Kaggle <code className="rounded bg-slate-100 px-1 text-xs dark:bg-white/10">cwt_scalograms</code>.
             </p>
-
-            <div className="border-t border-slate-200 dark:border-slate-700/60 pt-2 space-y-1.5 text-[11px]">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Arsitektur Model:</span>
-                <span className="font-medium">MobileNetV3-Small</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Pita Resonansi Kritis:</span>
-                <span className="font-medium text-sky-600">1.2 – 3.5 kHz</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Val F1-Score TB:</span>
-                <span className="font-bold text-emerald-600">88.4%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Sumber Bobot Checkpoint:</span>
-                <span className="font-mono text-[10px] text-slate-700 dark:text-slate-200">mobilenetv3_cwt_best.pth</span>
-              </div>
+            <div className="mt-3 space-y-1.5 border-t border-slate-200/60 pt-3 text-xs dark:border-white/10">
+              <div className="flex justify-between"><span className="text-muted-foreground">Arsitektur Model</span><span className="font-medium">MobileNetV3-Small</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Pita Resonansi Kritis</span><span className="font-medium text-primary dark:text-blue-300">1.2 – 3.5 kHz</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Val F1-Score TB</span><span className="font-medium text-success">88.4%</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Checkpoint</span><span className="font-mono text-[11px]">mobilenetv3_cwt_best.pth</span></div>
             </div>
           </div>
 
-          <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-2.5 text-[11px] text-blue-900 dark:border-blue-950 dark:bg-blue-950/20 dark:text-blue-200">
-            <strong>Keterangan Spektrum:</strong> Warna merah/kuning menunjukkan konsentrasi energi batuk tertinggi. Pada batuk normal, energi cepat padam dan terkonsentrasi pada frekuensi rendah tanpa resonansi turbulen panjang di kotak 1.2–3.5 kHz.
+          <div className="flex gap-2 rounded-md bg-primary/5 p-3 text-xs text-muted-foreground">
+            <InfoCircledIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary dark:text-blue-300" />
+            <span>Warna merah/kuning menunjukkan konsentrasi energi batuk tertinggi. Pada batuk normal, energi cepat padam dan terkonsentrasi pada frekuensi rendah tanpa resonansi turbulen panjang di pita 1.2–3.5 kHz.</span>
           </div>
         </div>
       </div>
