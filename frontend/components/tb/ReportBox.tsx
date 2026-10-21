@@ -15,7 +15,7 @@ export function ReportBox({ icon: Icon, color, value, label, pill, pillVariant =
   return (
     <div className="intro-y relative before:absolute before:inset-x-3 before:top-0 before:h-full before:translate-y-2 before:rounded-md before:bg-slate-50 before:shadow-box before:content-[''] dark:before:bg-white/5">
       <Comp onClick={onClick} aria-pressed={onClick ? active : undefined}
-        className={cn('box relative block w-full p-5 text-left transition', onClick && 'hover:shadow-box-lg', active && 'ring-2 ring-primary')}>
+        className={cn('box relative block w-full p-5 text-left transition-all duration-200', onClick && 'cursor-pointer hover:shadow-box-lg hover:-translate-y-0.5', active && 'ring-2 ring-primary')}>
         <div className="flex">
           <Icon className={cn('h-7 w-7', color)} />
           {pill && <Badge variant={pillVariant} className="ml-auto self-start">{pill}</Badge>}

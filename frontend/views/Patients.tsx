@@ -74,7 +74,7 @@ export default function Patients() {
           const n = patients.filter((p) => p.stage === i).length;
           return (
             <button key={s} onClick={() => setStage(stage === i ? null : i)} aria-pressed={stage === i}
-              className={cn('intro-y box p-4 text-left transition hover:shadow-box-lg', stage === i && 'ring-2 ring-primary')}>
+              className={cn('intro-y box p-4 text-left transition-all duration-200 cursor-pointer hover:shadow-box-lg hover:-translate-y-0.5', stage === i && 'ring-2 ring-primary')}>
               <div className="text-2xl font-medium num">{n}</div>
               <div className="text-muted-foreground">{i + 1}. {s}</div>
               <div className="mt-3 h-1 overflow-hidden rounded-full bg-secondary"><div className={cn('h-full rounded-full', COLORS[i])} style={{ width: `${(n / max) * 100}%` }} /></div>
@@ -101,7 +101,7 @@ export default function Patients() {
               <div className="mb-1 flex items-center px-1"><span className={cn('mr-2 h-2.5 w-2.5 rounded-full', COLORS[i])} /><span className="font-medium">{s}</span><Badge variant="secondary" className="ml-auto bg-card">{items.length}</Badge></div>
               <div className="mb-3 px-1 text-xs text-muted-foreground">{HINT[i]}</div>
               {items.map((p) => (
-                <button key={p.id} onClick={() => setOpen(p)} className="box mb-3 block w-full p-4 text-left transition hover:shadow-box-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <button key={p.id} onClick={() => setOpen(p)} className="box mb-3 block w-full p-4 text-left transition-all duration-200 cursor-pointer hover:shadow-box-lg hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <div className="flex items-center gap-3"><PersonAvatar name={p.name} className="h-9 w-9" /><div className="min-w-0"><div className="truncate font-medium">{p.name}</div><div className="text-xs text-muted-foreground">{p.id} · {p.gender}, {p.age} th</div></div></div>
                   <div className="mt-2 truncate text-xs text-muted-foreground">{p.facility}</div>
                   {p.adherence != null && <Progress value={p.adherence} className="mt-3 h-1.5" indicatorClassName={p.adherence < 85 ? 'bg-pending' : 'bg-success'} />}

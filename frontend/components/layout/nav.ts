@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import { CubeIcon, DashboardIcon, StackIcon, TargetIcon } from '@radix-ui/react-icons';
+import { CubeIcon, DashboardIcon, StackIcon, TargetIcon, Component1Icon } from '@radix-ui/react-icons';
 import type { IconProps } from '@radix-ui/react-icons/dist/types';
 
 type RadixIcon = React.ForwardRefExoticComponent<IconProps & React.RefAttributes<SVGSVGElement>>;
@@ -7,6 +7,7 @@ export interface NavItem { label: string; to?: string; icon: RadixIcon; children
 
 export const NAV: (NavItem | 'divider')[] = [
   { label: 'Dashboard', to: '/', icon: DashboardIcon },
+  { label: '3D Design', to: '/design', icon: Component1Icon },
   'divider',
   { label: 'Devices', icon: CubeIcon, children: [{ label: 'Device List', to: '/devices' }, { label: 'Add Device', to: '/devices/new' }] },
   { label: 'Data Batuk', icon: StackIcon, children: [
