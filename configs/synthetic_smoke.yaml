@@ -1,0 +1,42 @@
+# TB-Guard Synthetic Smoke Test Configuration
+# Uses synthetic, non-clinical cough/noise audio to test pipeline integrity end-to-end
+experiment_name: tb_guard_synthetic_smoke
+dataset_root: data/synthetic_smoke/raw
+interim_dir: data/synthetic_smoke/interim
+processed_dir: data/synthetic_smoke/processed
+splits_dir: data/synthetic_smoke/splits
+models_dir: models/synthetic_smoke
+reports_dir: reports/synthetic_smoke
+manifest_path: data/synthetic_smoke/manifest.csv
+logging_level: DEBUG
+
+audio:
+  sample_rate: 16000
+  window_duration_seconds: 2.0
+  channels: 1
+  normalize_amplitude: false
+  min_duration_seconds: 0.5
+  max_duration_seconds: 10.0
+
+split:
+  seed: 42
+  train_ratio: 0.60
+  val_ratio: 0.20
+  test_ratio: 0.20
+  stratify_by_target: true
+
+encoder:
+  name: hear_synthetic_surrogate
+  embedding_dim: 512
+  batch_size: 8
+  device: cpu
+  use_cache: true
+  cache_dir: .cache/synthetic_embeddings
+
+classifier:
+  model_type: logistic_regression
+  c_regularization: 1.0
+  max_iter: 500
+  class_weight: balanced
+  random_state: 42
+  decision_threshold: null

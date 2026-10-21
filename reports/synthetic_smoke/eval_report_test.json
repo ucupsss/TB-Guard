@@ -1,0 +1,66 @@
+{
+  "split_name": "test",
+  "dataset_type": "SYNTHETIC_SMOKE_TEST",
+  "metrics": {
+    "sensitivity": 0.5,
+    "specificity": 0.38095238095238093,
+    "precision": 0.23529411764705882,
+    "f1": 0.32,
+    "roc_auc": 0.4761904761904763,
+    "pr_auc": 0.32040979853479856,
+    "brier_score": 0.33990689467628077,
+    "threshold": 0.16,
+    "tp": 4,
+    "fp": 13,
+    "tn": 8,
+    "fn": 4,
+    "participant_count": 5,
+    "window_count": 29
+  },
+  "bootstrap_ci": [
+    {
+      "metric": "sensitivity",
+      "lower_95": 0.0,
+      "median": 0.5,
+      "upper_95": 0.6666666666666666
+    },
+    {
+      "metric": "specificity",
+      "lower_95": 0.25,
+      "median": 0.38095238095238093,
+      "upper_95": 0.5
+    },
+    {
+      "metric": "precision",
+      "lower_95": 0.0,
+      "median": 0.25,
+      "upper_95": 0.6666666666666666
+    },
+    {
+      "metric": "f1",
+      "lower_95": 0.0,
+      "median": 0.3333333333333333,
+      "upper_95": 0.6392603129445232
+    },
+    {
+      "metric": "roc_auc",
+      "lower_95": 0.07339285714285716,
+      "median": 0.4761904761904763,
+      "upper_95": 0.6282051282051282
+    },
+    {
+      "metric": "pr_auc",
+      "lower_95": 0.05185185185185185,
+      "median": 0.335838930329777,
+      "upper_95": 0.747215088655306
+    },
+    {
+      "metric": "brier_score",
+      "lower_95": 0.27242073398970523,
+      "median": 0.3396905092473969,
+      "upper_95": 0.5027867379306104
+    }
+  ],
+  "threshold_rationale": "Frozen threshold 0.160 selected on validation split",
+  "is_synthetic": true
+}

@@ -1,0 +1,55 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Data directories (raw, interim, processed audio and participant metadata)
+data/raw/
+data/interim/
+data/processed/
+data/splits/
+data/synthetic_smoke/
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.npy
+*.npz
+
+# Model weights, embeddings cache, and large checkpoints
+models/*.pt
+models/*.onnx
+models/*.pkl
+models/*.joblib
+models/**/*.joblib
+.cache/
+embeddings_cache/
+
+# Experiment artifacts & temporary run logs
+runs/
+logs/
+*.log
+
+# Sensitive credentials
+.env
+*.pem
+*.key
+token.txt
+hf_token.txt
+synapse_config.json
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

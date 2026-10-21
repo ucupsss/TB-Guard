@@ -1,0 +1,66 @@
+{
+  "split_name": "validation",
+  "dataset_type": "SYNTHETIC_SMOKE_TEST",
+  "metrics": {
+    "sensitivity": 0.375,
+    "specificity": 0.9166666666666666,
+    "precision": 0.75,
+    "f1": 0.5,
+    "roc_auc": 0.5520833333333334,
+    "pr_auc": 0.5877209595959596,
+    "brier_score": 0.3161676307709612,
+    "threshold": 0.16,
+    "tp": 3,
+    "fp": 1,
+    "tn": 11,
+    "fn": 5,
+    "participant_count": 4,
+    "window_count": 20
+  },
+  "bootstrap_ci": [
+    {
+      "metric": "sensitivity",
+      "lower_95": 0.3333333333333333,
+      "median": 0.375,
+      "upper_95": 0.5
+    },
+    {
+      "metric": "specificity",
+      "lower_95": 0.8333333333333334,
+      "median": 0.9166666666666666,
+      "upper_95": 1.0
+    },
+    {
+      "metric": "precision",
+      "lower_95": 0.28958333333333336,
+      "median": 0.75,
+      "upper_95": 1.0
+    },
+    {
+      "metric": "f1",
+      "lower_95": 0.3477272727272727,
+      "median": 0.5,
+      "upper_95": 0.6666666666666666
+    },
+    {
+      "metric": "roc_auc",
+      "lower_95": 0.47222222222222215,
+      "median": 0.5510416666666667,
+      "upper_95": 0.75
+    },
+    {
+      "metric": "pr_auc",
+      "lower_95": 0.2357007575757576,
+      "median": 0.5877209595959596,
+      "upper_95": 0.8424242424242423
+    },
+    {
+      "metric": "brier_score",
+      "lower_95": 0.09825063785565534,
+      "median": 0.3161676307709612,
+      "upper_95": 0.5340846236862672
+    }
+  ],
+  "threshold_rationale": "Validation Youden J optimization",
+  "is_synthetic": true
+}

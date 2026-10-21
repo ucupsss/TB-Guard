@@ -1,0 +1,41 @@
+# TB-Guard Default Pipeline Configuration
+experiment_name: tb_guard_baseline
+dataset_root: data/raw
+interim_dir: data/interim
+processed_dir: data/processed
+splits_dir: data/splits
+models_dir: models
+reports_dir: reports
+manifest_path: data/manifest.csv
+logging_level: INFO
+
+audio:
+  sample_rate: 16000
+  window_duration_seconds: 2.0
+  channels: 1
+  normalize_amplitude: false
+  min_duration_seconds: 0.5
+  max_duration_seconds: 60.0
+
+split:
+  seed: 42
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+  stratify_by_target: true
+
+encoder:
+  name: google/hear
+  embedding_dim: 512
+  batch_size: 16
+  device: cpu
+  use_cache: true
+  cache_dir: .cache/hear_embeddings
+
+classifier:
+  model_type: logistic_regression
+  c_regularization: 1.0
+  max_iter: 1000
+  class_weight: balanced
+  random_state: 42
+  decision_threshold: null

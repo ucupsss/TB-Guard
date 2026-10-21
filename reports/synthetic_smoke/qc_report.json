@@ -1,0 +1,29 @@
+{
+  "total_audio_records": 51,
+  "accepted_files": 46,
+  "rejected_files": 5,
+  "acceptance_rate": 0.9019607843137255,
+  "unique_participants": 24,
+  "exclusion_reasons": {
+    "indeterminate_label_indeterminate": 5
+  },
+  "sample_rate_distribution": {
+    "44100": 19,
+    "48000": 17,
+    "16000": 15
+  },
+  "duration_stats": {
+    "min": 1.887,
+    "mean": 3.284411764705882,
+    "median": 3.416,
+    "max": 4.439
+  },
+  "target_class_distribution": {
+    "0.0": 31,
+    "1.0": 15,
+    "nan": 5
+  },
+  "split_distribution": {
+    "unassigned": 51
+  }
+}
