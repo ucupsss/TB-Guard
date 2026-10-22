@@ -6,7 +6,8 @@
     "dev": "next dev -p 3100",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "deploy:gcp": "gcloud run deploy tb-guard-web --source . --region us-central1 --service-account hackathon-runtime@hackathon-primestep-19.iam.gserviceaccount.com --set-env-vars \"GCP_PROJECT_ID=hackathon-primestep-19,GCP_LOCATION=us-central1,GEMINI_MODEL=gemini-2.5-flash\" --allow-unauthenticated --project hackathon-primestep-19 --quiet"
   },
   "dependencies": {
     "@fontsource/poppins": "^5.3.0",

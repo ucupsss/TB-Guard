@@ -1,12 +1,8 @@
 import { Suspense } from 'react';
 import { PageSkeleton } from '@/components/layout/PageSkeleton';
-import { RequireAuth } from '@/components/auth/RequireAuth';
-import View from '@/views/Dashboard';
+import PublicArea3D from '@/views/PublicArea3D';
 
+/** beranda publik: simulasi 3D TB Guard Agent, tampil sebelum login */
 export default function Page() {
-  return (
-    <Suspense fallback={<PageSkeleton variant="dashboard" />}>
-      <RequireAuth skeleton="dashboard"><View /></RequireAuth>
-    </Suspense>
-  );
+  return <Suspense fallback={<PageSkeleton variant="design" />}><PublicArea3D /></Suspense>;
 }

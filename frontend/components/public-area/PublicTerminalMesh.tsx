@@ -11,13 +11,9 @@ function architecture() {
   const blocks: Block[] = [];
   const add = (p: Vec3, s: Vec3, color: string) => blocks.push({ p, s, color });
   // Repeated architecture and furniture share one instanced draw call.
-  for (let x = -15; x <= 15; x += 3) {
-    add([x, 3.2, -9.8], [0.08, 6.4, 0.12], '#657b89');
-    add([x, 6.4, 0], [0.12, 0.24, 20], '#b4c0c5');
-    add([x, 6.25, 0], [0.035, 0.035, 14], '#f4f6e9');
-  }
-  for (const z of [-9.8, 9.8]) add([0, 6.4, z], [30, 0.35, 0.25], '#aab9bd');
-  for (const y of [0.3, 3.2, 6.3]) add([0, y, -9.8], [30, 0.06, 0.12], '#718b9a');
+  // kerangka atap disembunyikan, hanya tiang yang tersisa
+  for (let x = -15; x <= 15; x += 3) add([x, 3.2, -9.8], [0.08, 6.4, 0.12], '#657b89');
+  for (const y of [0.3, 3.2]) add([0, y, -9.8], [30, 0.06, 0.12], '#718b9a');
   for (const x of [-12, 12]) for (const z of [-6, 6]) {
     add([x, 3.2, z], [0.5, 6.4, 0.5], '#d4d4cb');
     add([x, 0.14, z], [0.7, 0.28, 0.7], '#647b82');
@@ -74,6 +70,6 @@ export function PublicTerminalMesh({ dark }: { dark: boolean }) {
       <mesh><boxGeometry args={[4.5, 0.8, 0.15]} /><meshStandardMaterial color="#173a49" /></mesh>
       <Html transform position={[0, 0, 0.09]} distanceFactor={7} style={{ pointerEvents: 'none' }}><div className="pa-sign">← <span>RUANG TUNGGU</span></div></Html>
     </group>
-    {[-9, 0, 9].map(x => <group key={x}><spotLight position={[x, 6.1, 1]} intensity={dark ? 65 : 40} angle={0.8} penumbra={0.8} distance={16} color="#e0f1ff" /><mesh position={[x, 6.1, 1]} rotation={[Math.PI / 2, 0, 0]}><circleGeometry args={[0.18, 12]} /><meshBasicMaterial color="#dff3ff" /></mesh></group>)}
+    {[-9, 0, 9].map(x => <group key={x}><spotLight position={[x, 6.1, 1]} intensity={dark ? 65 : 40} angle={0.8} penumbra={0.8} distance={16} color="#e0f1ff" /></group>)}
   </group>;
 }
