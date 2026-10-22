@@ -8,30 +8,30 @@ export interface ModelOption {
 }
 
 export const AVAILABLE_MODELS: ModelOption[] = [
-  // Google Cloud (Vertex AI & Generative Language)
+  // Google Cloud (Vertex AI, endpoint global): Gemini 2.x sudah tidak tersedia di project ini
   {
-    id: 'gemini-2.5-flash',
-    name: 'Gemini 2.5 Flash',
+    id: 'gemini-3.8-flash',
+    name: 'Gemini 3.8 Flash',
     provider: 'Google Cloud',
     badge: 'Rekomendasi Utama',
     category: 'google',
-    description: 'Multimodal seimbang, penalaran cepat & tool calling presisi.',
+    description: 'Multimodal cepat, penalaran dan tool calling presisi.',
   },
   {
-    id: 'gemini-2.5-pro',
-    name: 'Gemini 2.5 Pro',
+    id: 'gemini-3.5-flash',
+    name: 'Gemini 3.5 Flash',
     provider: 'Google Cloud',
-    badge: 'Deep Reasoning',
+    badge: 'Stabil',
     category: 'google',
-    description: 'Analisis mendalam untuk kasus epidemiologi dan data TB rumit.',
+    description: 'Seimbang untuk perintah sehari-hari dan analisis data.',
   },
   {
-    id: 'gemini-1.5-flash',
-    name: 'Gemini 1.5 Flash',
+    id: 'gemini-3.1-flash-lite',
+    name: 'Gemini 3.1 Flash Lite',
     provider: 'Google Cloud',
     badge: 'Super Cepat',
     category: 'google',
-    description: 'Latensi ultra rendah dengan efisiensi kuota tinggi.',
+    description: 'Latensi paling rendah dengan efisiensi kuota tinggi.',
   },
 
   // Groq Cloud (Ultra Fast Inference with 85+ Key Pool)
@@ -77,7 +77,10 @@ export const AVAILABLE_MODELS: ModelOption[] = [
   },
 ];
 
-export const DEFAULT_MODEL_ID = 'gemini-2.5-flash';
+export const DEFAULT_MODEL_ID = 'gemini-3.8-flash';
+
+/** id Gemini lama (chat tersimpan / pengaturan lama) dipetakan ke model aktif */
+export const migrateModelId = (id: string) => (/^gemini-[12]\./.test(id) ? DEFAULT_MODEL_ID : id);
 
 export function getModelInfo(id: string): ModelOption {
   return AVAILABLE_MODELS.find((m) => m.id === id) || {

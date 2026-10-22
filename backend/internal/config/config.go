@@ -15,12 +15,13 @@ type Config struct {
 	AllowedOrigins string
 
 	// Google Cloud / Gemini
-	ProjectID    string
-	Location     string
-	GeminiModel  string
-	GeminiAPIKey string
-	GroqKeysFile string
-	AgentBudget  time.Duration // batas kerja total satu request agen
+	ProjectID      string
+	Location       string
+	GeminiModel    string
+	GeminiLocation string // Gemini 3.x hanya tersedia di endpoint global (bukan us-central1)
+	GeminiAPIKey   string
+	GroqKeysFile   string
+	AgentBudget    time.Duration // batas kerja total satu request agen
 
 	// PostgreSQL (Neon). DATABASE_URL diutamakan; DB_* untuk koneksi keyword/value.
 	DatabaseURL string
@@ -58,12 +59,13 @@ func Load() Config {
 		Port:           env("PORT", "8080"),
 		AllowedOrigins: env("ALLOWED_ORIGINS", "*"),
 
-		ProjectID:    env("GCP_PROJECT_ID", "hackathon-primestep-19"),
-		Location:     env("GCP_LOCATION", "us-central1"),
-		GeminiModel:  env("GEMINI_MODEL", "gemini-2.5-flash"),
-		GeminiAPIKey: env("GEMINI_API_KEY", ""),
-		GroqKeysFile: env("GROQ_KEYS_FILE", ""),
-		AgentBudget:  50 * time.Second,
+		ProjectID:      env("GCP_PROJECT_ID", "hackathon-primestep-19"),
+		Location:       env("GCP_LOCATION", "us-central1"),
+		GeminiModel:    env("GEMINI_MODEL", "gemini-3.8-flash"),
+		GeminiLocation: env("GEMINI_LOCATION", "global"),
+		GeminiAPIKey:   env("GEMINI_API_KEY", ""),
+		GroqKeysFile:   env("GROQ_KEYS_FILE", ""),
+		AgentBudget:    50 * time.Second,
 
 		DatabaseURL: env("DATABASE_URL", ""),
 		DBHost:      env("DB_HOST", ""),

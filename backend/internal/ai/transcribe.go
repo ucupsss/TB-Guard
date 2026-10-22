@@ -251,7 +251,7 @@ func (s *Service) geminiTranscribe(ctx context.Context, audio []byte, mime strin
 	})
 	cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	req, _ := http.NewRequestWithContext(cctx, http.MethodPost, auth.url(s.cfg, "gemini-2.5-flash", "generateContent", false), bytes.NewReader(body))
+	req, _ := http.NewRequestWithContext(cctx, http.MethodPost, auth.url(s.cfg, defaultModelID, "generateContent", false), bytes.NewReader(body))
 	auth.sign(req)
 	res, err := s.http.Do(req)
 	if err != nil {

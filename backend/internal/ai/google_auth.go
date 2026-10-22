@@ -85,8 +85,12 @@ func metadataToken(ctx context.Context, client *http.Client) (string, time.Durat
 // url membentuk endpoint Gemini; sse=true untuk streaming.
 func (a *geminiAuth) url(cfg config.Config, model, method string, sse bool) string {
 	if a.vertex {
-		u := fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models/%s:%s",
-			cfg.Location, cfg.ProjectID, cfg.Location, normalizeVertexModel(model), method)
+		loc, host := cfg.GeminiLocation, "aiplatform.googleapis.com"
+		if loc != "global" {
+			host = loc + "-aiplatform.googleapis.com"
+		}
+		u := fmt.Sprintf("https://%s/v1/projects/%s/locations/%s/publishers/google/models/%s:%s",
+			host, cfg.ProjectID, loc, normalizeVertexModel(model), method)
 		if sse {
 			u += "?alt=sse"
 		}

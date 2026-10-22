@@ -25,6 +25,8 @@ type toolCall struct {
 		Name      string `json:"name"`
 		Arguments string `json:"arguments"`
 	} `json:"function"`
+	// Signature: thoughtSignature Gemini 3 untuk panggilan fungsi; harus dikirim balik pada giliran berikutnya.
+	Signature string `json:"thought_signature,omitempty"`
 }
 
 type message struct {
@@ -201,8 +203,23 @@ func (s *Service) HandleAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	// stream dijamin berakhir dengan done atau error, kecuali klien sudah pergi
 	if !run.st.ended && r.Context().Err() == nil {
-		run.st.send(map[string]any{"type": "error", "error": orDef(err, "Waktu habis sebelum agen selesai menjawab.")})
+		if err != "" {
+			slog.Error("agen gagal", "err", err) // detail teknis hanya di log, tidak ditampilkan ke pengguna
+		}
+		run.st.send(map[string]any{"type": "error", "error": friendlyErr(err)})
 	}
+}
+
+// friendlyErr: pesan untuk pengguna tanpa detail internal (nama project, model, endpoint).
+func friendlyErr(err string) string {
+	switch {
+	case err == "":
+		return "Waktu habis sebelum agen selesai menjawab. Coba lagi."
+	case strings.Contains(err, "Gemini API Error"), strings.Contains(err, "Groq API Error"), strings.Contains(err, "Koneksi ke"),
+		strings.Contains(err, "Stream"), strings.Contains(err, "autentikasi"), strings.Contains(err, "Kuota"), strings.Contains(err, "API key"):
+		return "Layanan AI sedang sibuk atau tidak tersedia. Silakan coba lagi sebentar."
+	}
+	return err
 }
 
 func (a *agentRun) gone() bool { return a.ctx.Err() != nil }
@@ -213,7 +230,7 @@ func (a *agentRun) geminiThenGroq(model string) string {
 	if authErr != nil {
 		err = authErr.Error()
 	} else {
-		err = a.runGemini(auth, model)
+		err = a.runGeminiChain(auth, model)
 	}
 	if err != "" && !a.gone() && a.s.groq.ready() {
 		slog.Warn("gemini gagal, dialihkan ke groq", "err", err)
@@ -229,7 +246,22 @@ func (a *agentRun) groqThenGemini(model string) string {
 		if auth, e := a.s.auth.get(a.ctx, a.s.http); e == nil {
 			slog.Warn("groq gagal, dialihkan ke gemini", "err", err)
 			a.st.wait(1, "Groq tidak tersedia, dialihkan ke "+defaultModelID+"…")
-			err = a.runGemini(auth, defaultModelID)
+			err = a.runGeminiChain(auth, defaultModelID)
+		}
+	}
+	return err
+}
+
+// runGeminiChain mencoba model pilihan, lalu cadangan, bila model tidak tersedia atau gagal sebelum ada isi yang terkirim.
+func (a *agentRun) runGeminiChain(auth *geminiAuth, model string) string {
+	var err string
+	for i, m := range geminiChain(model) {
+		if err = a.runGemini(auth, m); err == "" || a.gone() || a.st.ended {
+			return err
+		}
+		slog.Warn("model gemini gagal, mencoba berikutnya", "model", m, "err", err)
+		if i+1 < len(geminiChain(model)) {
+			a.st.wait(1, "Model "+m+" tidak tersedia, mencoba model lain…")
 		}
 	}
 	return err
@@ -324,7 +356,11 @@ func (a *agentRun) geminiContents() []map[string]any {
 			for _, tc := range m.ToolCalls {
 				args := map[string]any{}
 				_ = json.Unmarshal([]byte(tc.Function.Arguments), &args)
-				parts = append(parts, map[string]any{"functionCall": map[string]any{"name": tc.Function.Name, "args": args}})
+				fc := map[string]any{"functionCall": map[string]any{"name": tc.Function.Name, "args": args}}
+				if tc.Signature != "" {
+					fc["thoughtSignature"] = tc.Signature
+				}
+				parts = append(parts, fc)
 			}
 			if len(parts) > 0 {
 				contents = append(contents, map[string]any{"role": "model", "parts": parts})
@@ -411,9 +447,10 @@ func (a *agentRun) runGemini(auth *geminiAuth, model string) string {
 			Candidates []struct {
 				Content struct {
 					Parts []struct {
-						Text         string `json:"text"`
-						Thought      bool   `json:"thought"`
-						FunctionCall *struct {
+						Text             string `json:"text"`
+						Thought          bool   `json:"thought"`
+						ThoughtSignature string `json:"thoughtSignature"`
+						FunctionCall     *struct {
 							Name string         `json:"name"`
 							Args map[string]any `json:"args"`
 						} `json:"functionCall"`
@@ -451,7 +488,7 @@ func (a *agentRun) runGemini(auth *geminiAuth, model string) string {
 				if p.FunctionCall.Args == nil {
 					args = []byte("{}")
 				}
-				tc := toolCall{ID: randID("call_"), Type: "function"}
+				tc := toolCall{ID: randID("call_"), Type: "function", Signature: p.ThoughtSignature}
 				tc.Function.Name, tc.Function.Arguments = p.FunctionCall.Name, string(args)
 				calls = append(calls, tc)
 			}
@@ -484,7 +521,12 @@ func (a *agentRun) openAIMessages() []map[string]any {
 		case m.Role == "assistant":
 			e := map[string]any{"role": "assistant"}
 			if len(m.ToolCalls) > 0 {
-				e["tool_calls"] = m.ToolCalls
+				plain := make([]toolCall, len(m.ToolCalls))
+				for i, tc := range m.ToolCalls {
+					tc.Signature = ""
+					plain[i] = tc
+				}
+				e["tool_calls"] = plain
 				if m.Content != "" {
 					e["content"] = m.Content
 				} else {

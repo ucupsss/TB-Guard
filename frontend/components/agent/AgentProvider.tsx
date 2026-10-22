@@ -10,7 +10,7 @@ import { fmt } from '@/lib/format';
 import { prepareTool, describeTool, ToolError } from '@/lib/agent/execute';
 import { toolKind } from '@/lib/agent/tools';
 
-import { DEFAULT_MODEL_ID } from '@/lib/agent/models';
+import { DEFAULT_MODEL_ID, migrateModelId } from '@/lib/agent/models';
 import { backendFetch } from '@/lib/backend';
 
 type Args = Record<string, unknown>;
@@ -319,7 +319,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     history.current = Array.isArray(c.history) ? c.history : [];
     setTurns(sanitizeTurns(Array.isArray(c.turns) ? c.turns : []));
     setChatId(c.id);
-    if (c.model) setModel(c.model);
+    if (c.model) setModel(migrateModelId(c.model));
   };
   const call = async (method: string, path: string, body?: unknown) => {
     const r = await backendFetch(path, { method, headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined });

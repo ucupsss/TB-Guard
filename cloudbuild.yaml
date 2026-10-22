@@ -8,7 +8,7 @@ substitutions:
   _REGION: us-central1
   _REPO: cloud-run-source-deploy
   _RUNTIME_SA: hackathon-runtime@hackathon-primestep-19.iam.gserviceaccount.com
-  _GEMINI_MODEL: gemini-2.5-flash
+  _GEMINI_MODEL: gemini-3.8-flash
   _S3_ENDPOINT: https://br-spring-math-b429bcop.storage.c-6.us-east-2.aws.neon.tech
   _GOOGLE_CLIENT_ID: '373014066834-5914fet6h7qp54gp9vbtpr3dv1d7jth0.apps.googleusercontent.com'           # OAuth Web Client ID (login Gmail)
   _ADMIN_EMAILS: 'ahmadyazidarifuddin04@gmail.com'               # opsional: daftar Admin (koma); kosong = semua pengguna Gmail = Admin
