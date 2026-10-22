@@ -211,10 +211,11 @@ export function AgentPanel({ className, onClose }: { className?: string; onClose
   const voiceReply = React.useRef(false);
   const rec = useRecorder((t, meta) => {
     setAudioErr('');
-    // transkripsi kurang yakin: tampilkan di kotak input agar diperiksa dulu, jangan langsung dieksekusi agen
-    if (meta?.confidence !== undefined && meta.confidence < 0.6) { setText(t); setAudioErr('Suara kurang jelas. Periksa teksnya lalu tekan kirim.'); return; }
+    setText(t); // hasil akhir (dirapikan server) menggantikan teks langsung
+    // transkripsi kurang yakin: biarkan di kotak input agar diperiksa dulu, jangan langsung dieksekusi agen
+    if (meta?.confidence !== undefined && meta.confidence < 0.6) { setAudioErr('Suara kurang jelas. Periksa teksnya lalu tekan kirim.'); return; }
     voiceReply.current = true; submit(t);
-  }, setAudioErr);
+  }, setAudioErr, setText);
   const [micOk, setMicOk] = React.useState(false);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- dukungan browser baru diketahui setelah mount (SSR)
   React.useEffect(() => setMicOk(rec.supported), [rec.supported]);
@@ -284,18 +285,19 @@ export function AgentPanel({ className, onClose }: { className?: string; onClose
 
       <form className="shrink-0 border-t border-slate-200 p-3 dark:border-white/10" onSubmit={(e) => { e.preventDefault(); submit(); }}>
         <div className="box rounded-xl border transition focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/15">
-          {rec.state !== 'idle' ? (
-            <div className="flex items-center gap-2.5 px-3 pb-1 pt-2.5 text-sm" role="status">
+          {rec.state !== 'idle' && (
+            <div className="flex items-center gap-2.5 px-3 pb-0.5 pt-2.5 text-sm" role="status">
               {rec.state === 'recording'
                 ? <><span className={`h-2.5 w-2.5 rounded-full ${rec.phase === 'speaking' ? 'animate-pulse bg-danger' : 'bg-slate-300'}`} />{rec.phase === 'speaking' ? 'Mendengarkan…' : 'Silakan bicara…'}
                   <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10" aria-hidden><span className="block h-full rounded-full bg-primary transition-[width] duration-100" style={{ width: `${Math.round(rec.level * 100)}%` }} /></span>
                   <span className="tabular-nums text-muted-foreground">{Math.floor(rec.seconds / 60)}:{String(rec.seconds % 60).padStart(2, '0')}</span></>
-                : <><Spinner className="text-primary" />Mentranskripsi suara…</>}
+                : <><Spinner className="text-primary" />Merapikan teks…</>}
             </div>
-          ) : <textarea ref={input} rows={1} value={text} onChange={(e) => setText(e.target.value)} aria-label="Pesan untuk agen"
+          )}
+          <textarea ref={input} rows={1} value={text} readOnly={rec.state !== 'idle'} onChange={(e) => setText(e.target.value)} aria-label="Pesan untuk agen"
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit(); } }}
-            placeholder="Tanya apa saja…"
-            className="block max-h-40 w-full resize-none bg-transparent px-3 pb-1 pt-2.5 text-sm outline-none placeholder:text-muted-foreground" />}
+            placeholder={rec.state === 'recording' ? 'Teks muncul saat Anda bicara…' : 'Tanya apa saja…'}
+            className="block max-h-40 w-full resize-none bg-transparent px-3 pb-1 pt-2.5 text-sm outline-none placeholder:text-muted-foreground" />
           <div className="flex items-center gap-2 px-2 pb-2">
             <ModelPicker currentModel={model} onSelectModel={setModel} triggerVariant="footer" />
             <span className="inline-flex max-w-[32%] items-center gap-1 truncate rounded-md bg-slate-100 px-2 py-1 text-[11px] text-muted-foreground dark:bg-white/10" title="Konteks halaman dikirim ke agen">
@@ -314,7 +316,7 @@ export function AgentPanel({ className, onClose }: { className?: string; onClose
               ? <Button type="button" size="icon" variant="outline" className="ml-auto h-8 w-8 rounded-full" onClick={stop} title="Hentikan" aria-label="Hentikan agen"><StopIcon /></Button>
               : text.trim() || !micOk
                 ? <Button type="submit" size="icon" className="ml-auto h-8 w-8 rounded-full" disabled={!text.trim() || rec.state !== 'idle'} title="Kirim (Enter)" aria-label="Kirim"><PaperPlaneIcon /></Button>
-                : <Button type="button" size="icon" variant="outline" className="ml-auto h-8 w-8 rounded-full" disabled={rec.state !== 'idle'} onClick={() => { setAudioErr(''); stopSpeaking(); void rec.start(); }} title="Bicara (rekam suara)" aria-label="Rekam suara"><MicIcon /></Button>}
+                : <Button type="button" size="icon" variant="outline" className="ml-auto h-8 w-8 rounded-full" disabled={rec.state !== 'idle'} onClick={() => { setAudioErr(''); stopSpeaking(); setText(''); void rec.start(); }} title="Bicara (rekam suara)" aria-label="Rekam suara"><MicIcon /></Button>}
           </div>
         </div>
         {audioErr && <p className="mt-1.5 px-1 text-[11px] text-danger">{audioErr}</p>}

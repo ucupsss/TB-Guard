@@ -9,6 +9,24 @@ type RecState = 'idle' | 'recording' | 'transcribing';
 /** fase saat merekam: menunggu suara atau pengguna sedang berbicara */
 type Phase = 'listening' | 'speaking';
 
+/* Teks langsung saat berbicara memakai SpeechRecognition bawaan browser (Chrome/Edge/Safari).
+   Hasil akhirnya tetap dirapikan server (Whisper + kosakata TB Guard); bila browser tidak mendukung,
+   fitur langsung dilewati dan perekaman berjalan seperti biasa. */
+interface SpeechAlt { transcript: string }
+interface SpeechRes { isFinal: boolean; 0: SpeechAlt; length: number }
+interface SpeechEvt { resultIndex: number; results: ArrayLike<SpeechRes> }
+interface SpeechRec {
+  lang: string; continuous: boolean; interimResults: boolean; maxAlternatives: number;
+  onresult: ((e: SpeechEvt) => void) | null; onerror: ((e: unknown) => void) | null; onend: (() => void) | null;
+  start: () => void; stop: () => void; abort: () => void;
+}
+type SpeechRecCtor = new () => SpeechRec;
+const speechCtor = (): SpeechRecCtor | null => {
+  if (typeof window === 'undefined') return null;
+  const w = window as unknown as { SpeechRecognition?: SpeechRecCtor; webkitSpeechRecognition?: SpeechRecCtor };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+};
+
 export interface TranscribeMeta { language?: string; confidence?: number; engine?: string }
 
 function pickMime() {
@@ -26,7 +44,7 @@ const rmsOf = (buf: Float32Array) => { let s = 0; for (let i = 0; i < buf.length
 
 /** rekam dari mikrofon dengan deteksi bicara otomatis: mulai terdeteksi saat suara melewati ambang adaptif
  *  (menyesuaikan derau ruangan), berhenti sendiri setelah jeda bicara, dan tidak mengirim rekaman kosong. */
-export function useRecorder(onText: (text: string, meta?: TranscribeMeta) => void, onError: (msg: string) => void) {
+export function useRecorder(onText: (text: string, meta?: TranscribeMeta) => void, onError: (msg: string) => void, onInterim?: (text: string) => void) {
   const [state, setState] = React.useState<RecState>('idle');
   const [phase, setPhase] = React.useState<Phase>('listening');
   const [level, setLevel] = React.useState(0);
@@ -35,8 +53,9 @@ export function useRecorder(onText: (text: string, meta?: TranscribeMeta) => voi
   const cancelled = React.useRef(false);
   const stopVad = React.useRef<() => void>(() => {});
   const heard = React.useRef(false);
-  const cb = React.useRef({ onText, onError });
-  React.useEffect(() => { cb.current = { onText, onError }; });
+  const cb = React.useRef({ onText, onError, onInterim });
+  React.useEffect(() => { cb.current = { onText, onError, onInterim }; });
+  const speech = React.useRef<SpeechRec | null>(null);
 
   React.useEffect(() => {
     if (state !== 'recording') return;
@@ -45,7 +64,7 @@ export function useRecorder(onText: (text: string, meta?: TranscribeMeta) => voi
     return () => clearInterval(id);
   }, [state]);
   // lepas mikrofon bila komponen dilepas saat merekam
-  React.useEffect(() => () => { cancelled.current = true; stopVad.current(); rec.current?.stop(); }, []);
+  React.useEffect(() => () => { cancelled.current = true; stopVad.current(); rec.current?.stop(); speech.current?.abort(); }, []);
 
   const supported = typeof window !== 'undefined' && !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined';
 
@@ -63,6 +82,23 @@ export function useRecorder(onText: (text: string, meta?: TranscribeMeta) => voi
     cancelled.current = false;
     heard.current = false;
     r.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+
+    // ---- teks langsung ----
+    const Ctor = cb.current.onInterim ? speechCtor() : null;
+    if (Ctor) {
+      try {
+        const sr = new Ctor();
+        sr.lang = 'id-ID'; sr.continuous = true; sr.interimResults = true; sr.maxAlternatives = 1;
+        sr.onresult = (e) => {
+          let t = '';
+          for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
+          cb.current.onInterim?.(t.trim());
+        };
+        sr.onerror = () => { /* tidak ada suara / izin ditolak: perekam tetap jalan tanpa teks langsung */ };
+        sr.start();
+        speech.current = sr;
+      } catch { speech.current = null; }
+    }
 
     // ---- VAD adaptif ----
     const ctx = new AudioContext();
@@ -96,6 +132,8 @@ export function useRecorder(onText: (text: string, meta?: TranscribeMeta) => voi
 
     r.onstop = async () => {
       stopVad.current();
+      try { speech.current?.stop(); } catch { /* sudah berhenti */ }
+      speech.current = null;
       stream.getTracks().forEach((t) => t.stop());
       rec.current = null;
       if (cancelled.current || !chunks.length) { setState('idle'); return; }
