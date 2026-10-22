@@ -3,13 +3,16 @@ package data
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"tbguard/backend/internal/auth"
 	"tbguard/backend/internal/db"
 	"tbguard/backend/internal/httpx"
+	"tbguard/backend/internal/users"
 )
 
 // Handlers: CRUD perangkat, deteksi, dan pasien di PostgreSQL.
@@ -49,9 +52,10 @@ func (e Entity) list(ctx context.Context, pool *pgxpool.Pool) ([]map[string]any,
 		if err != nil {
 			return nil, err
 		}
+		oc := e.outCols()
 		m := make(map[string]any, len(vals))
 		for i, v := range vals {
-			m[e.cols[i].json] = v
+			m[oc[i].json] = v
 		}
 		out = append(out, m)
 	}
@@ -94,13 +98,15 @@ func (h *Handlers) Create(e Entity) http.HandlerFunc {
 		if err != nil {
 			return nil, err
 		}
-		q, args, err := e.insertSQL(body)
+		actor := auth.UserFrom(r.Context()).Email
+		q, args, err := e.insertSQL(body, actor)
 		if err != nil {
 			return nil, httpx.Errf(http.StatusBadRequest, err.Error())
 		}
 		if _, err := pool.Exec(ctx, q, args...); err != nil {
 			return nil, err
 		}
+		users.Audit(ctx, pool, actor, "create", e.table, fmt.Sprint(body[e.pk.json]))
 		return map[string]any{"ok": true}, nil
 	})
 }
@@ -115,7 +121,8 @@ func (h *Handlers) Patch(e Entity) http.HandlerFunc {
 		if err != nil {
 			return nil, err
 		}
-		q, args, err := e.updateSQL(pk, body)
+		actor := auth.UserFrom(r.Context()).Email
+		q, args, err := e.updateSQL(pk, body, actor)
 		if err != nil {
 			return nil, httpx.Errf(http.StatusBadRequest, err.Error())
 		}
@@ -126,6 +133,7 @@ func (h *Handlers) Patch(e Entity) http.HandlerFunc {
 		if tag.RowsAffected() == 0 {
 			return nil, httpx.Errf(http.StatusNotFound, "Data tidak ditemukan")
 		}
+		users.Audit(ctx, pool, actor, "update", e.table, fmt.Sprint(pk))
 		return map[string]any{"ok": true}, nil
 	})
 }
@@ -139,6 +147,7 @@ func (h *Handlers) Remove(e Entity) http.HandlerFunc {
 		if _, err := pool.Exec(ctx, "DELETE FROM "+e.table+" WHERE "+e.pk.db+"=$1", pk); err != nil {
 			return nil, err
 		}
+		users.Audit(ctx, pool, auth.UserFrom(r.Context()).Email, "delete", e.table, fmt.Sprint(pk))
 		return map[string]any{"ok": true}, nil
 	})
 }
@@ -155,6 +164,7 @@ func (h *Handlers) RemoveDetections() http.HandlerFunc {
 		if err != nil {
 			return nil, err
 		}
+		users.Audit(ctx, pool, auth.UserFrom(r.Context()).Email, "delete", "detections", fmt.Sprintf("%d item", tag.RowsAffected()))
 		return map[string]any{"ok": true, "deleted": tag.RowsAffected()}, nil
 	})
 }

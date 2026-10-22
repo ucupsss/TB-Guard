@@ -62,7 +62,7 @@ func seedData(ctx context.Context, tx pgx.Tx) error {
 			if reverse { // tabel yang diurutkan seq DESC: sisipkan dari belakang
 				row = rows[len(rows)-1-i]
 			}
-			q, args, err := e.insertSQL(row)
+			q, args, err := e.insertSQL(row, "seed")
 			if err != nil {
 				return err
 			}

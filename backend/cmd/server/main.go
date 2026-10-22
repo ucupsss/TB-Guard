@@ -19,6 +19,7 @@ import (
 	"tbguard/backend/internal/db"
 	"tbguard/backend/internal/httpx"
 	"tbguard/backend/internal/storage"
+	"tbguard/backend/internal/users"
 )
 
 func main() {
@@ -35,10 +36,12 @@ func main() {
 	aiSvc := ai.New(cfg, hc)
 	store := storage.New(cfg, database, hc)
 	records := data.NewHandlers(database)
+	userSvc := users.New(cfg, database)
+	authSvc.UseDirectory(userSvc)
 
 	bg, stopBg := context.WithCancel(context.Background())
 	defer stopBg()
-	go database.Connect(bg, data.Migrate(cfg.Seed), storage.Migrate)
+	go database.Connect(bg, data.Migrate(cfg.Seed), users.Migrate, storage.Migrate)
 	go store.Janitor(bg)
 	go store.SeedAudio(bg)
 
@@ -73,6 +76,10 @@ func main() {
 
 	// terlindungi (wajib login Gmail)
 	mux.HandleFunc("GET /api/auth/me", protect(authSvc.HandleMe))
+	mux.HandleFunc("GET /api/users", admin(userSvc.List()))
+	mux.HandleFunc("PATCH /api/users/{email}", admin(userSvc.Patch()))
+	mux.HandleFunc("DELETE /api/users/{email}", admin(userSvc.Remove()))
+	mux.HandleFunc("GET /api/activity", admin(userSvc.Activity()))
 	mux.HandleFunc("GET /api/bootstrap", protect(records.Bootstrap()))
 	mux.HandleFunc("POST /api/devices", admin(records.Create(data.DeviceEntity)))
 	mux.HandleFunc("PATCH /api/devices/{id}", admin(records.Patch(data.DeviceEntity)))

@@ -1,9 +1,9 @@
 import type * as React from 'react';
-import { BarChartIcon, CubeIcon, DashboardIcon, StackIcon, TargetIcon, Component1Icon, VideoIcon } from '@radix-ui/react-icons';
+import { BarChartIcon, PersonIcon, CubeIcon, DashboardIcon, StackIcon, TargetIcon, Component1Icon, VideoIcon } from '@radix-ui/react-icons';
 import { MicIcon } from '@/components/tb/icons';
 
 export type NavIcon = React.ComponentType<{ className?: string }>;
-export interface NavItem { label: string; to?: string; icon: NavIcon; children?: { label: string; to: string }[] }
+export interface NavItem { label: string; to?: string; icon: NavIcon; adminOnly?: boolean; children?: { label: string; to: string }[] }
 
 export const NAV: (NavItem | 'divider')[] = [
   { label: '3D Public Area', to: '/', icon: VideoIcon },
@@ -20,6 +20,7 @@ export const NAV: (NavItem | 'divider')[] = [
   ] },
   'divider',
   { label: 'Pelacakan Pasien', to: '/patients', icon: TargetIcon },
+  { label: 'Pengguna', to: '/users', icon: PersonIcon, adminOnly: true },
 ];
 
 /** item mana yang aktif untuk path ini */

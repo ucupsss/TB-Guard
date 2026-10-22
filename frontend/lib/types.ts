@@ -19,4 +19,4 @@ export interface Patient {
 export interface WebformRow { id: string; time: number; name: string; gender: 'L' | 'P'; age: number; city: string; weeks: number; symptoms: string[]; recordings: number; result: 'TB' | 'NEG'; confidence: number }
 export interface OfflineRow { id: string; time: number; gender: 'L' | 'P'; age: number; site: string; recordings: number; mic: string; label: 'TB' | 'NEG'; pred: 'TB' | 'NEG'; collector: string }
 export interface PrimerRow { id: string; time: number; gender: 'L' | 'P'; age: number; lab: 'Positif' | 'Negatif'; method: string; phase: string; recordings: number; pred: 'TB' | 'NEG'; confidence: number; facility: string }
-export interface User { email: string; role: string; name: string }
+export interface User { email: string; role: string; name: string; picture?: string }

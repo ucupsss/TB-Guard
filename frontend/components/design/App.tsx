@@ -1,6 +1,6 @@
 'use client';
 import {Component,lazy,Suspense,useCallback,useRef,useState,type ReactNode} from 'react';
-import {Play,Pause,Film,Video,Activity,Box,Layers,ChevronDown,ChevronRight,Eye,EyeOff,Lock,Unlock,RotateCcw,Undo2,Redo2,Download,Save,Upload,SlidersHorizontal,Radio,GitBranch,Maximize,Move3D,X,Check,AlertTriangle,Cpu,Battery,Monitor,Settings2} from 'lucide-react';
+import {Play,Pause,Film,Video,Activity,Box,Layers,ChevronDown,ChevronRight,Eye,EyeOff,Lock,Unlock,RotateCcw,Undo2,Redo2,Download,Save,Upload,SlidersHorizontal,Radio,GitBranch,Maximize,Move3D,X,Check,AlertTriangle,Cpu,Battery,Monitor,Settings2} from '@/components/ui/icons';
 import type * as THREE from 'three';
 import {activeParts,enclosure,fitInterfaces,initialProject,issues,validateProject,type Part,type Project} from './engineering';
 import type {ViewMode} from './DeviceViewer';

@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"testing"
@@ -48,5 +49,48 @@ func TestRequireAuthRejectsAnonymous(t *testing.T) {
 	h(rec, newReq("Bearer "+s.signSession(User{Email: "a@gmail.com"})))
 	if rec.code != 204 {
 		t.Fatalf("token valid harus lolos, dapat %d", rec.code)
+	}
+}
+
+type fakeDir struct {
+	users map[string]User
+}
+
+func (f fakeDir) Login(_ context.Context, email, name, pic string) (User, error) {
+	return f.users[email], nil
+}
+func (f fakeDir) Lookup(_ context.Context, email string) (User, error) {
+	u, ok := f.users[email]
+	if !ok {
+		return User{}, ErrUnknownUser
+	}
+	return u, nil
+}
+
+func TestRoleAndStatusComeFromDirectory(t *testing.T) {
+	s := &Service{cfg: config.Config{SessionSecret: []byte("0123456789abcdef0123")}}
+	s.UseDirectory(fakeDir{users: map[string]User{
+		"admin@gmail.com":  {Email: "admin@gmail.com", Role: "Admin"},
+		"viewer@gmail.com": {Email: "viewer@gmail.com", Role: "Petugas"},
+		"off@gmail.com":    {Email: "off@gmail.com", Role: "Admin", Disabled: true},
+	}})
+	var gotRole string
+	h := s.RequireAuth(s.RequireAdmin(func(w http.ResponseWriter, r *http.Request) { gotRole = UserFrom(r.Context()).Role; w.WriteHeader(204) }))
+	call := func(email, tokRole string) int {
+		rec := newRecorder()
+		h(rec, newReq("Bearer "+s.signSession(User{Email: email, Role: tokRole})))
+		return rec.code
+	}
+	if c := call("admin@gmail.com", "Petugas"); c != 204 || gotRole != "Admin" {
+		t.Fatalf("peran harus dari database (naik), dapat %d %s", c, gotRole)
+	}
+	if c := call("viewer@gmail.com", "Admin"); c != 403 {
+		t.Fatalf("token yang mengaku Admin tidak boleh menembus, dapat %d", c)
+	}
+	if c := call("off@gmail.com", "Admin"); c != 403 {
+		t.Fatalf("akun nonaktif harus ditolak, dapat %d", c)
+	}
+	if c := call("ghost@gmail.com", "Admin"); c != 401 {
+		t.Fatalf("akun yang sudah dihapus harus 401, dapat %d", c)
 	}
 }

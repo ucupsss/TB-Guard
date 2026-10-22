@@ -12,7 +12,7 @@ import {
   Layers,
   FileCheck2,
   ShieldCheck,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';

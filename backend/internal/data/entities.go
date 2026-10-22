@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"time"
 )
 
 // Tipe kolom untuk koersi nilai JSON -> parameter SQL.
@@ -121,7 +122,10 @@ func (e Entity) build(body map[string]any, skipPK bool) (cols []string, holders 
 	return
 }
 
-func (e Entity) insertSQL(body map[string]any) (string, []any, error) {
+// attribCols: kolom atribusi (dibaca klien, tapi hanya diisi server dari sesi login).
+var attribCols = []col{{"createdBy", "created_by", tText}, {"updatedBy", "updated_by", tText}, {"updatedAt", "updated_at", tMs}}
+
+func (e Entity) insertSQL(body map[string]any, actor string) (string, []any, error) {
 	if _, ok := body[e.pk.json]; !ok {
 		return "", nil, fmt.Errorf("field %q wajib", e.pk.json)
 	}
@@ -129,10 +133,16 @@ func (e Entity) insertSQL(body map[string]any) (string, []any, error) {
 	if err != nil {
 		return "", nil, err
 	}
+	now := time.Now().UnixMilli()
+	for _, v := range []any{actor, actor, now} {
+		args = append(args, v)
+		holders = append(holders, fmt.Sprintf("$%d", len(args)))
+	}
+	cols = append(cols, "created_by", "updated_by", "updated_at")
 	return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", e.table, strings.Join(cols, ","), strings.Join(holders, ",")), args, nil
 }
 
-func (e Entity) updateSQL(pk any, body map[string]any) (string, []any, error) {
+func (e Entity) updateSQL(pk any, body map[string]any, actor string) (string, []any, error) {
 	cols, holders, args, err := e.build(body, true)
 	if err != nil {
 		return "", nil, err
@@ -140,17 +150,25 @@ func (e Entity) updateSQL(pk any, body map[string]any) (string, []any, error) {
 	if len(cols) == 0 {
 		return "", nil, fmt.Errorf("tidak ada field yang diubah")
 	}
-	sets := make([]string, len(cols))
+	sets := make([]string, len(cols), len(cols)+2)
 	for i := range cols {
 		sets[i] = cols[i] + "=" + holders[i]
 	}
+	args = append(args, actor, time.Now().UnixMilli())
+	sets = append(sets, fmt.Sprintf("updated_by=$%d", len(args)-1), fmt.Sprintf("updated_at=$%d", len(args)))
 	args = append(args, pk)
 	return fmt.Sprintf("UPDATE %s SET %s WHERE %s=$%d", e.table, strings.Join(sets, ","), e.pk.db, len(args)), args, nil
 }
 
+// outCols: kolom yang dikirim ke klien (data + atribusi).
+func (e Entity) outCols() []col {
+	return append(append([]col{}, e.cols...), attribCols...)
+}
+
 func (e Entity) selectSQL() string {
-	names := make([]string, len(e.cols))
-	for i, c := range e.cols {
+	oc := e.outCols()
+	names := make([]string, len(oc))
+	for i, c := range oc {
 		names[i] = c.db
 	}
 	return fmt.Sprintf("SELECT %s FROM %s ORDER BY %s", strings.Join(names, ","), e.table, e.order)

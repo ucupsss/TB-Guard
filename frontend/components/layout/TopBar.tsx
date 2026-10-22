@@ -17,7 +17,7 @@ import {
   DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useStore } from '@/lib/store';
 import { useAgent } from '@/components/agent/AgentProvider';
 import { fmt, initials } from '@/lib/format';
@@ -121,6 +121,7 @@ export function TopBar({ crumbs, onMenu, dark, onToggleDark }: { crumbs: Crumb[]
           aria-label="Menu akun & preferensi"
         >
           <Avatar className="h-8 w-8 shadow-sm ring-2 ring-primary/20 dark:ring-white/20 transition-all hover:ring-primary">
+            {user?.picture && <AvatarImage src={user.picture} alt="" referrerPolicy="no-referrer" />}
             <AvatarFallback className="bg-primary text-xs font-semibold text-white">
               {initials(user?.name || 'A')}
             </AvatarFallback>

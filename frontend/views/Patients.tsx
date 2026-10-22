@@ -28,7 +28,7 @@ import {
   ExternalLink,
   ChevronRight,
   ArrowRight
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

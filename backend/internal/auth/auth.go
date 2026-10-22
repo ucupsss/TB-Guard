@@ -27,10 +27,12 @@ import (
 const sessionTTL = 7 * 24 * time.Hour
 
 type User struct {
-	Email string `json:"email"`
-	Name  string `json:"name"`
-	Role  string `json:"role"`
-	Exp   int64  `json:"exp,omitempty"`
+	Email    string `json:"email"`
+	Name     string `json:"name"`
+	Picture  string `json:"picture,omitempty"`
+	Role     string `json:"role"`
+	Disabled bool   `json:"disabled,omitempty"`
+	Exp      int64  `json:"exp,omitempty"`
 }
 
 type ctxKey struct{}
@@ -43,6 +45,7 @@ func UserFrom(ctx context.Context) User {
 // ---- token sesi ------------------------------------------------------------
 
 func (s *Service) signSession(u User) string {
+	u.Picture = "" // foto diambil dari /api/auth/me, bukan dari token
 	u.Exp = time.Now().Add(sessionTTL).Unix()
 	payload, _ := json.Marshal(u)
 	p := base64.RawURLEncoding.EncodeToString(payload)
@@ -76,6 +79,21 @@ func (s *Service) RequireAuth(next http.HandlerFunc) http.HandlerFunc {
 		if tok == "" || err != nil {
 			httpx.JSON(w, http.StatusUnauthorized, map[string]string{"error": "Silakan masuk dengan akun Gmail"})
 			return
+		}
+		if s.dir != nil { // peran & status selalu dari database, bukan dari token
+			fresh, err := s.dir.Lookup(r.Context(), u.Email)
+			switch {
+			case errors.Is(err, ErrUnknownUser):
+				httpx.JSON(w, http.StatusUnauthorized, map[string]string{"error": "Akun tidak terdaftar, silakan masuk lagi"})
+				return
+			case err != nil:
+				u.Role = "Petugas" // database bermasalah: gagal-aman (hanya baca)
+			case fresh.Disabled:
+				httpx.JSON(w, http.StatusForbidden, map[string]string{"error": "Akun dinonaktifkan oleh Admin"})
+				return
+			default:
+				u = fresh
+			}
 		}
 		next(w, r.WithContext(context.WithValue(r.Context(), ctxKey{}, u)))
 	}
@@ -131,6 +149,7 @@ type googleClaims struct {
 	EmailVerified any    `json:"email_verified"` // bool atau "true"
 	Name          string `json:"name"`
 	HD            string `json:"hd"`
+	Picture       string `json:"picture"`
 }
 
 func (s *Service) verifyGoogleToken(ctx context.Context, idToken string) (*googleClaims, error) {
@@ -208,12 +227,23 @@ func (s *Service) HandleGoogleLogin(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusForbidden, map[string]string{"error": "Akun ini belum diizinkan"})
 		return
 	}
-	role := "Admin"
-	if len(s.cfg.AdminEmails) > 0 && !s.cfg.AdminEmails[email] {
-		role = "Petugas"
+	u := User{Email: email, Name: nameOr(c.Name, email), Picture: c.Picture, Role: "Admin"}
+	if s.dir != nil {
+		dbu, err := s.dir.Login(ctx, email, u.Name, c.Picture)
+		if err != nil {
+			slog.Error("login: direktori gagal", "err", err)
+			httpx.JSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Database belum siap, coba lagi sebentar"})
+			return
+		}
+		if dbu.Disabled {
+			httpx.JSON(w, http.StatusForbidden, map[string]string{"error": "Akun dinonaktifkan oleh Admin"})
+			return
+		}
+		u = dbu
+	} else if len(s.cfg.AdminEmails) > 0 && !s.cfg.AdminEmails[email] {
+		u.Role = "Petugas"
 	}
-	u := User{Email: email, Name: nameOr(c.Name, email), Role: role}
-	httpx.JSON(w, http.StatusOK, map[string]any{"token": s.signSession(u), "user": u, "expiresIn": int(sessionTTL.Seconds())})
+	httpx.JSON(w, http.StatusOK, map[string]any{"token": s.signSession(u), "user": publicUser(u), "expiresIn": int(sessionTTL.Seconds())})
 }
 
 // RequireAdmin: hanya peran Admin yang boleh mengubah data; peran lain read-only.
@@ -230,7 +260,7 @@ func (s *Service) RequireAdmin(next http.HandlerFunc) http.HandlerFunc {
 
 func (s *Service) HandleMe(w http.ResponseWriter, r *http.Request) {
 	u := UserFrom(r.Context())
-	httpx.JSON(w, http.StatusOK, map[string]any{"user": User{Email: u.Email, Name: u.Name, Role: u.Role}})
+	httpx.JSON(w, http.StatusOK, map[string]any{"user": publicUser(u)})
 }
 
 func randomHex(n int) string {
@@ -238,6 +268,8 @@ func randomHex(n int) string {
 	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
 }
+
+func publicUser(u User) User { u.Exp = 0; u.Disabled = false; return u }
 
 func nameOr(name, email string) string {
 	if name != "" {

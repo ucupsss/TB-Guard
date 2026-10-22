@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { ChevronDownIcon, DotFilledIcon } from '@radix-ui/react-icons';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
+import { useStore } from '@/lib/store';
 import { NAV, isActive, type NavItem } from './nav';
 
 function Group({ item, path, rail, onNavigate }: { item: NavItem; path: string; rail?: boolean; onNavigate?: () => void }) {
@@ -73,10 +74,11 @@ function Group({ item, path, rail, onNavigate }: { item: NavItem; path: string; 
 /** `rail`: sidebar desktop yang hanya menampilkan ikon sampai di-hover */
 export function SideMenu({ rail, onNavigate }: { rail?: boolean; onNavigate?: () => void }) {
   const pathname = usePathname() || '/';
+  const { user } = useStore();
 
   return (
     <nav aria-label="Menu utama" className="space-y-0.5" suppressHydrationWarning>
-      {NAV.map((item, i) => {
+      {NAV.filter((item) => item === 'divider' || !item.adminOnly || user?.role === 'Admin').map((item, i) => {
         if (item === 'divider') return <div key={i} className="my-6 mr-5 h-px bg-white/[0.08]" />;
         if (item.children) return <Group key={item.label} item={item} path={pathname} rail={rail} onNavigate={onNavigate} />;
         const Icon = item.icon;

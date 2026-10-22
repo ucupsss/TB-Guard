@@ -61,3 +61,11 @@ func CORS(allowed []string, next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+// Decode membaca body JSON (dibatasi MaxBody) ke v; kegagalan menjadi Error 400.
+func Decode(r *http.Request, v any) error {
+	if err := json.NewDecoder(http.MaxBytesReader(nil, r.Body, MaxBody)).Decode(v); err != nil {
+		return Errf(http.StatusBadRequest, "Body bukan JSON yang valid")
+	}
+	return nil
+}

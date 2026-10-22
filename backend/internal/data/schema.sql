@@ -71,3 +71,8 @@ CREATE TABLE IF NOT EXISTS dataset_rows (
 
 -- penanda seed awal agar data contoh tidak muncul lagi setelah pengguna menghapusnya
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY);
+
+-- atribusi pada tabel data: dibuat/diubah oleh siapa dan kapan
+ALTER TABLE devices    ADD COLUMN IF NOT EXISTS created_by TEXT, ADD COLUMN IF NOT EXISTS updated_by TEXT, ADD COLUMN IF NOT EXISTS updated_at BIGINT;
+ALTER TABLE detections ADD COLUMN IF NOT EXISTS created_by TEXT, ADD COLUMN IF NOT EXISTS updated_by TEXT, ADD COLUMN IF NOT EXISTS updated_at BIGINT;
+ALTER TABLE patients   ADD COLUMN IF NOT EXISTS created_by TEXT, ADD COLUMN IF NOT EXISTS updated_by TEXT, ADD COLUMN IF NOT EXISTS updated_at BIGINT;

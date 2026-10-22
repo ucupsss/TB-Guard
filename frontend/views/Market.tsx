@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Bar, BarChart, Cell, LabelList, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
-import { Building2, Train, Landmark, HeartHandshake, TrendingUp, Users, Wallet, ShieldAlert } from 'lucide-react';
+import { Building2, Train, Landmark, HeartHandshake, TrendingUp, Users, Wallet, ShieldAlert } from '@/components/ui/icons';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SectionHeader } from '@/components/tb/common';
 import { Badge } from '@/components/ui/badge';
