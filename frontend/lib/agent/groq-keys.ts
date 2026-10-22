@@ -33,8 +33,11 @@ class GroqKeyPool {
         const lines = content.split('\n');
         for (const line of lines) {
           const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith('#')) continue;
           if (trimmed.startsWith('gsk_') && trimmed.length >= 20) {
             newKeys.push(trimmed);
+          } else if (trimmed.length >= 20) {
+            newKeys.push('gsk_' + trimmed);
           }
         }
       }
