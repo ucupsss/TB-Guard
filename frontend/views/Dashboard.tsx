@@ -99,14 +99,14 @@ export default function Dashboard() {
 
       <div className="mt-6 grid grid-cols-12 gap-6">
         {/* ===== Ringkasan (General Report) ===== */}
-        <div className="col-span-12 lg:col-span-8 xl:col-span-6">
+        <div className="col-span-12 flex flex-col lg:col-span-8 xl:col-span-6">
           <SectionHeader title="Ringkasan Skrining">
             <Select value={period} onValueChange={setPeriod}>
               <SelectTrigger className="box h-9 w-36 border-0" aria-label="Periode"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="7">7 hari</SelectItem><SelectItem value="14">14 hari</SelectItem><SelectItem value="30">30 hari</SelectItem></SelectContent>
             </Select>
           </SectionHeader>
-          <div className="box intro-y flex flex-col md:flex-row">
+          <div className="box intro-y flex flex-1 flex-col md:flex-row">
             <div className="flex-1 px-8 py-12">
               <SpeakerLoudIcon className="h-10 w-10 text-pending" />
               <div className="mt-6 flex items-end gap-1 text-3xl font-medium xl:text-4xl"><span className="num">{cur.length}</span><span className="mb-1 text-base font-normal text-muted-foreground">suara</span></div>
@@ -138,9 +138,9 @@ export default function Dashboard() {
         </div>
 
         {/* ===== Aktivitas perangkat (Visitors) ===== */}
-        <div className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3">
+        <div className="col-span-12 flex flex-col sm:col-span-6 lg:col-span-4 xl:col-span-3">
           <SectionHeader title="Aktivitas Perangkat"><Link href="/devices" className="truncate text-sm text-primary dark:text-blue-300">Lihat di Peta</Link></SectionHeader>
-          <div className="box intro-y p-5">
+          <div className="box intro-y flex flex-1 flex-col p-5">
             <div className="flex items-center">
               <div className="text-muted-foreground">Rekaman masuk hari ini</div>
               <DropdownMenu>
@@ -168,14 +168,15 @@ export default function Dashboard() {
             {perDevice.map(({ d, n }) => (
               <Link key={d.id} href={`/devices/${d.id}`} className="mt-1.5 flex items-center justify-between hover:text-primary"><span className="truncate">{d.name} · {d.zone.split(' – ')[0]}</span><span className="num">{n}</span></Link>
             ))}
-            <Button asChild variant="outline" className="mt-4 w-full border-dashed shadow-none"><Link href="/devices">Laporan Real-Time</Link></Button>
+            <div className="min-h-4 flex-1" />
+            <Button asChild variant="outline" className="w-full border-dashed shadow-none"><Link href="/devices">Laporan Real-Time</Link></Button>
           </div>
         </div>
 
         {/* ===== Komposisi (Users By Age) ===== */}
-        <div className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3">
+        <div className="col-span-12 flex flex-col sm:col-span-6 lg:col-span-4 xl:col-span-3">
           <SectionHeader title="Komposisi"><Link href="/patients" className="truncate text-sm text-primary dark:text-blue-300">Show More</Link></SectionHeader>
-          <div className="box intro-y p-5">
+          <div className="box intro-y flex flex-1 flex-col p-5">
             <Tabs value={mix} onValueChange={setMix} className="flex justify-center">
               <TabsList className="mx-auto w-4/5 bg-secondary/70">
                 <TabsTrigger value="hasil" className="flex-1">Hasil</TabsTrigger>
@@ -196,7 +197,8 @@ export default function Dashboard() {
                 <div className="mt-0.5 text-muted-foreground">{mix === 'hasil' ? `suara, ${days} hari` : 'pasien'}</div>
               </div>
             </div>
-            <div className="mx-auto mt-6 w-52 sm:w-auto">
+            <div className="min-h-6 flex-1" />
+            <div className="mx-auto w-52 sm:w-auto">
               {pie.map((p) => (
                 <div key={p.name} className="mt-3 flex items-center first:mt-0">
                   <span className="mr-3 h-2 w-2 rounded-full" style={{ background: p.color }} />
