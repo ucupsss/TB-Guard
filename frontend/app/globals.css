@@ -121,15 +121,18 @@
   }
   .side-menu--active,
   .side-menu--active:hover {
-    @apply bg-page text-foreground font-semibold;
+    background-color: hsl(var(--page)) !important;
+    color: hsl(var(--foreground)) !important;
+    font-weight: 600;
   }
   .side-menu--active svg,
   .side-menu--active:hover svg {
-    @apply text-primary dark:text-blue-400;
+    color: hsl(var(--primary)) !important;
   }
   .side-menu--active span,
   .side-menu--active:hover span {
-    @apply text-foreground dark:text-white font-semibold;
+    color: hsl(var(--foreground)) !important;
+    font-weight: 600;
   }
   .side-menu--active::before, .side-menu--active::after {
     content: ''; position: absolute; right: 0; width: 30px; height: 30px; pointer-events: none;

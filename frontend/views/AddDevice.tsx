@@ -71,7 +71,7 @@ export default function AddDevice() {
             <div className="mt-5 grid grid-cols-12 gap-4 gap-y-5">
               {step === 0 && <>
                 <div className="col-span-12 grid gap-2 sm:col-span-6"><Label htmlFor="fName">Nama perangkat</Label><Input id="fName" value={f.name} onChange={(e) => set('name')(e.target.value)} placeholder="mis. TB Guard 5" /></div>
-                <div className="col-span-12 grid gap-2 sm:col-span-6"><Label htmlFor="fId">Device ID</Label><Input id="fId" value={f.id} onChange={(e) => set('id')(e.target.value)} inputMode="numeric" /><span className="text-xs text-muted-foreground">Harus sama dengan ID di firmware.</span></div>
+                <div className="col-span-12 grid gap-2 sm:col-span-6"><Label htmlFor="fId" title="Harus sama dengan ID di firmware">Device ID</Label><Input id="fId" value={f.id} onChange={(e) => set('id')(e.target.value)} inputMode="numeric" /></div>
                 <div className="col-span-12 grid gap-2 sm:col-span-6"><Label>Type</Label>
                   <Select value={f.type} onValueChange={set('type')}><SelectTrigger aria-label="Type"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="cough">cough</SelectItem><SelectItem value="cough+vision">cough + vision</SelectItem></SelectContent></Select></div>
               </>}
@@ -90,7 +90,7 @@ export default function AddDevice() {
                   <Select value={f.mics} onValueChange={set('mics')}><SelectTrigger aria-label="Microphone array"><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="4">4 mic · circular</SelectItem><SelectItem value="6">6 mic · linear</SelectItem><SelectItem value="8">8 mic · circular</SelectItem></SelectContent></Select></div>
                 <label className="col-span-12 flex items-center justify-between gap-4 rounded-md border border-slate-200 p-4 dark:border-white/10 sm:col-span-6">
-                  <span><span className="block font-medium">Kamera object detection</span><span className="text-xs text-muted-foreground">Untuk melacak individu sumber batuk</span></span>
+                  <span className="font-medium" title="Untuk melacak individu sumber batuk">Kamera</span>
                   <Switch checked={f.camera} onCheckedChange={set('camera')} aria-label="Kamera object detection" />
                 </label>
                 <div className="col-span-12 grid gap-2"><Label htmlFor="fNote">Catatan pemasangan</Label><Textarea id="fNote" value={f.note} onChange={(e) => set('note')(e.target.value)} placeholder="Tinggi pemasangan, arah hadap kamera, kontak PIC lokasi..." /></div>
@@ -126,8 +126,8 @@ export default function AddDevice() {
           </div>
           <div className="intro-y box mt-5 p-5">
             <div className="mb-4 font-medium">Checklist pemasangan</div>
-            {[['Pasang mic array setinggi ±2 m', 'Hindari dekat speaker pengumuman / AC'], ['Arahkan kamera ke area duduk', 'FOV kamera harus mencakup sudut DoA ±39°'], ['Sambungkan ke jaringan', 'Perangkat mengirim data ke server setiap deteksi'], ['Uji dengan rekaman batuk', 'Pastikan muncul di Device Data']].map(([t, s]) => (
-              <div key={t} className="mt-3 flex gap-3 first:mt-0"><CheckCircledIcon className="mt-0.5 h-4 w-4 shrink-0 text-success" /><div><div className="font-medium">{t}</div><div className="text-xs text-muted-foreground">{s}</div></div></div>
+            {[['Mic array ±2 m', 'Hindari dekat speaker pengumuman / AC'], ['Kamera ke area duduk', 'FOV kamera harus mencakup sudut DoA ±39°'], ['Hubungkan jaringan', 'Perangkat mengirim data ke server setiap deteksi'], ['Uji rekaman batuk', 'Pastikan muncul di Device Data']].map(([t, s]) => (
+              <div key={t} className="mt-3 flex gap-3 first:mt-0"><CheckCircledIcon className="mt-0.5 h-4 w-4 shrink-0 text-success" /><div className="font-medium" title={s}>{t}</div></div>
             ))}
           </div>
         </div>

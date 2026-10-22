@@ -82,19 +82,15 @@ function SimTab({ mono }: { mono: AudioBuffer }) {
   return (
     <div className="grid grid-cols-12 gap-6">
       <div className="col-span-12 space-y-5 lg:col-span-4">
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          Rekaman batuk Anda diletakkan secara virtual di sekitar mic array TB Guard (ReSpeaker 4 mic, radius 32 mm), lalu diberi bising.
-          Sistem harus menemukan kembali sudutnya tanpa mengetahui jawaban.
-        </p>
-        <Field label="Sudut sumber batuk (jawaban)" value={`${az}°`}><Slider value={[az]} min={0} max={359} step={1} onValueChange={([v]: number[]) => setAz(v)} /></Field>
-        <Field label="SNR bising sensor" value={`${snr} dB`}><Slider value={[snr]} min={-10} max={30} step={1} onValueChange={([v]: number[]) => setSnr(v)} /></Field>
+        <Field label="Sudut batuk" value={`${az}°`}><Slider value={[az]} min={0} max={359} step={1} onValueChange={([v]: number[]) => setAz(v)} /></Field>
+        <Field label="SNR" value={`${snr} dB`}><Slider value={[snr]} min={-10} max={30} step={1} onValueChange={([v]: number[]) => setSnr(v)} /></Field>
         <label className="flex items-center justify-between gap-2 text-xs">
-          <span className="text-muted-foreground">Sumber bising terarah (obrolan/pengumuman)</span>
+          <span className="text-muted-foreground" title="Obrolan / pengumuman dari satu arah">Bising terarah</span>
           <Switch checked={interOn} onCheckedChange={setInterOn} aria-label="Sumber bising terarah" />
         </label>
         {interOn && <>
-          <Field label="Sudut sumber bising" value={`${interAz}°`}><Slider value={[interAz]} min={0} max={359} step={1} onValueChange={([v]: number[]) => setInterAz(v)} /></Field>
-          <Field label="Rasio batuk : bising" value={`${sir} dB`}><Slider value={[sir]} min={-10} max={20} step={1} onValueChange={([v]: number[]) => setSir(v)} /></Field>
+          <Field label="Sudut bising" value={`${interAz}°`}><Slider value={[interAz]} min={0} max={359} step={1} onValueChange={([v]: number[]) => setInterAz(v)} /></Field>
+          <Field label="Batuk : bising" value={`${sir} dB`}><Slider value={[sir]} min={-10} max={20} step={1} onValueChange={([v]: number[]) => setSir(v)} /></Field>
         </>}
       </div>
 
@@ -102,27 +98,27 @@ function SimTab({ mono }: { mono: AudioBuffer }) {
         <Polar sim={sim} trueAz={opts.az} interAz={opts.interOn ? opts.interAz : null} />
         <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 bg-success" />Sudut asli</span>
-          <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 bg-primary" />Estimasi SRP-PHAT</span>
-          {opts.interOn && <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 bg-pending" />Sumber bising</span>}
+          <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 bg-primary" />Estimasi</span>
+          {opts.interOn && <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 bg-pending" />Bising</span>}
         </div>
       </div>
 
       <div className="col-span-12 space-y-4 sm:col-span-6 lg:col-span-4">
         <div className="grid grid-cols-2 gap-4">
-          <Stat k="Estimasi sudut" v={`${sim.estAz.toFixed(1)}°`} />
+          <Stat k="Estimasi" v={`${sim.estAz.toFixed(1)}°`} />
           <Stat k="Error" v={<span className={sim.errDeg <= 10 ? 'text-success' : 'text-danger'}>{sim.errDeg.toFixed(1)}°</span>} />
           <Stat k="SNR 1 mic" v={`${sim.snrMicDb.toFixed(1)} dB`} />
-          <Stat k="SNR setelah beamforming" v={<>{sim.snrBeamDb.toFixed(1)} dB <span className="text-xs text-success">({signed(gain, 1)} dB)</span></>} />
+          <Stat k="SNR beam" v={<>{sim.snrBeamDb.toFixed(1)} dB <span className="text-xs text-success">({signed(gain, 1)} dB)</span></>} />
         </div>
         <div>
-          <div className="mb-1.5 text-xs text-muted-foreground">TDOA GCC-PHAT (asli / estimasi)</div>
+          <div className="mb-1.5 text-xs text-muted-foreground">TDOA (asli / est.)</div>
           <div className="space-y-1 text-xs">
             {sim.pairs.map((p) => <div key={p.label} className="flex justify-between"><span>{p.label}</span><span className="num font-medium">{p.trueUs.toFixed(0)} / {p.estUs.toFixed(0)} µs</span></div>)}
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={() => listen('mic')}>{now === 'mic' ? <PauseIcon /> : <PlayIcon />}1 mic (bising)</Button>
-          <Button size="sm" variant="outline" onClick={() => listen('beam')}>{now === 'beam' ? <PauseIcon /> : <PlayIcon />}Hasil beamforming</Button>
+          <Button size="sm" variant="outline" onClick={() => listen('mic')}>{now === 'mic' ? <PauseIcon /> : <PlayIcon />}1 mic</Button>
+          <Button size="sm" variant="outline" onClick={() => listen('beam')}>{now === 'beam' ? <PauseIcon /> : <PlayIcon />}Beam</Button>
         </div>
       </div>
     </div>
@@ -130,17 +126,12 @@ function SimTab({ mono }: { mono: AudioBuffer }) {
 }
 
 function StereoTab({ stereo, micCm, onMicCm, swap, onSwap }: { stereo: StereoDoa | null; micCm: number; onMicCm: (v: number) => void; swap: boolean; onSwap: (v: boolean) => void }) {
-  if (!stereo) return <p className="text-muted-foreground">Rekam batuk dulu untuk menghitung arah suara.</p>;
+  if (!stereo) return <p className="text-muted-foreground">Rekam batuk dulu.</p>;
   if (!stereo.ok) return (
     <div className="flex gap-3 rounded-md bg-pending/10 p-4">
       <ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0 text-pending" />
       <div>
-        <div className="font-medium text-[#b45c00] dark:text-pending">Arah suara tidak bisa diukur di laptop ini</div>
-        <p className="mt-1 text-muted-foreground">{stereo.reason} GCC-PHAT butuh minimal 2 kanal mic yang berbeda.</p>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Di Windows, coba <span className="font-medium text-foreground">Settings → System → Sound → Microphone → matikan Audio enhancements / Voice Clarity</span>, lalu muat ulang halaman.
-          Bila tetap mono, gunakan tab <span className="font-medium text-foreground">Simulasi mic array</span>.
-        </p>
+        <div className="font-medium text-[#b45c00] dark:text-pending" title={`${stereo.reason} Butuh 2 kanal mic. Windows: Settings → System → Sound → Microphone → matikan Audio enhancements, lalu muat ulang. Bila tetap mono, pakai tab Simulasi.`}>Mic mono · DoA tidak tersedia</div>
       </div>
     </div>
   );
@@ -149,18 +140,18 @@ function StereoTab({ stereo, micCm, onMicCm, swap, onSwap }: { stereo: StereoDoa
       <div className="col-span-12 space-y-4 lg:col-span-4">
         <div className="grid grid-cols-2 gap-4">
           <Stat k="Azimuth" v={<span className="text-primary dark:text-blue-300">{signed(stereo.azimuth)}° {Math.abs(stereo.azimuth) < 5 ? '(depan)' : stereo.azimuth > 0 ? '(kanan)' : '(kiri)'}</span>} />
-          <Stat k="TDOA kiri–kanan" v={`${signed(stereo.tauUs)} µs`} />
-          <Stat k="Confidence (puncak PHAT)" v={stereo.confidence.toFixed(2)} />
-          <Stat k="SNR 1 mic → beamforming" v={`${stereo.snrMicDb.toFixed(1)} → ${stereo.snrBeamDb.toFixed(1)} dB`} />
+          <Stat k="TDOA" v={`${signed(stereo.tauUs)} µs`} />
+          <Stat k="Confidence" v={stereo.confidence.toFixed(2)} />
+          <Stat k="SNR" v={`${stereo.snrMicDb.toFixed(1)} → ${stereo.snrBeamDb.toFixed(1)} dB`} />
         </div>
-        <Field label="Jarak antar-mic laptop" value={`${micCm} cm`}><Slider value={[micCm]} min={2} max={30} step={0.5} onValueChange={([v]: number[]) => onMicCm(v)} /></Field>
+        <Field label="Jarak mic" value={`${micCm} cm`}><Slider value={[micCm]} min={2} max={30} step={0.5} onValueChange={([v]: number[]) => onMicCm(v)} /></Field>
         <label className="flex items-center justify-between gap-2 text-xs">
-          <span className="text-muted-foreground">Tukar kanal kiri/kanan</span>
+          <span className="text-muted-foreground">Tukar L/R</span>
           <Switch checked={swap} onCheckedChange={onSwap} aria-label="Tukar kanal kiri/kanan" />
         </label>
       </div>
       <div className="col-span-12 lg:col-span-8">
-        <div className="text-xs text-muted-foreground">Korelasi silang GCC-PHAT (mic kiri–kanan)</div>
+        <div className="text-xs text-muted-foreground" title="Puncak = selisih waktu tiba di mic kiri & kanan. Sesuaikan jarak mic bila sudut meleset; tukar L/R bila terbalik.">GCC-PHAT</div>
         <div className="mt-2 h-40">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={stereo.curve} margin={{ left: 0, right: 0, top: 8 }}>
@@ -169,10 +160,6 @@ function StereoTab({ stereo, micCm, onMicCm, swap, onSwap }: { stereo: StereoDoa
             </AreaChart>
           </ResponsiveContainer>
         </div>
-        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          Puncak kurva = selisih waktu suara tiba di mic kiri dan kanan. Arahnya ditandai garis kuning pada gambar kamera dan dipakai untuk membobot wajah yang searah.
-          Jarak mic tiap laptop berbeda; bila sudut terasa terlalu kecil atau besar, sesuaikan jaraknya. Bila kiri-kanan terbalik, aktifkan tukar kanal.
-        </p>
       </div>
     </div>
   );
@@ -185,15 +172,14 @@ export function DoaPanel(props: { stereo: StereoDoa | null; mono: AudioBuffer; m
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="mr-auto">
-          <div className="font-medium">Estimasi Arah Datang Suara</div>
-          <div className="text-xs text-muted-foreground">Direction of Arrival · GCC-PHAT + SRP-PHAT (inverse beamforming)</div>
+          <div className="font-medium" title="Direction of Arrival · GCC-PHAT + SRP-PHAT">Arah Suara (DoA)</div>
         </div>
-        <Badge variant={props.stereo?.ok ? 'soft-success' : 'soft-warning'}>{props.stereo?.ok ? 'Mic laptop: 2 kanal' : 'Mic laptop: mono'}</Badge>
+        <Badge variant={props.stereo?.ok ? 'soft-success' : 'soft-warning'}>{props.stereo?.ok ? '2 kanal' : 'Mono'}</Badge>
       </div>
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          <TabsTrigger value="stereo">Mic laptop (2 mic)</TabsTrigger>
-          <TabsTrigger value="sim">Simulasi mic array TB Guard</TabsTrigger>
+          <TabsTrigger value="stereo">Laptop</TabsTrigger>
+          <TabsTrigger value="sim">Simulasi</TabsTrigger>
         </TabsList>
         <TabsContent value="stereo" className={cn('mt-4')}><StereoTab {...props} /></TabsContent>
         <TabsContent value="sim" className="mt-4"><SimTab mono={props.mono} /></TabsContent>

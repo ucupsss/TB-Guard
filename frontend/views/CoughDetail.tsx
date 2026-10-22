@@ -100,16 +100,16 @@ export default function CoughDetail() {
         {/* audio */}
         <div ref={audioRef} id="audio" className="intro-y box col-span-12 scroll-mt-6 p-5">
           <div className="mb-5 flex flex-wrap items-center gap-3 border-b border-slate-200/60 pb-5 dark:border-white/10">
-            <div className="mr-auto"><div className="font-medium">Hasil Suara Batuk</div><div className="text-xs text-muted-foreground">Waveform & Mel-spectrogram · segmen 1 detik, 16 kHz</div></div>
+            <div className="mr-auto"><div className="font-medium" title="Waveform & Mel-spectrogram · 1 detik, 16 kHz">Suara Batuk</div></div>
             <div className="flex flex-wrap gap-1.5">{['Segmentasi 1 s', 'Resample 16 kHz', 'STFT · Hann', 'Mel filter bank', 'DCT', '39 MFCC', 'LSTM'].map((s, i, a) => <Badge key={s} variant={i === a.length - 1 ? 'default' : 'soft-primary'}>{s}</Badge>)}</div>
           </div>
           <CoughAudio d={d} autoplayRef={play} />
-          <div className="mt-4 rounded-md border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-[#8a6d00] dark:text-warning">Suara di demo ini sintetis. Sambungkan ke rekaman asli dari backend saat API siap.</div>
+          <div className="mt-4 rounded-md border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-[#8a6d00] dark:text-warning" title="Sambungkan ke rekaman asli saat API siap.">Demo · suara sintetis</div>
         </div>
 
         {/* DoA */}
         <div className="intro-y box col-span-12 p-5 lg:col-span-6">
-          <div className="mb-5 border-b border-slate-200/60 pb-5 dark:border-white/10"><div className="font-medium">Estimasi Arah Datang Suara</div><div className="text-xs text-muted-foreground">Direction of Arrival · GCC-PHAT + inverse beamforming</div></div>
+          <div className="mb-5 border-b border-slate-200/60 pb-5 dark:border-white/10"><div className="font-medium" title="Direction of Arrival · GCC-PHAT + inverse beamforming">Arah Suara (DoA)</div></div>
           <DoaChart d={d} dev={dev} />
           <div className="mt-4 grid grid-cols-2 gap-6">
             <dl className="grid gap-2 text-sm">
@@ -118,7 +118,7 @@ export default function CoughDetail() {
               ))}
             </dl>
             <div>
-              <div className="text-xs text-muted-foreground">Korelasi silang GCC-PHAT (mic 1–3)</div>
+              <div className="text-xs text-muted-foreground">GCC-PHAT (mic 1–3)</div>
               <div className="h-[120px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={gcc} margin={{ left: 0, right: 0, top: 8 }}>
@@ -133,14 +133,13 @@ export default function CoughDetail() {
 
         {/* object detection */}
         <div className="intro-y box col-span-12 p-5 lg:col-span-6">
-          <div className="mb-5 border-b border-slate-200/60 pb-5 dark:border-white/10"><div className="font-medium">Pelacakan Individu</div><div className="text-xs text-muted-foreground">Object detection pada frame kamera di timestamp batuk</div></div>
+          <div className="mb-5 border-b border-slate-200/60 pb-5 dark:border-white/10"><div className="font-medium" title="Object detection pada frame kamera saat batuk">Pelacakan Individu</div></div>
           <div className="overflow-hidden rounded-md"><CameraFrame d={d} dev={dev} /></div>
           <dl className="mt-4 grid gap-2 text-sm">
             {[['Status pelacakan', d.person.tracked ? <Badge key="a" variant="soft-success">Individu terlacak</Badge> : <Badge key="b" variant="soft-warning">Tidak terlacak</Badge>], ['ID pelacakan', d.person.tracked ? d.person.id : '–'], ['Skor kecocokan DoA ↔ bbox', d.person.tracked ? d.person.score.toFixed(2) : '–'], ['Orang dalam frame', d.person.crowd + (d.person.tracked ? 1 : 0)], ['Sinkronisasi timestamp', '±40 ms']].map(([k, v], i) => (
               <div key={i} className="flex items-center justify-between gap-2"><dt className="text-muted-foreground">{k}</dt><dd className="font-medium num">{v}</dd></div>
             ))}
           </dl>
-          <p className="mt-3 text-xs text-muted-foreground">Wajah tidak ditampilkan dan tidak disimpan. Frame di demo adalah ilustrasi.</p>
         </div>
       </div>
 

@@ -135,12 +135,9 @@ export function AiClinicalCopilot({ d, dev }: { d: Detection; dev: Device }) {
                 TB-Guard AI Copilot & Clinical Triage
               </h3>
               <Badge variant="soft-primary" className="gap-1 text-xs font-medium">
-                <Sparkles className="h-3 w-3 text-primary" /> LLM Integrated
+                <Sparkles className="h-3 w-3 text-primary" /> LLM
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Integrasi model training akustik (CWT Scalograms CNN) dengan asisten klinis cerdas
-            </p>
           </div>
         </div>
 
@@ -166,7 +163,7 @@ export function AiClinicalCopilot({ d, dev }: { d: Detection; dev: Device }) {
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <span className="ml-2 text-sm text-muted-foreground">Menganalisis hasil deteksi dengan model AI...</span>
+          <span className="ml-2 text-sm text-muted-foreground">Menganalisis…</span>
         </div>
       ) : triage ? (
         <div className="mt-5 grid grid-cols-12 gap-5">
@@ -275,7 +272,7 @@ export function AiClinicalCopilot({ d, dev }: { d: Detection; dev: Device }) {
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
                   <BrainCircuit className="h-8 w-8 text-slate-300 mb-2" />
-                  <p>Tanyakan rekomendasi skrining atau interpretasi fitur akustik deteksi ini ke AI Copilot.</p>
+                  <p>Tanya AI Copilot</p>
                 </div>
               ) : (
                 messages.map((m) => (
@@ -332,8 +329,7 @@ export function AiClinicalCopilot({ d, dev }: { d: Detection; dev: Device }) {
 
       {/* Scientific disclaimer footer */}
       <div className="mt-4 border-t border-slate-200/60 pt-3 text-center text-[11px] text-muted-foreground dark:border-white/10">
-        🔬 <strong>Pemberitahuan Regulasi:</strong> TB-Guard adalah prototipe riset pemantauan akustik.
-        Skor akustik dan triase AI tidak menggantikan diagnosis klinis definitif oleh dokter maupun tes laboratorium konfirmasi (TCM / GeneXpert).
+        <span title="Prototipe riset. Skor akustik & triase AI tidak menggantikan diagnosis dokter maupun TCM / GeneXpert.">🔬 Bukan diagnosis medis</span>
       </div>
     </div>
   );

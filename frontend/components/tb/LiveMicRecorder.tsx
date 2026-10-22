@@ -360,10 +360,9 @@ export function LiveMicRecorder() {
       <div className="flex flex-wrap items-center gap-3 border-b border-slate-200/60 pb-5 dark:border-white/10">
         <div className="mr-auto">
           <div className="flex items-center gap-2 font-medium">
-            Perekam Akustik Batuk (Edge Input)
-            <Badge variant="soft-primary">Live AI Engine</Badge>
+            Perekam Batuk
+            <Badge variant="soft-primary" title="Sampling 16 kHz · deteksi otomatis batuk TB vs Non-TB">Live AI</Badge>
           </div>
-          <div className="mt-0.5 text-xs text-muted-foreground">Sampling 16.000 Hz · Deteksi otomatis komponen glotis batuk TB vs Non-TB</div>
         </div>
 
         {/* level mikrofon */}
@@ -386,9 +385,6 @@ export function LiveMicRecorder() {
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 p-6 text-center text-white">
                 <MicIcon className="mb-2 h-6 w-6 text-blue-300" />
                 <div className="font-medium">Hubungkan Mikrofon</div>
-                <p className="mt-1 max-w-sm text-xs text-slate-300">
-                  Izinkan browser mengakses mikrofon laptop Anda untuk merekam suara batuk dan menampilkan visualisasi audio real-time.
-                </p>
                 <Button size="sm" onClick={startMicMonitoring} className="mt-3"><MicIcon />Aktifkan Mikrofon</Button>
               </div>
             )}
@@ -402,13 +398,13 @@ export function LiveMicRecorder() {
 
           <div className="flex flex-wrap items-center gap-2">
             <Button onClick={handleRecord} disabled={isRecording || analyzing} variant={isRecording ? 'destructive' : 'default'} className="flex-1">
-              {isRecording ? <><StopIcon />Merekam ({countdown}s)… Silakan batuk</>
-                : analyzing ? <><UpdateIcon className="animate-spin" />Menganalisis akustik…</>
-                : <><MicIcon />Mulai Rekam Batuk (3 Detik)</>}
+              {isRecording ? <><StopIcon />Batuk sekarang ({countdown}s)</>
+                : analyzing ? <><UpdateIcon className="animate-spin" />Menganalisis…</>
+                : <><MicIcon />Rekam (3 dtk)</>}
             </Button>
             {audioUrl && (
               <Button variant="outline" onClick={togglePlay} disabled={isRecording || analyzing}>
-                {isPlaying ? <PauseIcon /> : <PlayIcon />}{isPlaying ? 'Jeda' : 'Putar Hasil'}
+                {isPlaying ? <PauseIcon /> : <PlayIcon />}{isPlaying ? 'Jeda' : 'Putar'}
               </Button>
             )}
             {result && (
@@ -423,34 +419,29 @@ export function LiveMicRecorder() {
           <div className="rounded-md border border-slate-200/60 p-4 dark:border-white/10">
             <div className="flex flex-wrap items-center gap-2">
               <VideoIcon className="h-4 w-4 text-primary dark:text-blue-300" />
-              <span className="mr-auto font-medium">Kamera Pelacakan Individu</span>
+              <span className="mr-auto font-medium" title="Opsional. Video diproses di browser, tidak diunggah.">Kamera</span>
               {camState === 'off' || camState === 'error'
-                ? <Button size="sm" variant="outline" onClick={camStart} disabled={isRecording || analyzing}><VideoIcon />Aktifkan Kamera</Button>
+                ? <Button size="sm" variant="outline" onClick={camStart} disabled={isRecording || analyzing}><VideoIcon />Aktifkan</Button>
                 : <Button size="sm" variant="ghost" onClick={camStop} disabled={isRecording}>Matikan</Button>}
             </div>
             <div className={cn('relative mt-3 overflow-hidden rounded-md bg-slate-900', camState === 'off' || camState === 'error' ? 'hidden' : '')}>
               <video ref={camVideoRef} muted playsInline className="block aspect-video w-full -scale-x-100 object-cover" />
               {(camState === 'starting' || camState === 'loading-model') && (
                 <div className="absolute inset-0 grid place-items-center bg-slate-900/70 text-xs text-white">
-                  <span className="flex items-center gap-2"><UpdateIcon className="animate-spin" />{camState === 'starting' ? 'Menyalakan kamera…' : 'Memuat model deteksi wajah…'}</span>
+                  <span className="flex items-center gap-2"><UpdateIcon className="animate-spin" />{camState === 'starting' ? 'Menyalakan kamera…' : 'Memuat model…'}</span>
                 </div>
               )}
               {isRecording && camState === 'ready' && <Badge variant="destructive" className="absolute left-3 top-3"><span className="h-1.5 w-1.5 rounded-full bg-white" />Melacak wajah</Badge>}
             </div>
-            <p className={cn('mt-2 text-xs', camError ? 'text-danger' : 'text-muted-foreground')}>
-              {camError || 'Opsional. Video diproses di browser dan tidak diunggah; hanya satu frame saat batuk yang ditampilkan.'}
-            </p>
+            {camError && <p className="mt-2 text-xs text-danger">{camError}</p>}
           </div>
 
           {audioUrl && <audio ref={audioPlayerRef} src={audioUrl} onEnded={() => setIsPlaying(false)} className="hidden" />}
 
-          <div className="rounded-md border border-slate-200/60 p-4 dark:border-white/10">
-            <div className="font-medium">Petunjuk Pengujian Batuk</div>
-            <ul className="mt-2 list-disc space-y-1 pl-4 text-muted-foreground">
-              <li>Posisikan laptop/mikrofon sekitar <span className="font-medium text-foreground">30 – 50 cm</span> dari mulut.</li>
-              <li>Klik <span className="font-medium text-foreground">Mulai Rekam</span>, lalu batuklah <span className="font-medium text-foreground">1 – 2 kali</span> secara wajar ke arah mikrofon.</li>
-              <li>Sistem menyaring frekuensi 16 kHz dan mengekstrak spektrum CWT Morlet secara otomatis.</li>
-            </ul>
+          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 dark:bg-white/5">30–50 cm</span>
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 dark:bg-white/5">Batuk 1–2×</span>
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 dark:bg-white/5">16 kHz · CWT</span>
           </div>
         </div>
 
@@ -459,10 +450,7 @@ export function LiveMicRecorder() {
           {analyzing ? (
             <div className="flex h-full min-h-[260px] flex-col items-center justify-center rounded-md border border-dashed border-primary/40 bg-primary/5 p-6 text-center">
               <UpdateIcon className="mb-3 h-6 w-6 animate-spin text-primary dark:text-blue-300" />
-              <div className="font-medium">Mengekstrak Fitur Akustik CWT &amp; Spektrum Resonansi</div>
-              <p className="mt-1 max-w-sm text-muted-foreground">
-                Menghitung densitas energi pada pita frekuensi 1.2 – 3.5 kHz dan mencocokkan pola glotis batuk…
-              </p>
+              <div className="font-medium">Menganalisis…</div>
             </div>
           ) : result && f ? (
             <div className="space-y-4">
@@ -471,14 +459,14 @@ export function LiveMicRecorder() {
                   ? <ExclamationTriangleIcon className="h-6 w-6 shrink-0 text-danger" />
                   : <CheckCircledIcon className="h-6 w-6 shrink-0 text-success" />}
                 <div className="mr-auto">
-                  <div className="text-xs text-muted-foreground">Hasil Prediksi Model</div>
+                  <div className="text-xs text-muted-foreground">Hasil</div>
                   <div className={cn('text-base font-medium', result.is_tb ? 'text-danger' : 'text-[#5b7f0a] dark:text-success')}>
-                    {result.is_tb ? 'Terindikasi Pola Batuk TB' : 'Bukan Batuk TB (Normal / Negatif)'}
+                    {result.is_tb ? 'Terindikasi TB' : 'Negatif TB'}
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="num text-2xl font-medium">{(result.confidence * 100).toFixed(1)}%</div>
-                  <div className="text-xs text-muted-foreground">Confidence Score</div>
+                  <div className="text-xs text-muted-foreground">Confidence</div>
                 </div>
               </div>
 
@@ -493,16 +481,15 @@ export function LiveMicRecorder() {
               </div>
 
               <div className="rounded-md border border-slate-200/60 p-4 dark:border-white/10">
-                <div className="flex items-center gap-2 font-medium"><ActivityLogIcon className="h-4 w-4 text-primary dark:text-blue-300" />Analisis Klinis &amp; Rekomendasi</div>
-                <p className="mt-2 leading-relaxed text-muted-foreground">{result.triage.clinical_reasoning}</p>
+                <div className="flex items-center gap-2 font-medium" title={result.triage.clinical_reasoning}><ActivityLogIcon className="h-4 w-4 text-primary dark:text-blue-300" />Rekomendasi</div>
                 <ul className="mt-2 list-disc space-y-1 pl-4">
                   {result.triage.who_recommended_actions.slice(0, 2).map((act, i) => <li key={i}>{act}</li>)}
                 </ul>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <Button size="sm" variant="outline" onClick={handleSaveToDashboard}><BookmarkIcon />Simpan Deteksi ({result.uuid})</Button>
-                <span className="ml-auto text-xs text-muted-foreground">Model: MobileNetV3 (Colab CWT Scalograms)</span>
+                <Button size="sm" variant="outline" onClick={handleSaveToDashboard}><BookmarkIcon />Simpan</Button>
+                <span className="ml-auto text-xs text-muted-foreground">MobileNetV3</span>
               </div>
             </div>
           ) : (
@@ -511,16 +498,13 @@ export function LiveMicRecorder() {
                 <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary dark:text-blue-300">
                   <ActivityLogIcon className="h-5 w-5" />
                 </div>
-                <div className="font-medium">Menunggu Sinyal Rekaman Audio</div>
-                <p className="mx-auto mt-1 max-w-sm text-muted-foreground">
-                  Tekan &quot;Mulai Rekam Batuk&quot; untuk memproses gelombang audio mikrofon Anda.
-                </p>
+                <div className="font-medium">Siap merekam</div>
               </div>
               <div className="mt-5 grid grid-cols-3 gap-3 border-t border-slate-200/60 pt-5 dark:border-white/10">
                 {[
-                  { n: '01', t: 'Capture', v: '3s Audio Mono', s: 'Resampling 16 kHz', c: 'text-primary dark:text-blue-300' },
-                  { n: '02', t: 'Transform', v: 'CWT Morlet', s: 'Matriks 224×224', c: 'text-success' },
-                  { n: '03', t: 'Triage', v: 'Prediksi & Triase', s: 'Skor & Rekomendasi', c: 'text-pending' },
+                  { n: '01', t: 'Capture', v: '3s Audio', s: '16 kHz', c: 'text-primary dark:text-blue-300' },
+                  { n: '02', t: 'Transform', v: 'CWT', s: '224×224', c: 'text-success' },
+                  { n: '03', t: 'Triage', v: 'Triase', s: 'Skor', c: 'text-pending' },
                 ].map((x) => (
                   <div key={x.n} className="rounded-md border border-slate-200/60 p-3 dark:border-white/10">
                     <div className={cn('text-xs font-medium', x.c)}>{x.n} · {x.t}</div>
@@ -538,7 +522,7 @@ export function LiveMicRecorder() {
         <div className="mt-6 grid grid-cols-12 gap-6 border-t border-slate-200/60 pt-5 dark:border-white/10">
           <div className="col-span-12 lg:col-span-7">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="mr-auto font-medium">Orang Terdeteksi Batuk</span>
+              <span className="mr-auto font-medium">Sumber Batuk</span>
               <label className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Switch checked={blurFaces} onCheckedChange={setBlurFaces} aria-label="Samarkan wajah" />Samarkan wajah
               </label>
@@ -548,33 +532,25 @@ export function LiveMicRecorder() {
           <div className="col-span-12 space-y-4 lg:col-span-5">
             {shownAtt.source === null ? (
               <div className="rounded-md bg-pending/10 p-4">
-                <div className="font-medium text-pending">Tidak ada orang di kamera</div>
-                <p className="mt-1 text-muted-foreground">Pastikan wajah terlihat di kamera saat batuk.</p>
+                <div className="font-medium text-pending" title="Pastikan wajah terlihat di kamera saat batuk.">Tidak ada orang</div>
               </div>
             ) : shownAtt.ambiguous ? (
               <div className="rounded-md bg-pending/10 p-4">
-                <div className="font-medium text-[#b45c00] dark:text-pending">Ambigu · {shownAtt.people.length} orang bereaksi mirip</div>
-                <p className="mt-1 text-muted-foreground">Ekspresi dan gerakan kandidat teratas tidak cukup berbeda. Konfirmasi manual oleh petugas diperlukan sebelum dikaitkan ke individu.</p>
+                <div className="font-medium text-[#b45c00] dark:text-pending" title="Kandidat teratas tidak cukup berbeda. Perlu konfirmasi petugas.">Ambigu · {shownAtt.people.length} orang</div>
               </div>
             ) : (
-              <div className={cn('rounded-md p-4', result.is_tb ? 'bg-danger/10' : 'bg-success/15')}>
+              <div className={cn('rounded-md p-4', result.is_tb ? 'bg-danger/10' : 'bg-success/15')}
+                title={(shownAtt.people.length === 1 ? 'Hanya satu orang di kamera.' : `Dipilih dari ${shownAtt.people.length} orang di kamera.`) + ' ' + shownAtt.people[0].reason}>
                 <div className={cn('font-medium', result.is_tb ? 'text-danger' : 'text-[#5b7f0a] dark:text-success')}>
-                  Sumber batuk teridentifikasi · {(shownAtt.people[0].share * 100).toFixed(0)}%
+                  Teridentifikasi · {(shownAtt.people[0].share * 100).toFixed(0)}%
                 </div>
-                <p className="mt-1 text-muted-foreground">
-                  {shownAtt.people.length === 1 ? 'Hanya satu orang di kamera.' : `Dipilih dari ${shownAtt.people.length} orang di kamera.`}
-                  {' ' + shownAtt.people[0].reason}
-                </p>
               </div>
             )}
             <div className="space-y-1.5 text-xs">
-              <div className="flex justify-between"><span className="text-muted-foreground">Momen onset batuk</span><span className="num font-medium">{shownAtt.onsetSec.toFixed(2)} s</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Orang di frame</span><span className="num font-medium">{shownAtt.people.length}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Arah suara (DoA)</span><span className="font-medium">{stereo?.ok ? `${stereo.azimuth > 0 ? '+' : ''}${stereo.azimuth.toFixed(0)}° (GCC-PHAT 2 mic)` : 'Tidak tersedia (mic laptop mono)'}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Onset</span><span className="num font-medium">{shownAtt.onsetSec.toFixed(2)} s</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Orang</span><span className="num font-medium">{shownAtt.people.length}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">DoA</span><span className="font-medium">{stereo?.ok ? `${stereo.azimuth > 0 ? '+' : ''}${stereo.azimuth.toFixed(0)}°` : '–'}</span></div>
             </div>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Sumber batuk diperkirakan dari ekspresi wajah dan sentakan kepala (MediaPipe Face Landmarker) di sekitar momen batuk{stereo?.ok ? ', lalu dibobot dengan arah suara dari 2 mic laptop (GCC-PHAT).' : '. Mic laptop terbaca mono sehingga arah suara tidak dipakai.'}
-            </p>
           </div>
         </div>
       )}
