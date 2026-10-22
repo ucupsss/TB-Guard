@@ -228,7 +228,7 @@ export async function POST(req: Request) {
           });
         }
 
-        const MAX_KEY_RETRIES = 5;
+        const MAX_KEY_RETRIES = 50;
         let attempts = 0;
         let success = false;
 
@@ -236,7 +236,7 @@ export async function POST(req: Request) {
           attempts++;
           const currentKey = groqPool.getActiveKey();
           if (!currentKey) {
-            send({ type: 'error', error: 'Semua API key Groq sedang cooldown. Coba lagi dalam 30 detik.' });
+            send({ type: 'error', error: 'Semua API key Groq sedang cooldown atau tidak aktif. Coba lagi dalam 30 detik.' });
             break;
           }
 
@@ -278,8 +278,23 @@ export async function POST(req: Request) {
                 // abaikan
               }
 
-              // Jika model tidak tersedia atau rate limit, rotasi atau lempar error
-              if (groqRes.status >= 500 || (groqRes.status === 400 && parsedErr.includes('rate_limit'))) {
+              const lowerErr = parsedErr.toLowerCase();
+              const isRestricted = lowerErr.includes('restricted') || lowerErr.includes('deactivated');
+              const isAuthError = groqRes.status === 401 || (groqRes.status === 400 && lowerErr.includes('invalid_api_key'));
+
+              // Jika organisasi dibatasi (Organization has been restricted) atau invalid, nonaktifkan permanen dan rotasi ke key berikutnya!
+              if (isRestricted || isAuthError) {
+                groqPool.markInvalid(currentKey.key);
+                send({
+                  type: 'wait',
+                  seconds: 1,
+                  notice: `Memilih API key Groq cadangan berikutnya [${currentKey.index}/${currentKey.total}]...`,
+                });
+                continue;
+              }
+
+              // Jika rate limit atau server error sementara, beri cooldown
+              if (groqRes.status >= 500 || (groqRes.status === 400 && lowerErr.includes('rate_limit'))) {
                 groqPool.markRateLimited(currentKey.key, 30);
                 continue;
               }

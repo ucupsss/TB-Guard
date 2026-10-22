@@ -233,14 +233,18 @@ class GroqKeyPool {
       }
     }
 
-    // Jika semua key sedang cooldown, pilih yang cooldown-nya paling cepat selesai
-    let bestIdx = 0;
+    // Jika semua key sedang cooldown, pilih yang cooldown-nya paling cepat selesai (abaikan yang invalid/Infinity)
+    let bestIdx = -1;
     let minCooldown = Infinity;
     for (let i = 0; i < len; i++) {
-      if (this.keys[i].cooldownUntil < minCooldown) {
+      if (this.keys[i].cooldownUntil < minCooldown && this.keys[i].cooldownUntil !== Infinity) {
         minCooldown = this.keys[i].cooldownUntil;
         bestIdx = i;
       }
+    }
+
+    if (bestIdx === -1) {
+      return null;
     }
 
     const state = this.keys[bestIdx];
@@ -256,6 +260,16 @@ class GroqKeyPool {
       item.cooldownUntil = Date.now() + cooldownSec * 1000;
       item.failedCalls++;
       console.warn(`[GroqKeyPool] Key ...${key.slice(-6)} terkena rate limit, istirahat ${cooldownSec} detik.`);
+    }
+  }
+
+  /** Nonaktifkan key secara permanen jika akun organisasi dibatasi (restricted) atau revoked */
+  public markInvalid(key: string) {
+    const item = this.keys.find((k) => k.key === key);
+    if (item) {
+      item.cooldownUntil = Infinity;
+      item.failedCalls++;
+      console.warn(`[GroqKeyPool] Key ...${key.slice(-6)} dinonaktifkan permanen (organisasi restricted/invalid).`);
     }
   }
 
