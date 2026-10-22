@@ -7,10 +7,6 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { Button } from '@/components/ui/button';
 import { useStore } from '@/lib/store';
 
-/* Tampil setiap kali beranda dibuka atau di-refresh. Penanda ini hidup di memori modul: reload penuh mengosongkannya,
-   sedangkan kembali ke "/" lewat navigasi di dalam aplikasi tidak memunculkan jendela ini lagi. */
-let shownThisLoad = false;
-
 /* Nomor WhatsApp contoh (dummy) untuk demo; ganti dengan nomor resmi sebelum rilis. */
 const WA_NUMBER = '6281234567890';
 const WA_LINK = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('Halo TB Guard, saya ingin tahu lebih lanjut tentang produk ini.')}`;
@@ -25,8 +21,10 @@ export function ProductIntro() {
   const router = useRouter();
   const { user } = useStore();
   const [open, setOpen] = React.useState(false);
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- hanya tampil sekali per pemuatan halaman
-  React.useEffect(() => { if (!shownThisLoad) { shownThisLoad = true; setOpen(true); } }, []);
+  // tampil SETIAP kali beranda dibuka: pertama kali, refresh, atau kembali ke beranda lewat tombol/menu
+  // (komponen ini dipasang ulang setiap kali halaman "/" dimasuki)
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- membuka popup saat halaman dimasuki
+  React.useEffect(() => { setOpen(true); }, []);
 
   const go = (path: string) => { setOpen(false); router.push(path); };
 
