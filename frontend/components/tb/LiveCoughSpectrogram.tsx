@@ -1,9 +1,13 @@
 'use client';
 
 import * as React from 'react';
+import type WaveSurfer from 'wavesurfer.js';
+import { PlayIcon, PauseIcon, ReloadIcon } from '@radix-ui/react-icons';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
+import { toWavBlob } from '@/lib/audio';
 
 interface LiveCoughSpectrogramProps {
   audioBuffer: AudioBuffer | null;
@@ -21,8 +25,120 @@ export function LiveCoughSpectrogram({
   spectralCentroid = 2100,
 }: LiveCoughSpectrogramProps) {
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
-  const [viewMode, setViewMode] = React.useState<'full' | 'cwt_224'>('full');
+  const waveRef = React.useRef<HTMLDivElement | null>(null);
+  const timelineRef = React.useRef<HTMLDivElement | null>(null);
+  const wsRef = React.useRef<WaveSurfer | null>(null);
 
+  const [viewMode, setViewMode] = React.useState<'full' | 'cwt_224'>('full');
+  const [isPlaying, setIsPlaying] = React.useState(false);
+  const [currentTime, setCurrentTime] = React.useState(0);
+  const [duration, setDuration] = React.useState(0);
+
+  // Format durasi audio (mis. 0:01.42s)
+  const formatTime = (seconds: number) => {
+    if (!Number.isFinite(seconds) || seconds < 0) return '0:00.00';
+    const mins = Math.floor(seconds / 60);
+    const secs = (seconds % 60).toFixed(2);
+    return `${mins}:${Number(secs) < 10 ? '0' : ''}${secs}s`;
+  };
+
+  // WaveSurfer.js Waveform Player (Detail Gelombang Audio di Atas Spektrogram)
+  React.useEffect(() => {
+    if (!waveRef.current || !audioBuffer) return;
+
+    let ws: WaveSurfer | null = null;
+    let isCancelled = false;
+
+    const blob = toWavBlob({
+      samples: audioBuffer.getChannelData(0),
+      sampleRate: audioBuffer.sampleRate,
+    });
+    const url = URL.createObjectURL(blob);
+
+    const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+
+    Promise.all([
+      import('wavesurfer.js'),
+      import('wavesurfer.js/dist/plugins/timeline.esm.js'),
+      import('wavesurfer.js/dist/plugins/hover.esm.js'),
+    ]).then(([{ default: WS }, { default: Timeline }, { default: Hover }]) => {
+      if (isCancelled || !waveRef.current) {
+        URL.revokeObjectURL(url);
+        return;
+      }
+
+      if (wsRef.current) {
+        wsRef.current.destroy();
+        wsRef.current = null;
+      }
+
+      ws = WS.create({
+        container: waveRef.current,
+        height: 110,
+        waveColor: isDark ? '#60A5FA' : '#1C3FAA',
+        progressColor: isDark ? '#93C5FD' : '#0284C7',
+        cursorColor: '#EF4444',
+        cursorWidth: 2,
+        normalize: true,
+        barWidth: 0, // Garis kontinu rapat untuk detail osilogram tinggi persis referensi
+        sampleRate: audioBuffer.sampleRate,
+        url,
+        plugins: [
+          ...(timelineRef.current
+            ? [
+                Timeline.create({
+                  container: timelineRef.current,
+                  timeInterval: 0.5,
+                  primaryLabelInterval: 1,
+                  style: {
+                    fontSize: '10px',
+                    color: isDark ? '#94a3b8' : '#64748b',
+                  },
+                }),
+              ]
+            : []),
+          Hover.create({
+            lineColor: '#ef4444',
+            lineWidth: 1,
+            labelBackground: '#1e293b',
+            labelColor: '#ffffff',
+            labelSize: '10px',
+          }),
+        ],
+      });
+
+      ws.on('ready', (dur) => {
+        setDuration(dur);
+        setCurrentTime(0);
+      });
+
+      ws.on('play', () => setIsPlaying(true));
+      ws.on('pause', () => setIsPlaying(false));
+      ws.on('finish', () => {
+        setIsPlaying(false);
+        setCurrentTime(0);
+      });
+
+      ws.on('timeupdate', (t) => {
+        setCurrentTime(t);
+      });
+
+      ws.on('seeking', (t) => {
+        setCurrentTime(t);
+      });
+
+      wsRef.current = ws;
+    });
+
+    return () => {
+      isCancelled = true;
+      ws?.destroy();
+      wsRef.current = null;
+      URL.revokeObjectURL(url);
+    };
+  }, [audioBuffer]);
+
+  // Spektrogram Kanvas (FFT / CWT)
   React.useEffect(() => {
     if (!canvasRef.current || !audioBuffer) return;
 
@@ -95,7 +211,6 @@ export function LiveCoughSpectrogram({
       spectrogramData.push(db);
     }
 
-    // Dynamic range window (dB below peak) so quiet noise stays dark like a studio spectrogram
     const dynamicRange = 90;
     const minVal = maxVal - dynamicRange;
     const range = dynamicRange;
@@ -136,7 +251,6 @@ export function LiveCoughSpectrogram({
     for (let x = 0; x < w; x++) {
       const frame = spectrogramData[Math.min(numFrames - 1, Math.floor((x / w) * numFrames))];
       for (let y = 0; y < h; y++) {
-        // High frequencies on top, low frequencies on bottom (linear, with interpolation)
         const pos = ((h - 1 - y) / (h - 1)) * (numFreqBins - 1);
         const lo = Math.floor(pos);
         const frac = pos - lo;
@@ -170,7 +284,7 @@ export function LiveCoughSpectrogram({
     ctx.font = '500 10px Poppins, sans-serif';
     ctx.fillText('Pita Resonansi TB (1.200 - 3.500 Hz)', w - 210, yTop + 18);
 
-    // Frequency axis labels on the left (kHz), as in audio-analysis tools
+    // Frequency axis labels on the left (kHz)
     const tickStep = nyquist / 1000 > 6 ? 2 : 1;
     ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
     ctx.font = '10px Poppins, sans-serif';
@@ -189,31 +303,101 @@ export function LiveCoughSpectrogram({
   if (!audioBuffer) return null;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="mr-auto">
-          <div className="flex items-center gap-2 font-medium">
-            Spektrogram Batuk
-            <Badge variant="soft-primary">16 kHz</Badge>
-          </div>
+    <div className="rounded-md border border-slate-200/70 bg-card p-4 shadow-sm dark:border-white/10">
+      {/* Header Utama: Spektrogram Batuk & Kontrol */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-base font-semibold text-foreground">Spektrogram Batuk</span>
+          <Badge variant="soft-primary">16 kHz</Badge>
+          <Badge variant="soft-success">CWT Scalogram</Badge>
         </div>
-        <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as 'full' | 'cwt_224')} className="rounded-md bg-slate-100 p-1 dark:bg-white/5">
-          <ToggleGroupItem value="full" size="sm">Penuh</ToggleGroupItem>
-          <ToggleGroupItem value="cwt_224" size="sm">224×224</ToggleGroupItem>
-        </ToggleGroup>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Kontrol Putar Audio WaveSurfer */}
+          <div className="flex items-center gap-1.5 rounded-md bg-slate-100 p-1 dark:bg-white/5">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => wsRef.current?.playPause()}
+              className="h-7 gap-1 px-2.5 text-xs font-medium cursor-pointer"
+            >
+              {isPlaying ? <PauseIcon className="h-3.5 w-3.5" /> : <PlayIcon className="h-3.5 w-3.5" />}
+              {isPlaying ? 'Jeda' : 'Putar Audio'}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                wsRef.current?.seekTo(0);
+                setCurrentTime(0);
+              }}
+              className="h-7 w-7 p-0 cursor-pointer"
+              title="Kembali ke awal"
+            >
+              <ReloadIcon className="h-3 w-3" />
+            </Button>
+            <span className="num px-1.5 text-[11px] font-medium text-muted-foreground">
+              {formatTime(currentTime)} / {formatTime(duration || (audioBuffer ? audioBuffer.duration : 0))}
+            </span>
+          </div>
+
+          {/* Toggle View Mode */}
+          <ToggleGroup
+            type="single"
+            value={viewMode}
+            onValueChange={(v) => v && setViewMode(v as 'full' | 'cwt_224')}
+            className="rounded-md bg-slate-100 p-1 dark:bg-white/5"
+          >
+            <ToggleGroupItem value="full" size="sm">
+              Penuh
+            </ToggleGroupItem>
+            <ToggleGroupItem value="cwt_224" size="sm">
+              224×224
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
       </div>
 
-      <div className="overflow-hidden rounded-md bg-slate-900">
-        <canvas
-          ref={canvasRef}
-          width={viewMode === 'full' ? 900 : 224}
-          height={viewMode === 'full' ? 320 : 224}
-          className={cn('block w-full', viewMode === 'cwt_224' && 'mx-auto aspect-square max-w-[260px]')}
-        />
-        <div className="num flex justify-between border-t border-white/10 px-2 py-1 text-[10px] text-slate-400">
-          <span>0.0s</span>
-          <span>1.5s</span>
-          <span>3.0s</span>
+      {/* Kontainer Terpadu: Gelombang Audio di Atas + Spektrogram di Bawah */}
+      <div className="space-y-3 overflow-hidden rounded-md bg-slate-900 p-3">
+        {/* 1. GELOMBANG AUDIO DETAIL (WAVESURFER.JS) */}
+        <div className="border-b border-white/10 pb-2.5">
+          <div className="mb-1.5 flex items-center justify-between text-[11px] text-slate-400">
+            <span className="font-medium text-slate-300">Bentuk Gelombang Audio (Oscillogram)</span>
+            <span>16.000 samples/dtk · Presisi Tinggi</span>
+          </div>
+          <div ref={waveRef} className="cursor-pointer" />
+          <div ref={timelineRef} className="mt-0.5" />
+        </div>
+
+        {/* 2. SPEKTROGRAM FREKUENSI CWT (DI BAWAH GELOMBANG AUDIO) */}
+        <div>
+          <div className="mb-1.5 flex items-center justify-between text-[11px] text-slate-400">
+            <span className="font-medium text-slate-300">Spektrum Frekuensi (CWT Resonansi TB)</span>
+            <span>0 – 8.000 Hz</span>
+          </div>
+          <div className="relative overflow-hidden rounded">
+            <canvas
+              ref={canvasRef}
+              width={viewMode === 'full' ? 900 : 224}
+              height={viewMode === 'full' ? 240 : 224}
+              className={cn('block w-full', viewMode === 'cwt_224' && 'mx-auto aspect-square max-w-[260px]')}
+            />
+            {/* Playhead garis vertikal sinkron dengan pemutaran WaveSurfer */}
+            {duration > 0 && currentTime > 0 && viewMode === 'full' && (
+              <div
+                className="pointer-events-none absolute bottom-0 top-0 w-0.5 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)] transition-[left] duration-75"
+                style={{
+                  left: `${(currentTime / duration) * 100}%`,
+                }}
+              />
+            )}
+          </div>
+          <div className="num flex justify-between pt-1 text-[10px] text-slate-400">
+            <span>0.0s</span>
+            <span>1.5s</span>
+            <span>3.0s</span>
+          </div>
         </div>
       </div>
     </div>

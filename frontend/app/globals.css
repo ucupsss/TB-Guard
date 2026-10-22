@@ -113,9 +113,24 @@
   @media (prefers-reduced-motion: reduce) { .intro-y { animation: none; } }
 
   /* menu sidebar: item aktif "menyatu" ke panel konten dengan lekukan atas & bawah */
-  .side-menu { @apply relative mb-1 flex h-[50px] items-center rounded-l-full pl-5 text-white/85 transition-colors cursor-pointer; }
-  .side-menu:hover { @apply text-white; }
-  .side-menu--active { @apply bg-page text-foreground; }
+  .side-menu {
+    @apply relative mb-1 flex h-[50px] items-center rounded-l-full pl-5 text-white/80 transition-colors cursor-pointer;
+  }
+  .side-menu:hover:not(.side-menu--active) {
+    @apply text-white bg-white/[0.08];
+  }
+  .side-menu--active,
+  .side-menu--active:hover {
+    @apply bg-page text-foreground font-semibold;
+  }
+  .side-menu--active svg,
+  .side-menu--active:hover svg {
+    @apply text-primary dark:text-blue-400;
+  }
+  .side-menu--active span,
+  .side-menu--active:hover span {
+    @apply text-foreground dark:text-white font-semibold;
+  }
   .side-menu--active::before, .side-menu--active::after {
     content: ''; position: absolute; right: 0; width: 30px; height: 30px; pointer-events: none;
   }
