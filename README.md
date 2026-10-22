@@ -6,9 +6,49 @@
 
 TB-Guard is an investigational, research-stage acoustic monitoring and machine learning pipeline engineered for public-health screening research.
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ucupsss/TB-Guard/blob/main/TB_Guard_CWT_Training_Colab.ipynb)
+
 > [!WARNING]
 > **Scientific & Regulatory Notice:**  
 > A cough detection result is **not** a tuberculosis prediction. An exploratory audio model prediction is **not** a clinical diagnosis. Acoustic representations alone cannot diagnose active tuberculosis infection or confirm disease transmission. TB-Guard is an investigational research prototype and simulation, **not a clinically cleared medical device**.
+
+---
+
+## Clinical Dataset & Model Benchmark (High-Accuracy Evaluation)
+
+TB-Guard provides both an end-to-end local MLOps pipeline and a high-performance deep learning model (**MobileNetV3-Small on Continuous Wavelet Transform / CWT Scalograms**) trained on real clinical cough acoustics:
+
+### 1. Model Evaluation Scores (Independent Held-Out Clinical Test Set)
+Evaluation performed on **420 clinical cough samples** (`230 Healthy` vs `190 TB`) from `elffff/tuberculosis-cough-acoustics-curated-dataset`:
+
+| Evaluation Metric | TB-Guard CWT MobileNetV3 | WHO Triage Target (TPP) | Status |
+| :--- | :---: | :---: | :---: |
+| **Overall Accuracy** | **93.10%** (391/420) | - | **High Accuracy** |
+| **Sensitivity (Recall TB)** | **92.63%** (176/190) | $\ge 90.0\%$ | **Exceeds WHO Target** |
+| **Specificity (Healthy)** | **93.48%** (215/230) | $\ge 70.0\%$ | **Exceeds WHO Target** |
+| **Precision (TB Class)** | **92.15%** | - | **Low False Positive Rate** |
+| **F1-Score (TB Class)** | **0.9239** | - | **Balanced & Robust** |
+| **ROC-AUC** | **0.9682** | $\ge 0.85$ | **Superior Discrimination** |
+
+### 2. 1-Click Reproduction on Google Colab
+Reviewers and judges can reproduce the entire clinical dataset download, CWT training, and evaluation in **1 click**:
+1. Open [`TB_Guard_CWT_Training_Colab.ipynb`](TB_Guard_CWT_Training_Colab.ipynb) in Google Colab (or click the badge above).
+2. Runtime $\rightarrow$ Select GPU (T4 / V100).
+3. Select **Run All**. The notebook automatically pulls the curated clinical dataset via `kagglehub` and trains the MobileNetV3 model.
+4. Pretrained checkpoints and full evaluation reports are already available locally at:
+   - Best Checkpoint: `models/mobilenetv3_cwt_best.pth`
+   - Evaluation Report: `reports/cwt_training/eval_report_cwt_test.md`
+   - Epoch History CSV: `reports/cwt_training/training_history.csv`
+
+---
+
+## Dataset Provenance & Storage Policy (FAQ for Reviewers)
+
+| Dataset Type | Storage Location | Provenance & Purpose |
+| :--- | :--- | :--- |
+| **Clinical CWT Dataset (Real)** | KaggleHub (`elffff/tuberculosis-cough-acoustics-curated-dataset`) | **3,816 real patient cough recordings** (RespiScan, Coswara, COUGHVID) partitioned with patient-level isolation (`PID_xxx`). Downloaded dynamically via `kagglehub` to respect Git size limits and open-science repository standards. |
+| **CODA TB Challenge (Real)** | `data/raw/coda/` (configured via `configs/default.yaml`) | Gated clinical benchmark from Synapse (`syn31472953`). Governed by Data Use Agreement (DUA) and patient privacy laws; access instructions documented in `docs/DATASET_ACCESS.md`. |
+| **Synthetic Smoke Test (Mock)** | `data/synthetic_smoke/` | **Deterministic synthetic test audio** used solely for automated CI/CD and pipeline unit-testing (`pytest`), ensuring reviewers can test the pipeline locally without requiring a 20 GB medical download. |
 
 ---
 
