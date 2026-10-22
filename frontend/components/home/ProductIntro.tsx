@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useStore } from '@/lib/store';
 
 /* Nomor WhatsApp contoh (dummy) untuk demo; ganti dengan nomor resmi sebelum rilis. */
-const WA_NUMBER = '6281234567890';
+const WA_NUMBER = '6281249964522';
 const WA_LINK = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('Halo TB Guard, saya ingin tahu lebih lanjut tentang produk ini.')}`;
 
 
