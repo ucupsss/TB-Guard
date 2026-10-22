@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { ChatBubbleIcon, SpeakerLoudIcon, SpeakerOffIcon } from '@radix-ui/react-icons';
+import { SpeakerLoudIcon, SpeakerOffIcon } from '@radix-ui/react-icons';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useStore } from '@/lib/store';
@@ -70,8 +70,13 @@ export function ProductIntro() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 px-5 pb-5 pt-4">
-          <Button asChild variant="ghost" className="ml-auto text-[#128c4a] hover:text-[#128c4a]">
-            <a href={WA_LINK} target="_blank" rel="noopener noreferrer" aria-label="Hubungi kami lewat WhatsApp"><ChatBubbleIcon />Hubungi kami</a>
+          Tertarik dengan produk TBguard-Agent? <br />Hubungi kami melalui WhatsApp
+          <Button asChild variant="ghost" className="ml-auto text-[#128c4a] hover:text-[#128c4a] gap-2">
+            <a href={WA_LINK} target="_blank" rel="noopener noreferrer" aria-label="Hubungi kami lewat WhatsApp">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/WhatsApp.svg.webp" alt="WhatsApp" className="h-4 w-4 object-contain inline-block" />
+              Hubungi kami
+            </a>
           </Button>
         </div>
       </DialogContent>

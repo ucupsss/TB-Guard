@@ -12,7 +12,6 @@ import { TbGuardSensor } from './TbGuardSensor';
 import { DoaBeamCone } from './DoaBeamCone';
 import { CaptureCard, TargetHudOverlay } from './TargetHudOverlay';
 import { DirectionProtractor } from './DirectionRadar';
-import { SavingsCalculatorPopup } from './SavingsCalculatorPopup';
 import { useUiCommand } from '@/lib/agent/ui-bus';
 import { agentPose, angles, DURATION, randomRisk, RISK_COLORS, SENSOR, type CameraMode, type Capture, type Detection } from './simulation';
 
@@ -164,7 +163,6 @@ export default function PublicAreaScene() {
       {captureError && <p role="alert" className="pa-error">Capture gagal. Tekan Pemicu Batuk untuk mencoba lagi.</p>}
       <div className="pa-event-count"><span>CAPTURE EVENTS</span><b>{String(total).padStart(2, '0')}</b></div>
     </aside>
-    <SavingsCalculatorPopup />
     <div className="pa-controls">
       <button className="pa-trigger" onClick={trigger} disabled={!ready}><SpeakerLoudIcon /> Pemicu Batuk <span>Simulasi</span></button>
       <div className="pa-control-divider" />

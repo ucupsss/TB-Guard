@@ -6,7 +6,7 @@ import {GLTFLoader,type GLTF} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {activeParts,acousticPath,enclosure,type Part,type Project,type Vec3} from './engineering';
 import {wireColor} from './wiring';
 export type ViewMode='Assembled'|'Transparent'|'Cutaway'|'Exploded'|'Internal';
-export type ViewerProps={project:Project;selected:string;select:(id:string)=>void;mode:ViewMode;explode:number;coverage:boolean;wiring:boolean;camera:string;cameraKey:number;isolate:string|null;onScene:(scene:THREE.Group)=>void;onAsset:(id:string,status:string)=>void;playing?:boolean};
+export type ViewerProps={project:Project;selected:string;select:(id:string)=>void;mode:ViewMode;explode:number;coverage:boolean;wiring:boolean;camera:string;cameraKey:number;isolate:string|null;onScene:(scene:THREE.Group)=>void;onAsset:(id:string,status:string)=>void;playing?:boolean;orbit?:number};
 const cadPaths:Record<string,string>={mic:'/models/microphone/inmp441.glb',esp:'/models/microcontroller/esp32-s3-wroom-1.glb',carrier:'/models/microcontroller/carrier.glb'};
 const cadCache:Record<string,Promise<GLTF>>={};
 function CAD({part,onAsset}:{part:Part;onAsset:ViewerProps['onAsset']}){
@@ -72,7 +72,24 @@ function Frame({p}:{p:Project}){
  {(()=>{const b=p.parts.find(a=>a.id==='battery')!;return <group position={[b.position[0],b.position[1],b.position[2]-frameZ-b.size[2]/2-2]}><Box size={[b.size[0]+5,b.size[1]+5,1.5]} color="#8d9c99"/>{[-1,1].map(i=><Box key={i} size={[b.size[0]+5,2,5]} position={[0,i*(b.size[1]/2+2),2]} color="#8d9c99"/>)}</group>})()}
  </group>;
 }
+function Webcam({size}:{size:Vec3}){
+ return <group scale={[size[0]/60,size[1]/36,size[2]/32]}>
+  <Box size={[60,22,22]} position={[0,7,0]} color="#202a2e" radius={4}/>
+  <Box size={[54,17,1]} position={[0,7,11.2]} color="#101719" radius={3}/>
+  <mesh position={[0,7,12]} rotation={[Math.PI/2,0,0]} castShadow><cylinderGeometry args={[8,9,4,48]}/><meshStandardMaterial color="#3e5058" metalness={0.75} roughness={0.3}/></mesh>
+  <mesh position={[0,7,14.1]}><circleGeometry args={[6.5,48]}/><meshStandardMaterial color="#143746" metalness={0.85} roughness={0.12}/></mesh>
+  <mesh position={[0,7,14.2]}><circleGeometry args={[3.8,40]}/><meshStandardMaterial color="#071319" metalness={0.6} roughness={0.08}/></mesh>
+  <mesh position={[-2,9,14.3]}><circleGeometry args={[1.1,20]}/><meshBasicMaterial color="#91c1d1"/></mesh>
+  <mesh position={[21,7,11.8]}><circleGeometry args={[1,20]}/><meshStandardMaterial color="#63736e"/></mesh>
+  {[-1,1].map(side=><group key={side}>{[-1,0,1].map(i=><Box key={i} size={[1,7,0.5]} position={[side*(16+i*2),7,11.8]} color="#334046"/>)}</group>)}
+  <Box size={[16,9,10]} position={[0,-8,0]} color="#48565a" radius={2}/>
+  <Box size={[34,5,32]} position={[0,-15.5,0]} color="#263237" radius={2}/>
+  <Box size={[30,1,26]} position={[0,-17.5,0]} color="#11191c"/>
+  <PrintLabel text="USB CAMERA" position={[0,0,11.8]} width={18} height={1.8} color="#8fa2a8"/>
+ </group>;
+}
 const Model=memo(function Model({a,p,mode,onAsset}:{a:Part;p:Project;mode:ViewMode;onAsset:ViewerProps['onAsset']}){
+ if(a.kind==='webcam')return <Webcam size={a.size}/>;
  if(a.kind==='front'||a.kind==='rear')return <Shell p={p} rear={a.kind==='rear'} mode={mode}/>;
  if(a.kind==='frame')return <Frame p={p}/>;
  if(['mic','esp','carrier'].includes(a.kind))return <CAD part={a} onAsset={onAsset}/>;
@@ -87,15 +104,18 @@ function AnimatedPart({a,index,props}:{a:Part;index:number;props:ViewerProps}){
  const [,,d]=enclosure(p);const pos:Vec3=[...a.position];if(a.kind==='rear')pos[2]=-d/2;
  const factor=mode==='Exploded'?props.explode:0;
  pos[2]+=factor*(a.kind==='front'?75:a.kind==='rear'?-85:a.kind==='frame'?-45:a.kind==='battery'?-20:a.kind==='mic'||a.kind==='oled'?38:4);
- if(mode==='Exploded'&&a.kind==='mic')pos[0]+=factor*(index-4)*8;
- useFrame((_,dt)=>{ref.current?.position.lerp(new THREE.Vector3(...pos),1-Math.exp(-dt*8));});
+ if(mode==='Exploded'&&a.kind==='mic')pos[0]+=factor*(Number(a.id.slice(-1))-1)*8;
+ if(a.kind==='webcam')pos[1]+=factor*45;
+ useFrame((_,dt)=>{ref.current?.position.lerp(new THREE.Vector3(...pos),(window as any).__renderMode?1:1-Math.exp(-dt*8));});
  const visible=a.visible&&(!props.isolate||props.isolate===a.id)&&!(mode==='Internal'&&['front','rear'].includes(a.kind));
  return <group ref={ref} position={pos} rotation={a.rotation.map(v=>v*Math.PI/180) as Vec3} visible={visible} name={a.id} userData={{componentId:a.id,label:a.label,units:'mm',source:a.source}} onClick={e=>{e.stopPropagation();props.select(a.id)}}>
  <Model a={a} p={p} mode={mode} onAsset={props.onAsset}/>
  {props.selected===a.id&&!['front','frame'].includes(a.kind)&&<mesh><boxGeometry args={a.size.map(v=>v+1) as Vec3}/><meshBasicMaterial color="#6ee7cf" wireframe transparent opacity={0.6}/></mesh>}
  </group>;
 }
-function CameraRig({view,tick,playing}:{view:string;tick:number;playing?:boolean}){const {camera}=useThree();const controls=useRef<any>(null);useEffect(()=>{const poses:Record<string,Vec3>={Isometric:[180,130,240],Front:[0,0,290],Rear:[0,0,-290],Left:[-290,0,0],Right:[290,0,0],Top:[0,290,0.01],Bottom:[0,-290,0.01]};camera.position.set(...(poses[view]||poses.Isometric));camera.up.set(0,1,0);camera.lookAt(0,0,0);controls.current?.target.set(0,0,0);controls.current?.update();},[view,tick,camera]);return <OrbitControls ref={controls} autoRotate={playing} autoRotateSpeed={1.1} makeDefault minDistance={70} maxDistance={650} enableDamping dampingFactor={0.09}/>}
+function CameraRig({view,tick,playing,orbit}:{view:string;tick:number;playing?:boolean;orbit?:number}){const {camera}=useThree();const controls=useRef<any>(null);
+ // Orbit animasi: kamera berputar dari depan ke samping kanan (±80°) lalu kembali, agar bagian dalam terlihat saat komponen terpisah.
+ useFrame((_,dt)=>{if(orbit===undefined)return;const az=(80*Math.PI/180)*Math.sin(Math.PI*orbit),el=0.3,r=310;const goal=new THREE.Vector3(r*Math.cos(el)*Math.sin(az),r*Math.sin(el),r*Math.cos(el)*Math.cos(az));camera.position.lerp(goal,(window as any).__renderMode?1:1-Math.exp(-Math.min(dt,0.1)*6)); /* peredam lonjakan agar gerak kamera mulus */camera.up.set(0,1,0);controls.current?.target.set(0,0,0);camera.lookAt(0,0,0)});useEffect(()=>{const poses:Record<string,Vec3>={Isometric:[340,150,225],Front:[0,0,290],Rear:[0,0,-290],Left:[-290,0,0],Right:[290,0,0],Top:[0,290,0.01],Bottom:[0,-290,0.01]};camera.position.set(...(poses[view]||poses.Isometric));camera.up.set(0,1,0);camera.lookAt(0,0,0);controls.current?.target.set(0,0,0);controls.current?.update();},[view,tick,camera]);return <OrbitControls ref={controls} enabled={orbit===undefined} autoRotate={playing} autoRotateSpeed={1.1} makeDefault minDistance={70} maxDistance={650} enableDamping dampingFactor={0.09}/>}
 function Coverage({p}:{p:Project}){return <group position={[0,52,25]} rotation={[Math.PI/2,0,0]}>{[0,1,2].map(i=><group key={i}><mesh rotation={[0,0,i*Math.PI/3]}><circleGeometry args={[105,36,0,Math.PI/3]}/><meshBasicMaterial color={['#419a94','#64d1bc','#438ba5'][i]} transparent opacity={0.12} side={THREE.DoubleSide} depthWrite={false}/></mesh></group>)}<Line points={Array.from({length:61},(_,i)=>[105*Math.cos(i*Math.PI/60),105*Math.sin(i*Math.PI/60),0])} color="#63c7b5" transparent opacity={0.5}/><Html position={[0,115,0]} center><span className="coverage-label">180° TARGET · NOT VALIDATED</span></Html>{p.parts.filter(a=>a.kind==='mic').map(a=><Line key={a.id} points={[[a.position[0],0,0],[a.position[0]+Math.sin(a.rotation[1]*Math.PI/180)*60,60,0]]} color="#8ce7d4" dashed dashSize={2} gapSize={2}/>)}</group>}
 function Scene(props:ViewerProps){const group=useRef<THREE.Group>(null);useEffect(()=>{if(group.current)props.onScene(group.current)},[props.onScene]);const p=props.project;return <>
  <color attach="background" args={['#172023']}/><ambientLight intensity={0.8}/><hemisphereLight args={['#d4e8eb','#3a4b4c',1.5]}/><directionalLight position={[80,160,150]} intensity={3} castShadow shadow-mapSize={[2048,2048]} shadow-camera-left={-180} shadow-camera-right={180} shadow-camera-top={180} shadow-camera-bottom={-180} shadow-camera-far={700} shadow-bias={-0.0004}/><directionalLight position={[-150,10,-90]} intensity={1.5} color="#77b7c7"/>
@@ -104,6 +124,6 @@ function Scene(props:ViewerProps){const group=useRef<THREE.Group>(null);useEffec
  {props.coverage&&<Coverage p={p}/>}
  {props.wiring&&p.wires.filter(w=>w.enabled&&activeParts(p).some(a=>a.id===w.from)).map((w,i)=>{const a=p.parts.find(a=>a.id===w.from)!,b=p.parts.find(a=>a.id===w.to)!,offset=(i%6-2.5)*0.65;return <Line key={w.id} points={[[a.position[0]+offset,a.position[1],a.position[2]],[a.position[0]+offset,a.position[1],-9-offset],[b.position[0]+offset,a.position[1],-9-offset],[b.position[0]+offset,b.position[1],b.position[2]]]} color={wireColor(w)} lineWidth={1.2}/>})}
  {['Transparent','Cutaway','Internal'].includes(props.mode)&&(()=>{const a=p.parts.find(a=>a.id==='esp')!;return <group position={a.position} rotation={a.rotation.map(v=>v*Math.PI/180) as Vec3}><mesh position={[0,17,0]}><boxGeometry args={[48,21,24]}/><meshBasicMaterial color="#d9bc7d" wireframe transparent opacity={0.3}/></mesh></group>})()}
- <CameraRig view={props.camera} tick={props.cameraKey} playing={props.playing}/>
+ <CameraRig view={props.camera} tick={props.cameraKey} playing={props.playing} orbit={props.orbit}/>
  </>}
 export default function DeviceViewer(props:ViewerProps){return <Canvas shadows camera={{position:[180,130,240],fov:37,near:0.1,far:2000}} gl={{antialias:true,localClippingEnabled:true,preserveDrawingBuffer:true}} dpr={[1,1.5]} onPointerMissed={()=>props.select('')}><Suspense fallback={<Html center><span className="loading">Loading geometry…</span></Html>}><Scene {...props}/></Suspense></Canvas>}

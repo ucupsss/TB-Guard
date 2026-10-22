@@ -336,7 +336,7 @@ export function AiClinicalCopilot({ d, dev }: { d: Detection; dev: Device }) {
 
       {/* Scientific disclaimer footer */}
       <div className="mt-4 border-t border-slate-200/60 pt-3 text-center text-[11px] text-muted-foreground dark:border-white/10">
-        <span title="Prototipe riset. Skor akustik & triase AI tidak menggantikan diagnosis dokter maupun TCM / GeneXpert.">🔬 Bukan diagnosis medis</span>
+        <span title="Prototipe produk. Skor akustik & triase AI tidak menggantikan diagnosis dokter maupun TCM / GeneXpert.">🔬 Bukan diagnosis medis</span>
       </div>
     </div>
   );

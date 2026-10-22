@@ -297,9 +297,10 @@ export function prepareTool(name: string, a: Args, env: ToolEnv, opts: { confirm
       const trigger = a.trigger_cough === true;
       if (!camera && !trigger) fail('Isi camera dan/atau trigger_cough.');
       return { confirm: null, run: () => {
-        env.navigate('/');
+        const targetPath = s.user ? '/3d-public-area' : '/';
+        env.navigate(targetPath);
         sendUi({ type: '3d', camera: camera as CameraPreset | undefined, triggerCough: trigger });
-        return { ok: true, opened: '/', camera: camera ?? null, cough_triggered: trigger };
+        return { ok: true, opened: targetPath, camera: camera ?? null, cough_triggered: trigger };
       } };
     }
 
@@ -339,9 +340,9 @@ export function prepareTool(name: string, a: Args, env: ToolEnv, opts: { confirm
       if (!/^\/[a-zA-Z0-9_\-\/?&=#.]*$/.test(path)) fail(`Path tidak aman: ${path}`);
       
       const cleanPath = path.split('?')[0].split('#')[0];
-      const allowedPrefixes = ['/', '/dashboard', '/design', '/live-test', '/devices', '/detections', '/data', '/patients', '/login', '/public-area', '/orchestra'];
+      const allowedPrefixes = ['/', '/dashboard', '/design', '/live-test', '/devices', '/detections', '/data', '/patients', '/login', '/public-area', '/3d-public-area', '/market', '/orchestra', '/users'];
       const isAllowed = allowedPrefixes.some((p) => cleanPath === p || (p !== '/' && cleanPath.startsWith(p + '/')) || (cleanPath.startsWith('/devices') || cleanPath.startsWith('/detections') || cleanPath.startsWith('/data')));
-      if (!isAllowed) fail(`Halaman tidak dikenal: ${cleanPath}. Rute yang tersedia: / (Public 3D), /dashboard, /design, /live-test, /devices, /patients, /data/webform, /login`);
+      if (!isAllowed) fail(`Halaman tidak dikenal: ${cleanPath}. Rute yang tersedia: / (Beranda Publik), /3d-public-area, /dashboard, /design, /live-test, /market, /devices, /patients, /data/webform, /login`);
       
       return { confirm: null, run: () => { env.navigate(path); return { ok: true, opened: path }; } };
     }

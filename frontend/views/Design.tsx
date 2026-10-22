@@ -12,7 +12,7 @@ const Editor = dynamic(() => import('@/components/design/App'), {
 
 export default function Design() {
   return (
-    <AppLayout crumbs={[{ label: '3D Prototype' }]}>
+    <AppLayout crumbs={[{ label: '3D Design', to: '/design' }, { label: '3D Prototype' }]}>
       <div className="mb-5 mt-7">
         <h1 className="text-xl font-semibold">3D Prototype Studio</h1>
       </div>

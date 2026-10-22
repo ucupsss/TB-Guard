@@ -6,11 +6,16 @@ export type NavIcon = React.ComponentType<{ className?: string }>;
 export interface NavItem { label: string; to?: string; icon: NavIcon; adminOnly?: boolean; children?: { label: string; to: string }[] }
 
 export const NAV: (NavItem | 'divider')[] = [
-  { label: '3D Public Area', to: '/', icon: VideoIcon },
   { label: 'Dashboard', to: '/dashboard', icon: DashboardIcon },
   { label: 'Uji Suara Mikrofon', to: '/live-test', icon: MicIcon },
-  { label: '3D Prototype', to: '/design', icon: Component1Icon },
-  { label: 'Peluang Pasar', to: '/market', icon: BarChartIcon },
+  { label: '3D Design', icon: Component1Icon, children: [
+    { label: '3D Prototype', to: '/design' },
+    { label: '3D Public Area', to: '/3d-public-area' },
+  ] },
+  { label: 'Peluang Pasar', icon: BarChartIcon, children: [
+    { label: 'Potensi Pasar', to: '/market' },
+    { label: 'Potensi Bisnis', to: '/market/business' },
+  ] },
   { label: 'Orchestra AI', to: '/orchestra', icon: MixerHorizontalIcon },
   'divider',
   { label: 'Devices', icon: CubeIcon, children: [{ label: 'Device List', to: '/devices' }, { label: 'Add Device', to: '/devices/new' }] },

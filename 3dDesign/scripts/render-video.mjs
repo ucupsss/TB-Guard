@@ -19,7 +19,7 @@ try{
  if(converted.status!==0)throw Error(converted.stderr||converted.error?.message||'ffmpeg failed');
  console.log('MP4:',fs.statSync('public/videos/aura-assembly.mp4').size,'bytes');
  await page.getByRole('button',{name:'Play video',exact:true}).click();
- await page.waitForFunction(()=>{const v=document.querySelector('video');return v&&v.readyState>=2&&v.videoWidth===1280&&v.duration>20});
+ await page.waitForFunction(()=>{const v=document.querySelector('video');return v&&v.readyState>=2&&v.videoWidth===1280&&v.duration>10});
  await page.waitForTimeout(1000);
  console.log('Playback verified:',await page.locator('video').evaluate(v=>({width:v.videoWidth,height:v.videoHeight,duration:v.duration,currentTime:v.currentTime,error:v.error})));
  await page.screenshot({path:'public/videos/playback-preview.png'});

@@ -2,6 +2,9 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeftIcon } from '@radix-ui/react-icons';
+import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/layout/Logo';
 import { useStore } from '@/lib/store';
 import { useDarkMode } from '@/components/layout/AppLayout';
@@ -60,7 +63,22 @@ export default function Login() {
   }, [login, router]);
 
   return (
-    <div className="min-h-screen bg-page lg:bg-shell">
+    <div className="relative min-h-screen bg-page lg:bg-shell">
+      {/* Tombol Kembali ke Beranda di pojok kiri atas */}
+      <div className="absolute left-4 top-4 z-20 sm:left-6 sm:top-6">
+        <Button
+          variant="outline"
+          size="sm"
+          asChild
+          className="gap-2 border-slate-200/80 bg-white/90 text-foreground shadow-sm backdrop-blur-md hover:bg-white dark:border-white/10 dark:bg-slate-900/90 dark:hover:bg-slate-900"
+        >
+          <Link href="/">
+            <ArrowLeftIcon className="h-4 w-4" />
+            <span>Kembali ke Beranda</span>
+          </Link>
+        </Button>
+      </div>
+
       <div className="grid min-h-screen lg:grid-cols-2">
         {/* kiri: info */}
         <div className="relative hidden flex-col items-center justify-center px-12 py-16 text-white lg:flex xl:px-20">
@@ -76,8 +94,9 @@ export default function Login() {
         </div>
 
         {/* kanan: form */}
-        <div className="flex h-screen items-center bg-page py-5 lg:my-3 lg:mr-3 lg:h-auto lg:rounded-shell lg:py-0">
+        <div className="relative flex h-screen items-center bg-page py-5 lg:my-3 lg:mr-3 lg:h-auto lg:rounded-shell lg:py-0">
           <div className="mx-auto w-full max-w-md rounded-md bg-card px-5 py-8 shadow-box sm:px-8 lg:bg-transparent lg:shadow-none">
+            {/* Tombol Back di dalam form card */}
             <div className="mb-8 flex items-center lg:hidden">
               <Logo variant="full" tone="primary" className="h-12 sm:h-14 w-auto" />
             </div>

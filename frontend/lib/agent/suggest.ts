@@ -2,9 +2,10 @@
 
 export function pageLabel(path: string) {
   if (path === '/design') return '3D Prototype';
-  if (path === '/') return '3D Public Area';
+  if (path === '/' || path === '/3d-public-area') return '3D Public Area';
   if (path === '/dashboard') return 'Dashboard';
-  if (path === '/market') return 'Peluang Pasar';
+  if (path === '/market/business') return 'Potensi Bisnis';
+  if (path === '/market') return 'Potensi Pasar';
   if (path === '/orchestra') return 'Orchestra AI';
   if (path === '/users') return 'Pengguna';
   if (path === '/live-test') return 'Uji Suara Mikrofon';
@@ -23,9 +24,10 @@ export function suggestions(path: string): string[] {
   if (path.startsWith('/detections/')) return ['Jelaskan deteksi ini', 'Tandai ditinjau · label TB', 'Daftarkan jadi pasien'];
   if (path.startsWith('/patients')) return ['Kepatuhan OAT < 90%?', 'Kontrol minggu ini?', 'Pasien tahap Pengobatan'];
   if (path.startsWith('/data/')) return ['Akurasi model?', 'Bandingkan per gender', '5 data terbaru'];
-  if (path === '/') return ['Tunjukkan lokasi batuk terakhir', 'Arahkan kamera ke sensor', 'Ada batuk TB hari ini?'];
+  if (path === '/' || path === '/3d-public-area') return ['Tunjukkan lokasi batuk terakhir', 'Arahkan kamera ke sensor', 'Ada batuk TB hari ini?'];
   if (path === '/orchestra') return ['Jelaskan arsitektur Orchestra AI', 'Simulasikan alur deteksi ke rujukan', 'Berapa ROI untuk 10 stasiun?'];
-  if (path === '/market') return ['Ringkas potensi pasar untuk juri', 'Berapa penghematan jika turun 5%?', 'Buka Dashboard'];
+  if (path === '/market/business') return ['Jelaskan stakeholder yang bayar', 'Dasar hukum Perpres 67/2021?', 'Berapa biaya pengobatan TB-RO?'];
+  if (path === '/market') return ['Ringkas potensi pasar untuk juri', 'Berapa penghematan jika turun 5%?', 'Buka Potensi Bisnis'];
   if (path === '/dashboard') return ['Ringkas kondisi hari ini', 'Berapa batuk TB belum ditinjau?', 'Buka deteksi TB terbaru'];
   return ['Berapa batuk TB belum ditinjau?', 'Jam paling ramai batuk?', 'Tunjukkan lokasi batuk terakhir'];
 }

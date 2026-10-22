@@ -1,12 +1,14 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { Bar, BarChart, Cell, LabelList, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 import { Building2, Train, Landmark, HeartHandshake, TrendingUp, Users, Wallet, ShieldAlert } from '@/components/ui/icons';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SectionHeader } from '@/components/tb/common';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -72,7 +74,7 @@ export default function Market() {
   const scenario = SCENARIOS.find((s) => s.pct === pct)?.v ?? '';
 
   return (
-    <AppLayout crumbs={[{ label: 'Peluang Pasar' }]}>
+    <AppLayout crumbs={[{ label: 'Peluang Pasar', to: '/market' }, { label: 'Potensi Pasar' }]}>
       <div className="intro-y mb-6 mt-4 flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-semibold text-foreground sm:text-2xl">Skrining TB di Ruang Publik: Pasar Nyata</h1>
         <Badge variant="outline" className="ml-auto">Model ilustratif · Indonesia</Badge>
@@ -178,6 +180,17 @@ export default function Market() {
       <p className="mb-4 mt-6 text-xs text-muted-foreground">
         Sumber: Kemenkes, analisis klaim JKN, survei WHO Indonesia 2020, Renaksi TBC Minahasa Utara 2025–2029. Angka berupa estimasi pemodelan; klaim kasus dicegah perlu dibuktikan terhadap kelompok pembanding.
       </p>
+
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200/60 pt-4 dark:border-white/10">
+        <div className="text-xs text-muted-foreground">
+          Ingin melihat detail analisis pembayar B2B/B2G dan peraturan pemerintah yang mendasari?
+        </div>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/market/business">
+            Buka Potensi Bisnis &amp; Regulasi ↗
+          </Link>
+        </Button>
+      </div>
     </AppLayout>
   );
 }
