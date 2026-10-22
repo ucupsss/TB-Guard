@@ -15,7 +15,7 @@ export function CaptureCard({ detection, capture, compact = false }: { detection
     </div>
     <div className="pa-capture-details">
       {capture?.id === detection.id && <Image unoptimized width={96} height={96} className="pa-face" src={capture.face} alt="Crop wajah target simulasi" />}
-      <div><strong>Pengunjung {String(detection.agent + 1).padStart(2, '0')}</strong><small>Node #401 · Stasiun Gubeng</small></div>
+      <div><strong>Pengunjung {String(detection.agent + 1).padStart(2, '0')}</strong><small>Node #401 · Stasiun Bandung</small></div>
     </div>
     <div className="pa-capture-score"><span>TB Risk <b style={{ color: RISK_COLORS[detection.risk] }}>{detection.riskScore.toFixed(1)}% · {detection.risk}</b></span><span>DoA <b>{degrees(detection.azimuth)}</b></span></div>
     <p className="pa-capture-note">Skor contoh simulasi · bukan hasil diagnosis</p>
