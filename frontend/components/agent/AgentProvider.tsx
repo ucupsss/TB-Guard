@@ -68,12 +68,15 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const [confirmRisky, setConfirmRisky] = React.useState(true);
   // selalu mulai dari Gemini (service account Vertex AI); pilihan model lain hanya berlaku selama sesi
   const [model, setModel] = React.useState<string>(DEFAULT_MODEL_ID);
-  const [chatId, setChatId] = React.useState(newChatId);
+  // ID dibuat di browser (Math.random tidak boleh dievaluasi saat prerender)
+  const [chatId, setChatId] = React.useState('');
   const [chats, setChats] = React.useState<ChatSummary[]>([]);
   const [chatsLoading, setChatsLoading] = React.useState(false);
   const chatIdRef = React.useRef(chatId);
   const turnsRef = React.useRef<Turn[]>([]);
   React.useEffect(() => { chatIdRef.current = chatId; turnsRef.current = turns; });
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- ID chat hanya bisa dibuat di browser
+  React.useEffect(() => { setChatId((c) => c || newChatId()); }, []);
 
   // nilai terbaru untuk dipakai di dalam loop async
   const live = React.useRef({ store, confirmRisky, model });
@@ -267,7 +270,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   async function persistSoon() {
     await new Promise((r) => setTimeout(r, 60));
     const turnsNow = turnsRef.current, id = chatIdRef.current;
-    if (!live.current.store.user || !turnsNow.some((t) => t.role === 'assistant' && t.done)) return;
+    if (!id || !live.current.store.user || !turnsNow.some((t) => t.role === 'assistant' && t.done)) return;
     let saveTurns = turnsNow, saveHist = history.current;
     let body = JSON.stringify({ turns: saveTurns, history: saveHist });
     // terlalu besar: buang bagian paling lama (riwayat dipotong mulai dari pesan user)
