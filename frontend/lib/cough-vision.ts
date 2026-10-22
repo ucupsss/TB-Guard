@@ -162,8 +162,9 @@ export function fuseDoa(att: Attribution, az: number, sigma = 15): Attribution {
 
 export type CamState = 'off' | 'starting' | 'loading-model' | 'ready' | 'error';
 
-/** kamera laptop + perekam wajah. begin() saat mulai rekam audio, finish(audio) setelah selesai. */
-export function useCoughCamera() {
+/** kamera laptop + perekam wajah. begin() saat mulai rekam audio, finish(audio) setelah selesai.
+    autoStart: nyalakan kamera begitu komponen dipasang (browser tetap meminta izin pertama kali). */
+export function useCoughCamera({ autoStart = false }: { autoStart?: boolean } = {}) {
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
   const stream = React.useRef<MediaStream | null>(null);
   const model = React.useRef<FaceLandmarker | null>(null);
@@ -171,6 +172,7 @@ export function useCoughCamera() {
   const timer = React.useRef<number | null>(null);
   const t0 = React.useRef(0);
   const gen = React.useRef(0); // naik tiap begin/stop supaya frame async yang telat dibuang
+  const session = React.useRef(0); // naik tiap start/stop supaya start yang tertunda tidak menyalakan kamera setelah dimatikan
   const [state, setState] = React.useState<CamState>('off');
   const [error, setError] = React.useState('');
 
@@ -178,27 +180,39 @@ export function useCoughCamera() {
   const dropFrames = (keep?: ImageBitmap) => { frames.current.forEach((f) => f.snap !== keep && f.snap.close()); frames.current = []; };
 
   const stop = React.useCallback(() => {
+    session.current++;
     stopLoop(); dropFrames();
     stream.current?.getTracks().forEach((t) => t.stop()); stream.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
     setState('off');
   }, []);
-  React.useEffect(() => stop, [stop]);
-
-  const start = async () => {
+  const start = React.useCallback(async () => {
+    const id = ++session.current;
     setError(''); setState('starting');
+    let s: MediaStream | null = null;
     try {
-      stream.current = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }, audio: false });
-      if (videoRef.current) { videoRef.current.srcObject = stream.current; await videoRef.current.play().catch(() => {}); }
+      s = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }, audio: false });
+      if (id !== session.current) { s.getTracks().forEach((t) => t.stop()); return; } // sudah dimatikan/di-unmount
+      stream.current = s;
+      if (videoRef.current) { videoRef.current.srcObject = s; await videoRef.current.play().catch(() => {}); }
       setState('loading-model');
       model.current = await getLandmarker();
+      if (id !== session.current) return;
       setState('ready');
     } catch (e) {
-      stream.current?.getTracks().forEach((t) => t.stop()); stream.current = null;
+      s?.getTracks().forEach((t) => t.stop());
+      if (id !== session.current) return;
+      stream.current = null;
       setError(e instanceof DOMException && e.name === 'NotAllowedError' ? 'Akses kamera ditolak. Izinkan kamera di pengaturan browser.' : 'Kamera atau model deteksi tidak bisa dimuat. Periksa koneksi internet.');
       setState('error');
     }
-  };
+  }, []);
+
+  React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- menyalakan kamera = sinkronisasi dengan perangkat eksternal
+    if (autoStart) void start();
+    return stop;
+  }, [autoStart, start, stop]);
 
   /** mulai mengambil frame + wajah; waktu 0 disamakan dengan mulainya rekaman audio */
   const begin = () => {
