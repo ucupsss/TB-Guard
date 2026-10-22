@@ -1,9 +1,0 @@
-# =============================================================================
-# DAFTAR API KEY GROQ CLOUD (Auto-Rotation & Hot-Reload Template)
-# =============================================================================
-# Masukkan API Key Groq Anda di baris baru di file groq_keys.txt.
-# Server akan otomatis memuat dan merotasi key saat limit kuota tercapai.
-# =============================================================================
-
-# gsk_exampleKey1234567890abcdef
-# gsk_exampleKey0987654321fedcba

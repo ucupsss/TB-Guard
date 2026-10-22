@@ -11,6 +11,7 @@ import { prepareTool, describeTool, ToolError } from '@/lib/agent/execute';
 import { toolKind } from '@/lib/agent/tools';
 
 import { DEFAULT_MODEL_ID } from '@/lib/agent/models';
+import { backendFetch } from '@/lib/backend';
 
 type Args = Record<string, unknown>;
 export type StepStatus = 'running' | 'done' | 'error' | 'awaiting' | 'rejected';
@@ -82,7 +83,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     const { store: s, model: activeModel } = live.current;
     // halaman dibaca saat kirim; hook routing (usePathname dsb.) di root akan memblokir prerender rute dinamis
     const p = window.location.pathname + window.location.search;
-    const res = await fetch('/api/agent', {
+    const res = await backendFetch('/api/agent', {
       method: 'POST', signal, headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         messages: history.current,

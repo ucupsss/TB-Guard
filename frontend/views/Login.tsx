@@ -2,43 +2,62 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 import { Logo } from '@/components/layout/Logo';
 import { useStore } from '@/lib/store';
 import { useDarkMode } from '@/components/layout/AppLayout';
+import { BACKEND_URL, GOOGLE_CLIENT_ID } from '@/lib/backend';
 
+interface GoogleId {
+  initialize: (o: { client_id: string; callback: (r: { credential: string }) => void; hd?: string; ux_mode?: string }) => void;
+  renderButton: (el: HTMLElement, o: Record<string, unknown>) => void;
+}
+declare global { interface Window { google?: { accounts: { id: GoogleId } } } }
 
+const GIS_SRC = 'https://accounts.google.com/gsi/client';
 
+/** Login hanya dengan akun Gmail (Google Sign-In). Tanpa username/password. */
 export default function Login() {
   const { login, user } = useStore();
   const router = useRouter();
-  const [email, setEmail] = React.useState('');
-  const [pass, setPass] = React.useState('');
-  const [role] = React.useState('Admin');
-  const [err, setErr] = React.useState('');
+  const btn = React.useRef<HTMLDivElement>(null);
+  const [err, setErr] = React.useState(GOOGLE_CLIENT_ID ? '' : 'Login belum dikonfigurasi (NEXT_PUBLIC_GOOGLE_CLIENT_ID).');
+  const [busy, setBusy] = React.useState(false);
 
   useDarkMode();
   React.useEffect(() => {
     if (user) router.replace('/dashboard');
   }, [user, router]);
 
-  const enter = (mail: string) => {
-    const name = mail.split('@')[0].replace(/[._\d]+/g, ' ').trim() || role;
-    login({ email: mail, role, name: name.replace(/\b\w/g, (c) => c.toUpperCase()) });
-    router.push('/dashboard');
-  };
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setErr('Format email belum benar.');
-    if (pass.length < 6) return setErr('Password minimal 6 karakter.');
-    setErr('');
-    enter(email);
-  };
+  React.useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return;
+    const onCredential = async ({ credential }: { credential: string }) => {
+      setBusy(true); setErr('');
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/auth/google`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential }),
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(j.error || `Login gagal (HTTP ${res.status})`);
+        login(j.user, j.token);
+        router.push('/dashboard');
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : 'Login gagal.');
+        setBusy(false);
+      }
+    };
+    const init = () => {
+      const g = window.google?.accounts.id;
+      if (!g || !btn.current) return;
+      g.initialize({ client_id: GOOGLE_CLIENT_ID, callback: onCredential });
+      g.renderButton(btn.current, { theme: 'outline', size: 'large', shape: 'rectangular', text: 'signin_with', width: 320, locale: 'id' });
+    };
+    if (window.google) { init(); return; }
+    let el = document.querySelector<HTMLScriptElement>(`script[src="${GIS_SRC}"]`);
+    if (!el) { el = document.createElement('script'); el.src = GIS_SRC; el.async = true; document.head.appendChild(el); }
+    el.addEventListener('load', init);
+    el.addEventListener('error', () => setErr('Gagal memuat Google Sign-In. Periksa koneksi internet.'));
+    return () => el?.removeEventListener('load', init);
+  }, [login, router]);
 
   return (
     <div className="min-h-screen bg-page lg:bg-shell">
@@ -58,87 +77,25 @@ export default function Login() {
 
         {/* kanan: form */}
         <div className="flex h-screen items-center bg-page py-5 lg:my-3 lg:mr-3 lg:h-auto lg:rounded-shell lg:py-0">
-          <form
-            onSubmit={submit}
-            className="mx-auto w-full max-w-md rounded-md bg-card px-5 py-8 shadow-box sm:px-8 lg:bg-transparent lg:shadow-none"
-          >
+          <div className="mx-auto w-full max-w-md rounded-md bg-card px-5 py-8 shadow-box sm:px-8 lg:bg-transparent lg:shadow-none">
             <div className="mb-8 flex items-center lg:hidden">
               <Logo variant="full" tone="primary" className="h-12 sm:h-14 w-auto" />
             </div>
             <h1 className="text-2xl font-bold xl:text-3xl text-foreground">Sign In</h1>
-            
+            <p className="mt-2 text-sm text-muted-foreground">Masuk dengan akun Gmail Anda. Tidak perlu username atau password.</p>
 
-            <div className="mt-8 grid gap-4">
-              <Input
-                aria-label="Email"
-                type="email"
-                autoComplete="username"
-                placeholder="Email"
-                className="h-12 px-4 text-base"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-              <Input
-                aria-label="Password"
-                type="password"
-                autoComplete="current-password"
-                placeholder="Password"
-                className="h-12 px-4 text-base"
-                value={pass}
-                onChange={(e) => setPass(e.target.value)}
-                required
-              />
-
-              {/* Role selector - Dikomentarkan karena belum dimulai */}
-              {/*
-              <Select value={role} onValueChange={setRole}>
-                <SelectTrigger className="h-12 px-4 text-base" aria-label="Masuk sebagai">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {['Admin', 'Dokter', 'Perawat', 'Petugas IT'].map((r) => (
-                    <SelectItem key={r} value={r}>{r}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              */}
-            </div>
-
-            <div className="mt-4 flex items-center text-sm text-muted-foreground">
-              <label className="mr-auto flex items-center gap-2 cursor-pointer">
-                <Checkbox id="remember" defaultChecked />
-                <Label htmlFor="remember" className="font-normal cursor-pointer">
-                  Ingat saya
-                </Label>
-              </label>
-              <button
-                type="button"
-                className="hover:text-foreground"
-                onClick={() =>
-                  toast.info('Tautan reset password akan dikirim ke email (belum aktif di demo).')
-                }
-              >
-                Lupa password?
-              </button>
+            <div className="mt-8 flex min-h-11 justify-start" aria-busy={busy}>
+              <div ref={btn} className={busy ? 'pointer-events-none opacity-60' : ''} />
             </div>
 
             {err && (
-              <p role="alert" className="mt-3 text-sm text-danger">
+              <p role="alert" className="mt-4 text-sm text-danger">
                 {err}
               </p>
             )}
 
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Button type="submit" className="h-11 w-full sm:w-36">
-                Login
-              </Button>
-            </div>
-
-            <p className="mt-8 text-sm text-muted-foreground">
-              Demo: email bebas · password ≥ 6 karakter
-            </p>
-          </form>
+            <p className="mt-8 text-sm text-muted-foreground">Hanya akun @gmail.com yang dapat masuk.</p>
+          </div>
         </div>
       </div>
     </div>

@@ -66,3 +66,10 @@ frontend/node_modules/
 frontend/tbguard-agent/
 frontend/.next/
 .claude/
+
+# Backend (Go): secrets & binaries
+backend/.env
+backend/groq_keys.txt
+backend/*.exe
+frontend/.env.local
+frontend/groq_keys.txt

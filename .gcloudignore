@@ -1,0 +1,13 @@
+# Cloud Build hanya butuh backend/, frontend/, cloudbuild.yaml
+*
+!cloudbuild.yaml
+!backend/
+!backend/**
+!frontend/
+!frontend/**
+backend/.env
+backend/groq_keys.txt
+backend/*.exe
+**/node_modules/
+**/.next/
+**/.env*

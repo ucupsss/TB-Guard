@@ -3,6 +3,7 @@
 /* Fitur audio agen: rekam suara → transkripsi (/api/agent/transcribe), dan bacakan balasan
    dengan speechSynthesis bawaan browser. */
 import * as React from 'react';
+import { backendFetch } from '@/lib/backend';
 
 type RecState = 'idle' | 'recording' | 'transcribing';
 
@@ -52,7 +53,7 @@ export function useRecorder(onText: (text: string) => void, onError: (msg: strin
         const ext = type.includes('mp4') ? 'mp4' : type.includes('ogg') ? 'ogg' : 'webm';
         const fd = new FormData();
         fd.append('audio', new File(chunks, `suara.${ext}`, { type }));
-        const res = await fetch('/api/agent/transcribe', { method: 'POST', body: fd });
+        const res = await backendFetch('/api/agent/transcribe', { method: 'POST', body: fd });
         const j = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(j.error || `Transkripsi gagal (HTTP ${res.status})`);
         if (j.text) cb.current.onText(j.text); else cb.current.onError('Suara tidak terdengar jelas, coba lagi.');

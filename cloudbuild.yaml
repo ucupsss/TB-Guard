@@ -1,40 +1,89 @@
+# Deploy backend Go lalu frontend Next.js ke Cloud Run (Google Cloud only).
+# Database: Neon PostgreSQL + Neon Object Storage (eksternal, lewat Secret Manager).
+# Prasyarat satu kali:  bash backend/deploy/setup-secrets.sh
+#   (membuat secret dari backend/.env, memberi akses ke service account runtime)
+# Login Google: buat OAuth Client ID (Web) di console.cloud.google.com/apis/credentials,
+#   Authorized JavaScript origins = URL frontend, lalu isi substitusi _GOOGLE_CLIENT_ID.
+substitutions:
+  _REGION: us-central1
+  _REPO: cloud-run-source-deploy
+  _RUNTIME_SA: hackathon-runtime@hackathon-primestep-19.iam.gserviceaccount.com
+  _GEMINI_MODEL: gemini-2.5-flash
+  _S3_ENDPOINT: https://br-spring-math-b429bcop.storage.c-6.us-east-2.aws.neon.tech
+  _GOOGLE_CLIENT_ID: ''           # OAuth Web Client ID (login Gmail)
+  _ADMIN_EMAILS: ''               # opsional: daftar Admin (koma); kosong = semua pengguna Gmail = Admin
+  _ALLOWED_EMAILS: ''             # opsional: batasi login ke daftar email ini
+  _ALLOWED_ORIGINS: '*'   # isi URL frontend (pisah koma) setelah deploy pertama
+
 steps:
-  # 1. Build the container image from frontend/Dockerfile
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'build'
-      - '-t'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/tb-guard-web:$COMMIT_SHA'
-      - '-f'
-      - 'frontend/Dockerfile'
-      - 'frontend'
-
-  # 2. Push image to Artifact Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/tb-guard-web:$COMMIT_SHA'
-
-  # 3. Deploy revision to Cloud Run
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  # ---- Backend ----
+  - id: build-backend
+    name: gcr.io/cloud-builders/docker
+    args: ['build', '-t', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/tb-guard-api:$COMMIT_SHA', 'backend']
+  - id: push-backend
+    name: gcr.io/cloud-builders/docker
+    args: ['push', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/tb-guard-api:$COMMIT_SHA']
+  - id: deploy-backend
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
     entrypoint: gcloud
     args:
-      - 'run'
-      - 'deploy'
-      - 'tb-guard-web'
-      - '--image'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/tb-guard-web:$COMMIT_SHA'
-      - '--region'
-      - 'us-central1'
-      - '--service-account'
-      - 'hackathon-runtime@hackathon-primestep-19.iam.gserviceaccount.com'
-      - '--set-env-vars'
-      - 'GCP_PROJECT_ID=hackathon-primestep-19,GCP_LOCATION=us-central1,GEMINI_MODEL=gemini-2.5-flash'
-      - '--allow-unauthenticated'
-      - '--quiet'
+      - run
+      - deploy
+      - tb-guard-api
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/tb-guard-api:$COMMIT_SHA
+      - --region=${_REGION}
+      - --service-account=${_RUNTIME_SA}
+      - --set-env-vars=^@^GCP_PROJECT_ID=$PROJECT_ID@GCP_LOCATION=${_REGION}@GEMINI_MODEL=${_GEMINI_MODEL}@ALLOWED_ORIGINS=${_ALLOWED_ORIGINS}@GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID}@ADMIN_EMAILS=${_ADMIN_EMAILS}@ALLOWED_EMAILS=${_ALLOWED_EMAILS}@S3_ENDPOINT=${_S3_ENDPOINT}@S3_REGION=us-east-2@S3_BUCKET=tbguard-recordings
+      - --set-secrets=GROQ_API_KEYS=groq-api-keys:latest,DATABASE_URL=database-url:latest,S3_ACCESS_KEY_ID=s3-access-key-id:latest,S3_SECRET_ACCESS_KEY=s3-secret-access-key:latest,SESSION_SECRET=session-secret:latest
+      - --cpu=1
+      - --memory=256Mi
+      - --concurrency=80
+      - --timeout=120
+      - --min-instances=0
+      - --cpu-boost
+      - --allow-unauthenticated
+      - --quiet
+
+  # ---- Frontend (butuh URL backend saat build karena NEXT_PUBLIC_*) ----
+  - id: backend-url
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args: ['-c', 'gcloud run services describe tb-guard-api --region=${_REGION} --format="value(status.url)" > /workspace/backend_url']
+  - id: build-frontend
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - -c
+      - docker build --build-arg NEXT_PUBLIC_BACKEND_URL="$(cat /workspace/backend_url)" --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID="${_GOOGLE_CLIENT_ID}" -t ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/tb-guard-web:$COMMIT_SHA frontend
+  - id: push-frontend
+    name: gcr.io/cloud-builders/docker
+    args: ['push', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/tb-guard-web:$COMMIT_SHA']
+  - id: deploy-frontend
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - tb-guard-web
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/tb-guard-web:$COMMIT_SHA
+      - --region=${_REGION}
+      - --allow-unauthenticated
+      - --quiet
+  # kunci CORS backend ke URL frontend yang sebenarnya
+  - id: lock-cors
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        WEB=$(gcloud run services describe tb-guard-web --region=${_REGION} --format='value(status.url)')
+        if [ "${_ALLOWED_ORIGINS}" = "*" ]; then
+          gcloud run services update tb-guard-api --region=${_REGION} --update-env-vars="^@^ALLOWED_ORIGINS=$$WEB" --quiet
+        fi
 
 images:
-  - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/tb-guard-web:$COMMIT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/tb-guard-api:$COMMIT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/tb-guard-web:$COMMIT_SHA'
 
 options:
   logging: CLOUD_LOGGING_ONLY

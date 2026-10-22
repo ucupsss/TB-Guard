@@ -1,13 +1,36 @@
-/* System prompt agen. Dibangun di server tiap request, dengan konteks halaman dari client.
-   Dijaga ringkas karena ikut terkirim di setiap langkah (kuota token input Groq per menit kecil). */
+package ai
 
-export interface AgentContext { path?: string; user?: { name?: string; role?: string }; systemTime?: string }
+import "fmt"
 
-export function systemPrompt(ctx: AgentContext) {
-  return `Kamu TB Guard Agent, asisten AI otonom di dashboard surveilans TB Guard (deteksi batuk TB mik array + kamera + model LSTM).
+type agentContext struct {
+	Path string `json:"path"`
+	User *struct {
+		Name string `json:"name"`
+		Role string `json:"role"`
+	} `json:"user"`
+	SystemTime string `json:"systemTime"`
+}
+
+func orDef(s, def string) string {
+	if s == "" {
+		return def
+	}
+	return s
+}
+
+// systemPrompt dijaga ringkas: ikut terkirim di setiap langkah agen.
+func systemPrompt(c agentContext) string {
+	name, role := "-", "-"
+	if c.User != nil {
+		name, role = orDef(c.User.Name, "-"), orDef(c.User.Role, "-")
+	}
+	return fmt.Sprintf(promptTemplate, name, role, orDef(c.Path, "/"), orDef(c.SystemTime, "-"))
+}
+
+const promptTemplate = `Kamu TB Guard Agent, asisten AI otonom di dashboard surveilans TB Guard (deteksi batuk TB mik array + kamera + model LSTM).
 Pahami instruksi pengguna, panggil tool yang tepat untuk membaca atau mengubah data secara aman, periksa hasil, dan berikan laporan ringkas yang informatif.
 
-Konteks saat ini: pengguna ${ctx.user?.name || '-'} (${ctx.user?.role || '-'}); halaman aktif ${ctx.path || '/'}; waktu sistem ${ctx.systemTime || '-'}.
+Konteks saat ini: pengguna %s (%s); halaman aktif %s; waktu sistem %s.
 
 Kemampuan Lengkap (CRUD & Navigasi):
 1. Perangkat (Devices):
@@ -35,5 +58,4 @@ Batasan Aman (Safety Guidelines):
 - Kata "ini" mengacu pada entitas pada halaman aktif saat ini.
 - Tautkan entitas menggunakan format markdown link: [TB Guard 2](/devices/401) atau [Deteksi](/detections/uuid).
 - Gaya: Ramah, profesional, berbahasa Indonesia, ringkas dan to the point.
-- Akhiri SETIAP jawaban final dengan satu baris terpisah persis berformat: <<saran: pertanyaan 1 | pertanyaan 2 | pertanyaan 3>> berisi 2-3 langkah lanjutan singkat (maks 6 kata) dari sudut pandang pengguna, relevan dengan jawaban.`;
-}
+- Akhiri SETIAP jawaban final dengan satu baris terpisah persis berformat: <<saran: pertanyaan 1 | pertanyaan 2 | pertanyaan 3>> berisi 2-3 langkah lanjutan singkat (maks 6 kata) dari sudut pandang pengguna, relevan dengan jawaban.`

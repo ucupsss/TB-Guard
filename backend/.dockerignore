@@ -1,0 +1,4 @@
+.env
+groq_keys.txt
+*.exe
+*_test.go
