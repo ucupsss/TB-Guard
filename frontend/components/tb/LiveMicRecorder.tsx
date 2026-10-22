@@ -81,7 +81,7 @@ export function LiveMicRecorder() {
   const [result, setResult] = React.useState<LiveClassificationResult | null>(null);
   const [volumeLevel, setVolumeLevel] = React.useState(0);
   const [isPlaying, setIsPlaying] = React.useState(false);
-  const { videoRef: camVideoRef, state: camState, error: camError, start: camStart, stop: camStop, begin: camBegin, finish: camFinish } = useCoughCamera();
+  const { videoRef: camVideoRef, state: camState, error: camError, start: camStart, stop: camStop, begin: camBegin, finish: camFinish } = useCoughCamera({ autoStart: true });
   const [att, setAtt] = React.useState<Attribution | null>(null);
   const [blurFaces, setBlurFaces] = React.useState(false);
   // arah suara (GCC-PHAT) dari PCM mentah 2 kanal mic laptop
@@ -438,7 +438,7 @@ export function LiveMicRecorder() {
               {isRecording && camState === 'ready' && <Badge variant="destructive" className="absolute left-3 top-3"><span className="h-1.5 w-1.5 rounded-full bg-white" />Melacak wajah</Badge>}
             </div>
             <p className={cn('mt-2 text-xs', camError ? 'text-danger' : 'text-muted-foreground')}>
-              {camError || 'Opsional. Video diproses di browser dan tidak diunggah; hanya satu frame saat batuk yang ditampilkan.'}
+              {camError || 'Kamera menyala otomatis. Video diproses di browser dan tidak diunggah; hanya satu frame saat batuk yang ditampilkan.'}
             </p>
           </div>
 
