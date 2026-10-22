@@ -14,6 +14,7 @@ import { useAgent, type Step, type Turn } from './AgentProvider';
 import { Markdown } from './Markdown';
 import { MicIcon } from '@/components/tb/icons';
 import { speak, stopSpeaking, ttsSupported, useRecorder, useSpeakingId } from './audio';
+import { ModelPicker } from './ModelPicker';
 
 const turnText = (t: Turn) => t.parts.flatMap((p) => (p.kind === 'text' ? [p.text] : [])).join('\n\n');
 
@@ -150,7 +151,7 @@ function AssistantTurn({ turn, last }: { turn: Turn; last: boolean }) {
 }
 
 export function AgentPanel({ className, onClose }: { className?: string; onClose: () => void }) {
-  const { turns, running, send, stop, reset, confirmRisky, setConfirmRisky } = useAgent();
+  const { turns, running, send, stop, reset, confirmRisky, setConfirmRisky, model, setModel } = useAgent();
   const { user } = useStore();
   const path = usePathname() || '/';
   const [text, setText] = React.useState('');
@@ -187,7 +188,15 @@ export function AgentPanel({ className, onClose }: { className?: string; onClose
         <div className="min-w-0 flex-1">
           <div className="font-medium leading-tight">TB Guard Agent</div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className={cn('h-1.5 w-1.5 rounded-full', running ? 'animate-pulse bg-pending' : 'bg-success')} />{running ? 'Sedang bekerja…' : 'Siap · Gemini 2.5 Flash'}
+            <span className={cn('h-1.5 w-1.5 rounded-full', running ? 'animate-pulse bg-pending' : 'bg-success')} />
+            {running ? (
+              'Sedang bekerja…'
+            ) : (
+              <span className="flex items-center gap-1">
+                <span>Siap ·</span>
+                <ModelPicker currentModel={model} onSelectModel={setModel} triggerVariant="header" />
+              </span>
+            )}
           </div>
         </div>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { stopSpeaking(); reset(); }} title="Percakapan baru" aria-label="Percakapan baru"><PlusIcon /></Button>
@@ -200,7 +209,7 @@ export function AgentPanel({ className, onClose }: { className?: string; onClose
           <div className="flex flex-col">
             <div className="mt-2">
               <div className="text-lg font-medium">Halo{user?.name ? `, ${user.name}` : ''} 👋</div>
-              <p className="mt-1 text-muted-foreground">Saya bisa membaca, menganalisis, dan mengubah data TB Guard: perangkat, deteksi batuk, pasien, dan dataset penelitian. Cukup minta dengan bahasa biasa.</p>
+              <p className="mt-1 text-muted-foreground">Tanya apa saja soal data TB Guard.</p>
             </div>
             <div className="mt-6 text-xs font-medium uppercase text-muted-foreground">Coba</div>
             <div className="mt-2 grid gap-2">
@@ -231,7 +240,8 @@ export function AgentPanel({ className, onClose }: { className?: string; onClose
             placeholder="Minta apa saja, mis. tambah perangkat baru…"
             className="block max-h-40 w-full resize-none bg-transparent px-3 pb-1 pt-2.5 text-sm outline-none placeholder:text-muted-foreground" />}
           <div className="flex items-center gap-2 px-2 pb-2">
-            <span className="inline-flex max-w-[45%] items-center gap-1 truncate rounded-md bg-slate-100 px-2 py-1 text-[11px] text-muted-foreground dark:bg-white/10" title="Konteks halaman dikirim ke agen">
+            <ModelPicker currentModel={model} onSelectModel={setModel} triggerVariant="footer" />
+            <span className="inline-flex max-w-[32%] items-center gap-1 truncate rounded-md bg-slate-100 px-2 py-1 text-[11px] text-muted-foreground dark:bg-white/10" title="Konteks halaman dikirim ke agen">
               <SewingPinIcon className="h-3 w-3 shrink-0" /><span className="truncate">{pageLabel(path)}</span>
             </span>
             <label className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground" title="Minta persetujuan sebelum menghapus atau mengubah banyak data">
