@@ -32,7 +32,7 @@ interface Agent {
 
 const Ctx = React.createContext<Agent | null>(null);
 const MAX_STEPS = 12;
-const MODEL_KEY = 'tbv_agent_model';
+const MODEL_RETRIES = 2;
 const uid = () => Math.random().toString(36).slice(2, 10);
 const tick = () => new Promise((r) => setTimeout(r, 30)); // beri React waktu me-render perubahan store sebelum tool berikutnya
 
@@ -44,25 +44,8 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const [turns, setTurns] = React.useState<Turn[]>([]);
   const [running, setRunning] = React.useState(false);
   const [confirmRisky, setConfirmRisky] = React.useState(true);
-  const [model, setModelState] = React.useState<string>(DEFAULT_MODEL_ID);
-
-  React.useEffect(() => {
-    try {
-      const saved = localStorage.getItem(MODEL_KEY);
-      if (saved) setModelState(saved);
-    } catch {
-      // abaikan
-    }
-  }, []);
-
-  const setModel = React.useCallback((m: string) => {
-    setModelState(m);
-    try {
-      localStorage.setItem(MODEL_KEY, m);
-    } catch {
-      // abaikan
-    }
-  }, []);
+  // selalu mulai dari Gemini (service account Vertex AI); pilihan model lain hanya berlaku selama sesi
+  const [model, setModel] = React.useState<string>(DEFAULT_MODEL_ID);
 
   // nilai terbaru untuk dipakai di dalam loop async
   const live = React.useRef({ store, confirmRisky, model });
@@ -95,7 +78,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       return { ...t, parts: [...t.parts, { kind, text: delta }] };
     });
 
-  async function callModel(turnId: string, signal: AbortSignal): Promise<{ content: string; tool_calls: ToolCall[] }> {
+  async function callModelOnce(turnId: string, signal: AbortSignal): Promise<{ content: string; tool_calls: ToolCall[] }> {
     const { store: s, model: activeModel } = live.current;
     // halaman dibaca saat kirim; hook routing (usePathname dsb.) di root akan memblokir prerender rute dinamis
     const p = window.location.pathname + window.location.search;
@@ -110,6 +93,15 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     if (!res.ok || !res.body) { const j = await res.json().catch(() => ({})); throw new Error(j.error || `Server agen error (HTTP ${res.status})`); }
     const reader = res.body.getReader(), dec = new TextDecoder();
     let buf = '';
+    const handle = (line: string) => {
+      let ev;
+      try { ev = JSON.parse(line); } catch { return; } // baris rusak diabaikan
+      if (ev.type === 'reasoning') appendDelta(turnId, 'reasoning', ev.delta);
+      else if (ev.type === 'content') appendDelta(turnId, 'text', ev.delta);
+      else if (ev.type === 'wait') patch(turnId, (t) => ({ ...t, notice: ev.notice || `Menunggu kuota pulih, melanjutkan dalam ${ev.seconds} detik…` }));
+      else if (ev.type === 'error') throw new Error(ev.error || 'Agen mengalami kesalahan.');
+      else if (ev.type === 'done') { patch(turnId, (t) => (t.notice ? { ...t, notice: undefined } : t)); return ev.message; }
+    };
     for (;;) {
       const { value, done } = await reader.read();
       if (done) break;
@@ -118,15 +110,28 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       while ((nl = buf.indexOf('\n')) >= 0) {
         const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
         if (!line) continue;
-        const ev = JSON.parse(line);
-        if (ev.type === 'reasoning') appendDelta(turnId, 'reasoning', ev.delta);
-        else if (ev.type === 'content') appendDelta(turnId, 'text', ev.delta);
-        else if (ev.type === 'wait') patch(turnId, (t) => ({ ...t, notice: `Menunggu kuota pulih, melanjutkan dalam ${ev.seconds} detik…` }));
-        else if (ev.type === 'error') throw new Error(ev.error);
-        else if (ev.type === 'done') { patch(turnId, (t) => (t.notice ? { ...t, notice: undefined } : t)); return ev.message; }
+        const msg = handle(line);
+        if (msg) return { content: msg.content || '', tool_calls: Array.isArray(msg.tool_calls) ? msg.tool_calls : [] };
       }
     }
+    const msg = buf.trim() && handle(buf.trim());
+    if (msg) return { content: msg.content || '', tool_calls: Array.isArray(msg.tool_calls) ? msg.tool_calls : [] };
     throw new Error('Koneksi ke agen terputus.');
+  }
+
+  /** panggil model dengan retry otomatis; isi setengah jadi dari percobaan gagal dibuang */
+  async function callModel(turnId: string, signal: AbortSignal) {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await callModelOnce(turnId, signal);
+      } catch (e) {
+        if (signal.aborted || attempt >= MODEL_RETRIES) throw e;
+        // teks/reasoning setelah step terakhir milik percobaan yang gagal ini
+        patch(turnId, (t) => ({ ...t, parts: t.parts.slice(0, t.parts.map((x) => x.kind).lastIndexOf('step') + 1), notice: `Koneksi tersendat, mencoba ulang (${attempt + 1}/${MODEL_RETRIES})…` }));
+        await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+        if (signal.aborted) throw e;
+      }
+    }
   }
 
   async function runTool(turnId: string, call: ToolCall, signal: AbortSignal): Promise<unknown> {
