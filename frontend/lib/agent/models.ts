@@ -8,48 +8,64 @@ export interface ModelOption {
 }
 
 export const AVAILABLE_MODELS: ModelOption[] = [
-  // Google Cloud
+  // Google Cloud (Vertex AI & Generative Language)
   {
     id: 'gemini-2.5-flash',
     name: 'Gemini 2.5 Flash',
     provider: 'Google Cloud',
-    badge: 'Rekomendasi',
+    badge: 'Rekomendasi Utama',
     category: 'google',
-    description: 'Multimodal seimbang, penalaran cepat & tool calling akurat.',
+    description: 'Multimodal seimbang, penalaran cepat & tool calling presisi.',
+  },
+  {
+    id: 'gemini-2.5-pro',
+    name: 'Gemini 2.5 Pro',
+    provider: 'Google Cloud',
+    badge: 'Deep Reasoning',
+    category: 'google',
+    description: 'Analisis mendalam untuk kasus epidemiologi dan data TB rumit.',
   },
   {
     id: 'gemini-1.5-flash',
     name: 'Gemini 1.5 Flash',
     provider: 'Google Cloud',
-    badge: 'Super Hemat',
+    badge: 'Super Cepat',
     category: 'google',
-    description: 'Latensi ultra rendah, hemat kuota token per menit.',
-  },
-  {
-    id: 'gemini-1.5-pro',
-    name: 'Gemini 1.5 Pro',
-    provider: 'Google Cloud',
-    badge: 'Deep Reasoning',
-    category: 'google',
-    description: 'Analisis mendalam untuk kasus epidemiologi rumit.',
+    description: 'Latensi ultra rendah dengan efisiensi kuota tinggi.',
   },
 
-  // Meta (via Groq)
+  // Groq Cloud (Ultra Fast Inference with 85+ Key Pool)
   {
-    id: 'llama-3.3-70b-versatile',
-    name: 'Llama 3.3 70B Versatile',
-    provider: 'Meta',
+    id: 'qwen/qwen3.8-27b',
+    name: 'Qwen 3.8 27B',
+    provider: 'Alibaba Cloud',
     badge: 'Groq Flagship',
     category: 'groq',
-    description: 'Model open-source terkuat di Groq dengan tool-calling presisi.',
+    description: 'Bahasa Indonesia tajam, penalaran klinis dan tool calling cepat.',
   },
   {
-    id: 'llama-3.1-8b-instant',
-    name: 'Llama 3.1 8B Instant',
-    provider: 'Meta',
-    badge: 'Paling Hemat',
+    id: 'openai/gpt-oss-120b',
+    name: 'GPT-OSS 120B',
+    provider: 'OpenAI',
+    badge: 'High Capacity',
+    category: 'groq',
+    description: 'Model 120B bertenaga tinggi untuk penalaran kompleks via Groq.',
+  },
+  {
+    id: 'openai/gpt-oss-20b',
+    name: 'GPT-OSS 20B Instant',
+    provider: 'OpenAI',
+    badge: 'Ultra Fast',
     category: 'groq',
     description: 'Kecepatan ~1000 tok/detik, konsumsi kuota paling minim.',
+  },
+  {
+    id: 'whisper-large-v3-turbo',
+    name: 'Whisper Large v3 Turbo',
+    provider: 'OpenAI',
+    badge: 'Audio STT',
+    category: 'groq',
+    description: 'Transkripsi audio batuk & keluhan pasien medis di Groq.',
   },
   {
     id: 'meta-llama/llama-prompt-guard-2-86m',
@@ -57,55 +73,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     provider: 'Meta',
     badge: 'Safety',
     category: 'groq',
-    description: 'Proteksi jailbreak & validasi keamanan prompt input.',
-  },
-
-  // DeepSeek (via Groq)
-  {
-    id: 'deepseek-r1-distill-llama-70b',
-    name: 'DeepSeek R1 Distill 70B',
-    provider: 'DeepSeek',
-    badge: 'Thinking Mode',
-    category: 'groq',
-    description: 'Penalaran langkah-demi-langkah (CoT) sebelum mengeksekusi tool.',
-  },
-
-  // Mistral (via Groq)
-  {
-    id: 'mixtral-8x7b-32768',
-    name: 'Mixtral 8x7B (32k)',
-    provider: 'Mistral',
-    badge: 'High Context',
-    category: 'groq',
-    description: 'Arsitektur MoE dengan jendela konteks 32k token.',
-  },
-
-  // Alibaba Cloud (Qwen)
-  {
-    id: 'qwen/qwen3.8-27b',
-    name: 'Qwen 3.8 27B',
-    provider: 'Alibaba Cloud',
-    badge: 'Multilingual',
-    category: 'groq',
-    description: 'Kemampuan bahasa Indonesia dan penalaran klinis yang tajam.',
-  },
-  {
-    id: 'qwen-2.5-32b',
-    name: 'Qwen 2.5 32B',
-    provider: 'Alibaba Cloud',
-    badge: 'Fast Reasoning',
-    category: 'groq',
-    description: 'Optimal untuk penalaran terstruktur dan ekstraksi JSON.',
-  },
-
-  // OpenAI / Whisper (via Groq)
-  {
-    id: 'whisper-large-v3-turbo',
-    name: 'Whisper Large v3 Turbo',
-    provider: 'OpenAI',
-    badge: 'Audio STT',
-    category: 'groq',
-    description: 'Transkripsi audio medis kecepatan tinggi di Groq.',
+    description: 'Proteksi jailbreak & validasi keamanan prompt input medis.',
   },
 ];
 

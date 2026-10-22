@@ -6,8 +6,9 @@ import { TOOLS } from '@/lib/agent/tools';
 import { systemPrompt, type AgentContext } from '@/lib/agent/prompt';
 import { groqPool } from '@/lib/agent/groq-keys';
 import { isGroqModel, DEFAULT_MODEL_ID } from '@/lib/agent/models';
+import { getGoogleGeminiAuth, normalizeVertexModel } from '@/lib/agent/google-auth';
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+export const maxDuration = 60;
 
 interface InToolCall {
   id: string;
@@ -172,10 +173,10 @@ export async function POST(req: Request) {
   const enc = new TextEncoder();
 
   // =========================================================================
-  // ALUR 1: GROQ CLOUD (Llama 3.3, DeepSeek R1, Mixtral, Qwen, dll.)
+  // HANDLER GROQ CLOUD (Llama 3.3, DeepSeek R1, Mixtral, Qwen, dll.)
   // Didukung Auto-Rotation 85+ API Keys & Hot-Reload jika terkena rate limit
   // =========================================================================
-  if (useGroq) {
+  const handleGroqStream = (targetModel: string, noticePrefix?: string) => {
     const keyInfo = groqPool.getActiveKey();
     if (!keyInfo) {
       return Response.json(
@@ -219,7 +220,15 @@ export async function POST(req: Request) {
     const stream = new ReadableStream({
       async start(ctl) {
         const send = (e: object) => ctl.enqueue(enc.encode(JSON.stringify(e) + '\n'));
-        const MAX_KEY_RETRIES = 5;
+        if (noticePrefix) {
+          send({
+            type: 'wait',
+            seconds: 1,
+            notice: noticePrefix,
+          });
+        }
+
+        const MAX_KEY_RETRIES = 50;
         let attempts = 0;
         let success = false;
 
@@ -227,7 +236,7 @@ export async function POST(req: Request) {
           attempts++;
           const currentKey = groqPool.getActiveKey();
           if (!currentKey) {
-            send({ type: 'error', error: 'Semua API key Groq sedang cooldown. Coba lagi dalam 30 detik.' });
+            send({ type: 'error', error: 'Semua API key Groq sedang cooldown atau tidak aktif. Coba lagi dalam 30 detik.' });
             break;
           }
 
@@ -239,7 +248,7 @@ export async function POST(req: Request) {
                 Authorization: `Bearer ${currentKey.key}`,
               },
               body: JSON.stringify({
-                model: selectedModel,
+                model: targetModel,
                 messages: openAiMsgs,
                 tools: groqTools,
                 tool_choice: 'auto',
@@ -269,8 +278,23 @@ export async function POST(req: Request) {
                 // abaikan
               }
 
-              // Jika model tidak tersedia atau rate limit, rotasi atau lempar error
-              if (groqRes.status >= 500 || groqRes.status === 400 && parsedErr.includes('rate_limit')) {
+              const lowerErr = parsedErr.toLowerCase();
+              const isRestricted = lowerErr.includes('restricted') || lowerErr.includes('deactivated');
+              const isAuthError = groqRes.status === 401 || (groqRes.status === 400 && lowerErr.includes('invalid_api_key'));
+
+              // Jika organisasi dibatasi (Organization has been restricted) atau invalid, nonaktifkan permanen dan rotasi ke key berikutnya!
+              if (isRestricted || isAuthError) {
+                groqPool.markInvalid(currentKey.key);
+                send({
+                  type: 'wait',
+                  seconds: 1,
+                  notice: `Memilih API key Groq cadangan berikutnya [${currentKey.index}/${currentKey.total}]...`,
+                });
+                continue;
+              }
+
+              // Jika rate limit atau server error sementara, beri cooldown
+              if (groqRes.status >= 500 || (groqRes.status === 400 && lowerErr.includes('rate_limit'))) {
                 groqPool.markRateLimited(currentKey.key, 30);
                 continue;
               }
@@ -380,14 +404,38 @@ export async function POST(req: Request) {
         'Cache-Control': 'no-store',
       },
     });
+  };
+
+  if (useGroq) {
+    return handleGroqStream(selectedModel);
   }
 
   // =========================================================================
-  // ALUR 2: GOOGLE GEMINI (Gemini 2.5 Flash, 1.5 Flash, 1.5 Pro)
+  // ALUR 2: GOOGLE GEMINI (Vertex AI Google Cloud & Generative Language API)
+  // Kompatibel dengan GCP Service Account (Vercel, Cloud Run, Local Dev)
+  // Dilengkapi Auto-Failover ke Groq jika kredensial GCP belum disetel di Vercel
   // =========================================================================
-  if (!GEMINI_API_KEY) {
+  let googleAuth;
+  try {
+    googleAuth = await getGoogleGeminiAuth();
+  } catch (err: unknown) {
+    const e = err as Error;
+    // Otomatis fallback ke Groq Engine jika di Vercel belum disetel GCP_SERVICE_ACCOUNT_KEY
+    const fallbackKey = groqPool.getActiveKey();
+    if (fallbackKey) {
+      console.warn('[AgentRoute] Mengalihkan ke Groq AI Engine karena Google Gemini Auth belum disetel di Vercel:', e.message);
+      return handleGroqStream(
+        'qwen/qwen3.8-27b',
+        'Mengalihkan ke Groq AI Engine (Qwen 3.8 27B) karena kredensial Google Service Account belum disetel di Environment Variables Vercel.'
+      );
+    }
+
     return Response.json(
-      { error: 'GEMINI_API_KEY belum dikonfigurasi di frontend/.env.local.' },
+      {
+        error:
+          e.message ||
+          'Kredensial Google Cloud Vertex AI atau GEMINI_API_KEY belum tersedia.',
+      },
       { status: 500 }
     );
   }
@@ -491,7 +539,18 @@ export async function POST(req: Request) {
     },
   };
 
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`;
+  let geminiUrl: string;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (googleAuth.mode === 'vertex') {
+    const vertexModel = normalizeVertexModel(selectedModel);
+    geminiUrl = `https://${googleAuth.location}-aiplatform.googleapis.com/v1/projects/${googleAuth.projectId}/locations/${googleAuth.location}/publishers/google/models/${vertexModel}:streamGenerateContent?alt=sse`;
+    headers['Authorization'] = `Bearer ${googleAuth.token}`;
+  } else {
+    geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?key=${googleAuth.apiKey}&alt=sse`;
+  }
 
   const stream = new ReadableStream({
     async start(ctl) {
@@ -500,7 +559,7 @@ export async function POST(req: Request) {
       try {
         const response = await fetch(geminiUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify(payload),
           signal: req.signal,
         });
