@@ -46,6 +46,17 @@ function Brand({ rail }: { rail?: boolean }) {
   );
 }
 
+function GuestBar() {
+  return (
+    <nav className="flex items-center justify-between gap-3 pt-4">
+      <Link href="/" className="flex items-center gap-2.5 text-lg font-bold tracking-tight">
+        <Logo className="h-9 w-9" />TB Guard Agent
+      </Link>
+      <Link href="/login" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90">Login</Link>
+    </nav>
+  );
+}
+
 const WIDE = '(min-width: 1024px)';
 const subscribeWide = (cb: () => void) => { const mq = window.matchMedia(WIDE); mq.addEventListener('change', cb); return () => mq.removeEventListener('change', cb); };
 /** true di layar lg ke atas (false saat SSR) */
@@ -85,7 +96,8 @@ function useAgentWidth() {
   return { w, dragging, onPointerDown, onKeyDown, reset };
 }
 
-export function AppLayout({ crumbs, children }: { crumbs: Crumb[]; children: React.ReactNode }) {
+/** `guest`: tampilan sebelum login, tanpa sidebar dan tanpa panel agen */
+export function AppLayout({ crumbs, children, guest }: { crumbs: Crumb[]; children: React.ReactNode; guest?: boolean }) {
   const [menu, setMenu] = React.useState(false);
   const [dark, setDark] = useDarkMode();
   const [mounted, setMounted] = React.useState(false);
@@ -101,13 +113,13 @@ export function AppLayout({ crumbs, children }: { crumbs: Crumb[]; children: Rea
   return (
     <div className={cn('flex min-h-screen bg-shell', aw.dragging && 'cursor-col-resize select-none')} suppressHydrationWarning>
       {/* sidebar desktop: rel ikon kecil (84px), baru muncul teks saat di-hover (250px) */}
-      <aside className="group/side relative hidden w-[84px] shrink-0 lg:block">
+      {!guest && <aside className="group/side relative hidden w-[84px] shrink-0 lg:block">
         <div className="sidebar-rail fixed inset-y-0 left-0 z-50 overflow-y-auto overflow-x-hidden bg-shell pb-10 pl-5">
           <div className="pr-5"><Brand rail /></div>
           <div className="my-6 mr-5 h-px bg-white/[0.08]" />
           <SideMenu rail />
         </div>
-      </aside>
+      </aside>}
 
       {/* menu ponsel */}
       <Sheet open={menu} onOpenChange={setMenu}>
@@ -129,13 +141,13 @@ export function AppLayout({ crumbs, children }: { crumbs: Crumb[]; children: Rea
       </Sheet>
 
       {/* panel konten */}
-      <main className="relative min-h-screen min-w-0 flex-1 bg-page px-4 pb-10 md:px-[22px] lg:my-3 lg:mr-3 lg:min-h-[calc(100vh-24px)] lg:rounded-shell">
-        <TopBar crumbs={crumbs} onMenu={() => setMenu(true)} dark={dark} onToggleDark={() => setDark(!dark)} />
+      <main className={cn('relative min-h-screen min-w-0 flex-1 bg-page px-4 pb-10 md:px-[22px] lg:my-3 lg:mr-3 lg:min-h-[calc(100vh-24px)] lg:rounded-shell', guest && 'lg:ml-3')}>
+        {guest ? <GuestBar /> : <TopBar crumbs={crumbs} onMenu={() => setMenu(true)} dark={dark} onToggleDark={() => setDark(!dark)} />}
         {children}
       </main>
 
       {/* panel agen (desktop) */}
-      {mounted && wide && agent.open && (
+      {mounted && !guest && wide && agent.open && (
         <aside aria-label="TB Guard Agent" style={{ width: aw.w }} className="sticky top-3 my-3 mr-3 h-[calc(100vh-24px)] shrink-0 rounded-shell bg-page">
           {/* pegangan geser lebar; klik ganda untuk kembali ke lebar awal */}
           <div role="separator" aria-orientation="vertical" aria-label="Ubah lebar panel agen" aria-valuenow={aw.w} tabIndex={0}
@@ -149,7 +161,7 @@ export function AppLayout({ crumbs, children }: { crumbs: Crumb[]; children: Rea
         </aside>
       )}
       {/* panel agen (ponsel / tablet) */}
-      {mounted && !wide && (
+      {mounted && !guest && !wide && (
         <Sheet open={agent.open} onOpenChange={agent.setOpen}>
           <SheetContent side="right" className="flex w-full flex-col overflow-hidden bg-page p-0 sm:max-w-md [&>button:last-child]:hidden">
             <SheetTitle className="sr-only">TB Guard Agent</SheetTitle>

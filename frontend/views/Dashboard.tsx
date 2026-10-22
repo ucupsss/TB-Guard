@@ -82,7 +82,7 @@ export default function Dashboard() {
 
   const notes = [
     ...devices.filter((d) => d.status !== 'active').map((d) => ({ title: `${d.name} ${d.status === 'broken' ? 'rusak' : 'tidak aktif'}`, when: d.lastSeen, body: `${d.name} di ${d.location} (${d.zone}) terakhir mengirim data ${fmt.ago(d.lastSeen)}. ${d.status === 'broken' ? 'Perlu dicek oleh petugas IT sebelum dipasang kembali.' : 'Pastikan perangkat menyala dan terhubung ke jaringan.'}`, to: `/devices/${d.id}` })),
-    { title: `${pending.length} batuk terindikasi TB menunggu tinjauan`, when: pending[0]?.time ?? NOW.getTime(), body: `Peringatan tertua masuk ${pending.length ? fmt.ago(pending[pending.length - 1].time) : '-'}. Dokter perlu meninjau rekaman suara, arah datang suara, dan hasil pelacakan individu sebelum pasien dihubungi.`, to: pending[0] ? `/detections/${pending[pending.length - 1].uuid}` : '/' },
+    { title: `${pending.length} batuk terindikasi TB menunggu tinjauan`, when: pending[0]?.time ?? NOW.getTime(), body: `Peringatan tertua masuk ${pending.length ? fmt.ago(pending[pending.length - 1].time) : '-'}. Dokter perlu meninjau rekaman suara, arah datang suara, dan hasil pelacakan individu sebelum pasien dihubungi.`, to: pending[0] ? `/detections/${pending[pending.length - 1].uuid}` : '/dashboard' },
   ];
   const n = notes[note % notes.length];
 

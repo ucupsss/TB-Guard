@@ -82,6 +82,9 @@ const Model=memo(function Model({a,p,mode,onAsset}:{a:Part;p:Project;mode:ViewMo
  if(a.kind==='battery')return <><Box size={a.size} color="#b5bfc2" radius={2}/><Box size={[a.size[0]-8,a.size[1]-5,0.15]} position={[0,0,a.size[2]/2+0.1]} color="#e3e7df"/><Box size={[5,a.size[1],a.size[2]+0.3]} position={[-a.size[0]/2+3,0,0]} color="#c7a348"/></>;
  return <><Box size={a.size} color={a.kind==='carrier'?'#1d6252':'#1f6977'}/><Box size={[a.size[0]*0.45,a.size[1]*0.4,2]} position={[0,0,a.size[2]/2+1]} color="#252d2f"/>{[-1,1].map(i=><Box key={i} size={[1.5,a.size[1]-4,1]} position={[i*(a.size[0]/2-2),0,a.size[2]/2+0.5]} color="#bdac6d"/>)}{a.kind==='charger'&&<Box size={[8,5,3]} position={[0,-a.size[1]/2,1]} color="#b5c1c3"/>}</>;
 });
+const noAsset=()=>{};
+/** perangkat terakit (satuan mm) tanpa kanvas, dipakai ulang di 3D Public Area */
+export function DeviceAssembly({project:p}:{project:Project}){const [,,d]=enclosure(p);return <group>{activeParts(p).map(a=>{const pos:Vec3=[...a.position];if(a.kind==='rear')pos[2]=-d/2;return <group key={a.id} position={pos} rotation={a.rotation.map(v=>v*Math.PI/180) as Vec3} visible={a.visible}><Model a={a} p={p} mode="Assembled" onAsset={noAsset}/></group>})}</group>}
 function AnimatedPart({a,index,props}:{a:Part;index:number;props:ViewerProps}){
  const ref=useRef<THREE.Group>(null),{project:p,mode}=props;
  const [,,d]=enclosure(p);const pos:Vec3=[...a.position];if(a.kind==='rear')pos[2]=-d/2;

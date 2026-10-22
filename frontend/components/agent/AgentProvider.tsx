@@ -32,7 +32,6 @@ interface Agent {
 
 const Ctx = React.createContext<Agent | null>(null);
 const MAX_STEPS = 12;
-const OPEN_KEY = 'tbv_agent_open';
 const MODEL_KEY = 'tbv_agent_model';
 const uid = () => Math.random().toString(36).slice(2, 10);
 const tick = () => new Promise((r) => setTimeout(r, 30)); // beri React waktu me-render perubahan store sebelum tool berikutnya
@@ -73,10 +72,11 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const pending = React.useRef(new Map<string, (ok: boolean) => void>());
 
   React.useEffect(() => {
-    try { setOpenState(localStorage.getItem(OPEN_KEY) !== '0' && window.innerWidth >= 1024); } catch { /* abaikan */ }
+    // chat agen selalu terbuka saat halaman pertama dimuat (desktop)
+    setOpenState(window.innerWidth >= 1024);
   }, []);
-  const setOpen = React.useCallback((v: boolean) => { setOpenState(v); try { localStorage.setItem(OPEN_KEY, v ? '1' : '0'); } catch { /* abaikan */ } }, []);
-  const toggle = React.useCallback(() => setOpenState((v) => { try { localStorage.setItem(OPEN_KEY, v ? '0' : '1'); } catch { /* abaikan */ } return !v; }), []);
+  const setOpen = setOpenState;
+  const toggle = React.useCallback(() => setOpenState((v) => !v), []);
 
   React.useEffect(() => {
     const k = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'i') { e.preventDefault(); toggle(); } };

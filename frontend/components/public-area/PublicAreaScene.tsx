@@ -151,7 +151,7 @@ export default function PublicAreaScene() {
     </div>
     <div className="pa-topline"><div className="pa-location"><span className="pa-dot" /> LIVE SIMULATION <span className="pa-muted">/ STATION HALL</span></div><span className="pa-dimensions">30 × 20 M <span>01 NODE</span></span></div>
     <nav className="pa-camera-toolbar" aria-label="Preset kamera">{MODES.map(({ id, label, icon: Icon }) => <button key={id} type="button" aria-pressed={mode === id} onClick={() => setMode(id)} title={label}><Icon /><span>{label}</span></button>)}</nav>
-    <div className="pa-scene-caption"><span>PUBLIC SPACE / DIGITAL TWIN</span><h2>Ruang publik.<br />Pemantauan presisi.</h2><p>Drag: putar · scroll: zoom</p><p>Klik kanan / dua jari: geser</p></div>
+    <div className="pa-scene-caption"><span>TB GUARD AGENT</span><h2>Dengar batuk.<br />Cegah TB.</h2><p>Agen AI pendeteksi batuk TB di ruang publik.</p></div>
     <aside className="pa-evidence" aria-label="Capture deteksi terakhir">
       {latest ? <CaptureCard detection={latest} capture={capture} /> : <div className="pa-standby"><VideoIcon /><span>CAM 01 <b>STANDBY</b></span><p>Snapshot otomatis saat batuk terdeteksi</p><div className="pa-scan-line" /></div>}
       {captureError && <p role="alert" className="pa-error">Capture gagal. Tekan Pemicu Batuk untuk mencoba lagi.</p>}
