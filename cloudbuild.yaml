@@ -1,0 +1,40 @@
+steps:
+  # 1. Build the container image from frontend/Dockerfile
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/tb-guard-web:$COMMIT_SHA'
+      - '-f'
+      - 'frontend/Dockerfile'
+      - 'frontend'
+
+  # 2. Push image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/tb-guard-web:$COMMIT_SHA'
+
+  # 3. Deploy revision to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'tb-guard-web'
+      - '--image'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/tb-guard-web:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--service-account'
+      - 'hackathon-runtime@hackathon-primestep-19.iam.gserviceaccount.com'
+      - '--set-env-vars'
+      - 'GCP_PROJECT_ID=hackathon-primestep-19,GCP_LOCATION=us-central1,GEMINI_MODEL=gemini-2.5-flash'
+      - '--allow-unauthenticated'
+      - '--quiet'
+
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/tb-guard-web:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
