@@ -81,7 +81,12 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const [open, setOpenState] = React.useState(false);
-  const [turns, setTurns] = React.useState<Turn[]>([]);
+  const [turns, setTurnsState] = React.useState<Turn[]>([]);
+  const turnsRef = React.useRef<Turn[]>([]);
+  const setTurns = (next: React.SetStateAction<Turn[]>) => {
+    turnsRef.current = typeof next === 'function' ? next(turnsRef.current) : next;
+    setTurnsState(turnsRef.current);
+  };
   const [running, setRunning] = React.useState(false);
   const [confirmRisky, setConfirmRisky] = React.useState(true);
   // selalu mulai dari Gemini (service account Vertex AI); pilihan model lain hanya berlaku selama sesi
@@ -91,11 +96,10 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const [chats, setChats] = React.useState<ChatSummary[]>([]);
   const [chatsLoading, setChatsLoading] = React.useState(false);
   const [historyError, setHistoryError] = React.useState('');
-  const retryTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveQueue = React.useRef<Promise<void>>(Promise.resolve());
   const [paletteOpen, setPaletteOpen] = React.useState(false);
   const chatIdRef = React.useRef(chatId);
-  const turnsRef = React.useRef<Turn[]>([]);
-  React.useEffect(() => { chatIdRef.current = chatId; turnsRef.current = turns; });
+  React.useEffect(() => { chatIdRef.current = chatId; }, [chatId]);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- ID chat hanya bisa dibuat di browser
   React.useEffect(() => { setChatId((c) => c || newChatId()); }, []);
 
@@ -120,6 +124,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     // chat agen selalu terbuka saat halaman pertama dimuat (desktop)
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- viewport baru tersedia setelah hydration
     setOpenState(window.innerWidth >= 1024);
   }, []);
   const setOpen = setOpenState;
@@ -262,7 +267,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     patch(turnId, (t) => ({ ...t, startedAt: t0 }));
     const lastUser = [...history.current].reverse().find((m) => m.role === 'user');
     emitSwarm({ type: 'chat:start', prompt: lastUser && lastUser.role === 'user' ? lastUser.content : '' });
-    let routed = false, tokens = 0;
+    let routed = false, tokens = 0, failure: string | undefined;
     const usedAgents = new Set<string>();
     try {
       for (let i = 0; i < MAX_STEPS; i++) {
@@ -286,10 +291,11 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       }
       appendDelta(turnId, 'text', '\n\n_Batas langkah tercapai. Kirim "lanjutkan" bila perlu._');
     } catch (e) {
-      if (!ctl.signal.aborted) patch(turnId, (t) => ({ ...t, error: e instanceof Error ? e.message : String(e) }));
+      failure = ctl.signal.aborted ? 'Dihentikan pengguna.' : e instanceof Error ? e.message : String(e);
+      patch(turnId, (t) => ({ ...t, error: failure }));
     } finally {
       patch(turnId, (t) => ({ ...t, done: true, ms: Date.now() - t0, startedAt: undefined }));
-      emitSwarm({ type: 'chat:done', totalMs: Date.now() - t0, tokens, activeAgents: [...usedAgents] });
+      emitSwarm({ type: 'chat:done', totalMs: Date.now() - t0, tokens, activeAgents: [...usedAgents], error: failure || (ctl.signal.aborted ? 'Dihentikan pengguna.' : undefined) });
       abort.current = null;
       setRunning(false);
       void persistSoon();
@@ -298,7 +304,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
 
   const send = (text: string) => {
     const q = text.trim();
-    if (!q || running) return;
+    if (!q || abort.current) return;
     const turnId = uid();
     history.current.push({ role: 'user', content: q });
     setTurns((all) => [...all, { id: uid(), role: 'user', text: q, parts: [] }, { id: turnId, role: 'assistant', text: '', parts: [] }]);
@@ -307,7 +313,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   };
 
   const retry = () => {
-    if (running) return;
+    if (abort.current) return;
     // ulangi dari pesan user terakhir: buang balasan yang gagal
     const lastUser = history.current.map((m) => m.role).lastIndexOf('user');
     if (lastUser < 0) return;
@@ -318,7 +324,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   };
 
   const stop = () => { abort.current?.abort(); pending.current.forEach((r) => r(false)); };
-  const reset = () => { stop(); history.current = []; setTurns([]); setChatId(newChatId()); emitSwarm({ type: 'chat:reset' }); };
+  const reset = () => { if (abort.current) return; history.current = []; setTurns([]); chatIdRef.current = newChatId(); setChatId(chatIdRef.current); emitSwarm({ type: 'chat:reset' }); };
 
   /* ---- riwayat chat di database ---- */
   const totalTokens = turns.reduce((n, t) => n + (t.usage?.total ?? 0), 0);
@@ -329,23 +335,22 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       const r = await backendFetch('/api/chats');
       if (!r.ok) throw new Error(r.status === 404 ? 'backend belum mendukung riwayat (restart backend)' : `HTTP ${r.status}`);
       setChats((await r.json()).chats ?? []);
-      setHistoryError('');
     } catch (e) {
       console.warn('[chat] gagal memuat riwayat:', e);
       setHistoryError(`Riwayat belum bisa dimuat: ${e instanceof Error ? e.message : 'koneksi gagal'}`);
     } finally { setChatsLoading(false); }
   }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- sinkronisasi daftar dari server saat sesi/panel berubah
   React.useEffect(() => { if (store.user && open) void refreshChats(); }, [store.user, open, refreshChats]);
 
-  /** simpan chat aktif; dipanggil setelah tiap jawaban selesai (menunggu React menerapkan state terakhir) */
-  async function persistSoon(attempt = 0) {
-    if (attempt === 0) await new Promise((r) => setTimeout(r, 60));
+  /** Capture an immutable snapshot now; serialize writes so older saves cannot win. */
+  async function persistSoon() {
     const turnsNow = turnsRef.current, id = chatIdRef.current;
     if (!id || !live.current.store.user || !turnsNow.some((t) => t.role === 'user')) return;
     let saveTurns = turnsNow, saveHist = history.current;
     let body = JSON.stringify({ turns: saveTurns, history: saveHist });
     // terlalu besar: buang bagian paling lama (riwayat dipotong mulai dari pesan user)
-    while (body.length > MAX_SAVE_BYTES && saveTurns.length > 2) {
+    while (new TextEncoder().encode(body).length > MAX_SAVE_BYTES && saveTurns.length > 2) {
       saveTurns = saveTurns.slice(Math.ceil(saveTurns.length / 2));
       let h = saveHist.slice(Math.ceil(saveHist.length / 2));
       const u = h.findIndex((m) => m.role === 'user'); h = u >= 0 ? h.slice(u) : h;
@@ -354,34 +359,39 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     }
     const first = turnsNow.find((t) => t.role === 'user')?.text ?? 'Percakapan';
     const tokens = turnsNow.reduce((n, t) => n + (t.usage?.total ?? 0), 0);
-    try {
-      const r = await backendFetch(`/api/chats/${id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: first.slice(0, 60), model: live.current.model, tokens, turns: saveTurns, history: saveHist }),
-      });
-      if (!r.ok) throw new Error(((await r.json().catch(() => ({}))) as { error?: string }).error || `HTTP ${r.status}`);
-      setHistoryError('');
-      void refreshChats();
-    } catch (e) {
-      // jangan gagal diam-diam: tampilkan di panel riwayat dan coba lagi beberapa kali (mis. database Neon baru bangun)
-      console.warn('[chat] gagal menyimpan ke server:', e);
-      setHistoryError(`Chat belum tersimpan di server: ${e instanceof Error ? e.message : 'koneksi gagal'}`);
-      if (attempt < 3) {
-        if (retryTimer.current) clearTimeout(retryTimer.current);
-        retryTimer.current = setTimeout(() => void persistSoon(attempt + 1), [2000, 6000, 15000][attempt]);
+    const payload = JSON.stringify({ title: first.slice(0, 60), model: live.current.model, tokens, turns: saveTurns, history: saveHist });
+    const save = async () => {
+      for (let attempt = 0; attempt < 4; attempt++) {
+        try {
+          const r = await backendFetch(`/api/chats/${id}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: payload,
+          });
+          if (!r.ok) throw new Error(((await r.json().catch(() => ({}))) as { error?: string }).error || `HTTP ${r.status}`);
+          setHistoryError('');
+          void refreshChats();
+          return;
+        } catch (e) {
+          console.warn('[chat] gagal menyimpan ke server:', e);
+          setHistoryError(`Chat belum tersimpan di server: ${e instanceof Error ? e.message : 'koneksi gagal'}`);
+          if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, [2000, 6000, 15000][attempt]));
+        }
       }
-    }
+    };
+    saveQueue.current = saveQueue.current.then(save, save);
+    await saveQueue.current;
   }
-  const retrySave = () => { setHistoryError(''); void persistSoon(0); void refreshChats(); };
+  const retrySave = () => { void persistSoon(); void refreshChats(); };
 
   const openChat = async (id: string) => {
-    if (running) return;
+    if (abort.current) return;
+    await saveQueue.current;
     const r = await backendFetch(`/api/chats/${encodeURIComponent(id)}`);
     if (!r.ok) throw new Error('Chat tidak ditemukan');
     const c = await r.json();
+    if (abort.current) return;
     history.current = Array.isArray(c.history) ? c.history : [];
     setTurns(sanitizeTurns(Array.isArray(c.turns) ? c.turns : []));
-    setChatId(c.id);
+    chatIdRef.current = c.id; setChatId(c.id);
     if (c.model) setModel(migrateModelId(c.model));
   };
   const call = async (method: string, path: string, body?: unknown) => {
@@ -391,11 +401,19 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const renameChat = async (id: string, title: string) => { await call('PATCH', `/api/chats/${encodeURIComponent(id)}`, { title }); await refreshChats(); };
   const pinChat = async (id: string, pinned: boolean) => { await call('PATCH', `/api/chats/${encodeURIComponent(id)}`, { pinned }); await refreshChats(); };
   const deleteChat = async (id: string) => {
+    if (abort.current) throw new Error('Tunggu agen selesai sebelum menghapus chat.');
+    await saveQueue.current;
     await call('DELETE', `/api/chats/${encodeURIComponent(id)}`);
     if (id === chatIdRef.current) reset();
     await refreshChats();
   };
-  const clearChats = async () => { await call('DELETE', '/api/chats'); await refreshChats(); };
+  const clearChats = async () => {
+    if (abort.current) throw new Error('Tunggu agen selesai sebelum menghapus chat.');
+    await saveQueue.current;
+    await call('DELETE', '/api/chats');
+    if (!chats.find((c) => c.id === chatIdRef.current)?.pinned) reset();
+    await refreshChats();
+  };
   const decide = (stepId: string, ok: boolean) => pending.current.get(stepId)?.(ok);
 
   /** tanya agen dari mana saja: buka panel dan kirim (bila agen sedang bekerja, hanya membuka panel) */

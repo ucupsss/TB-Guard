@@ -59,28 +59,12 @@ export const AVAILABLE_MODELS: ModelOption[] = [
     category: 'groq',
     description: 'Kecepatan ~1000 tok/detik, konsumsi kuota paling minim.',
   },
-  {
-    id: 'whisper-large-v3-turbo',
-    name: 'Whisper Large v3 Turbo',
-    provider: 'OpenAI',
-    badge: 'Audio STT',
-    category: 'groq',
-    description: 'Transkripsi audio batuk & keluhan pasien medis di Groq.',
-  },
-  {
-    id: 'meta-llama/llama-prompt-guard-2-86m',
-    name: 'Llama Prompt Guard 86M',
-    provider: 'Meta',
-    badge: 'Safety',
-    category: 'groq',
-    description: 'Proteksi jailbreak & validasi keamanan prompt input medis.',
-  },
 ];
 
 export const DEFAULT_MODEL_ID = 'gemini-3.5-flash';
 
 /** id Gemini lama (chat tersimpan / pengaturan lama) dipetakan ke model aktif */
-export const migrateModelId = (id: string) => (/^gemini-[12]\./.test(id) ? DEFAULT_MODEL_ID : id);
+export const migrateModelId = (id: string) => (/^gemini-[12]\./.test(id) || id.startsWith('whisper-') || id.includes('prompt-guard') ? DEFAULT_MODEL_ID : id);
 
 export function getModelInfo(id: string): ModelOption {
   return AVAILABLE_MODELS.find((m) => m.id === id) || {

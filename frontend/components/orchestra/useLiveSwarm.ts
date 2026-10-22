@@ -46,12 +46,12 @@ export function applyLive(state: LiveState, { event: e, at }: StampedEvent, agen
     }
     case 'chat:done': {
       const steps: ExecutionStep[] = state.steps.map((s, i) => (s.status === 'running'
-        ? { ...s, status: 'completed' as const, latencyMs: s.latencyMs || at - startOf(s), outputData: s.outputData || (i === 0 ? 'intent dijawab langsung oleh model' : 'selesai') }
+        ? { ...s, status: 'completed' as const, latencyMs: s.latencyMs || at - startOf(s), outputData: s.outputData || e.error || (i === 0 ? 'intent dijawab langsung oleh model' : 'selesai') }
         : s));
       steps.push({
-        id: `live${steps.length}@${at}`, agentId: 'orchestrator', title: 'Jawaban selesai',
+        id: `live${steps.length}@${at}`, agentId: 'orchestrator', title: e.error ? 'Jawaban terhenti' : 'Jawaban selesai',
         action: `Agen aktif: ${e.activeAgents.length ? e.activeAgents.map(name).join(', ') : 'orchestrator'}.`,
-        inputData: `${steps.filter((s) => s.toolCalled).length} tool dipanggil`, outputData: 'jawaban dikirim ke chat',
+        inputData: `${steps.filter((s) => s.toolCalled).length} tool dipanggil`, outputData: e.error || 'jawaban dikirim ke chat',
         latencyMs: e.totalMs, tokensUsed: e.tokens ?? 0, status: 'completed',
       });
       return { steps, running: false, totalMs: e.totalMs, tokens: e.tokens };

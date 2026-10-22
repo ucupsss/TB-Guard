@@ -264,49 +264,8 @@ export async function classifyLiveAudioBlob(
       return await res.json();
     }
   } catch {
-    // Backend offline: run intelligent client-side acoustic analysis
+    // Do not fabricate a negative result when inference is unavailable.
   }
 
-  // Client-side fallback analyzer (Conservative baseline ~12-18% for normal cough)
-  const mockUuid = `mg_${Math.random().toString(36).substring(2, 8)}`;
-  const confidence = 0.12 + Math.random() * 0.12; // 12% - 24% for normal cough
-  const isTb = false;
-
-  const triage = await fetchAITriage({
-    uuid: mockUuid,
-    result: 'NEG',
-    confidence,
-    coughs: 1,
-    patient_name: metadata?.patient_name || 'Uji Mic Laptop',
-    location: metadata?.location || 'Mikrofon Langsung',
-    zone: metadata?.zone || 'Perangkat Pengguna',
-  });
-
-  return {
-    uuid: mockUuid,
-    result: 'NEG',
-    confidence: Math.round(confidence * 1000) / 1000,
-    is_tb: false,
-    cough_count: 1,
-    duration_sec: Math.round(blob.size / 32000 * 10) / 10 || 3.0,
-    sample_rate: 16000,
-    quality: {
-      rms_energy: 0.082,
-      peak_amplitude: 0.74,
-      is_clipped: false,
-      is_silent: false,
-      status: 'good',
-    },
-    acoustic_features: {
-      spectral_centroid_hz: 2140,
-      tb_band_energy_ratio: 0.284,
-      harmonicity: 0.412,
-      decay_ratio: 0.178,
-      spectral_flatness: 0.285,
-      frequency_band_focus: '1.2 kHz - 3.5 kHz (Resonansi Bronkial)',
-    },
-    triage,
-    timestamp_iso: new Date().toISOString(),
-  };
+  throw new Error('Layanan klasifikasi audio tidak tersedia. Rekaman belum dianalisis; silakan coba lagi setelah layanan pulih.');
 }
-

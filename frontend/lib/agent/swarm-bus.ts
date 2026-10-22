@@ -9,7 +9,7 @@ export type SwarmLiveEvent =
   | { type: 'chat:routing'; intent: string; targetAgentId?: string }
   | { type: 'chat:tool_call'; toolName: string; agentId: string; args: Record<string, unknown> }
   | { type: 'chat:tool_done'; toolName: string; agentId: string; latencyMs: number; ok: boolean }
-  | { type: 'chat:done'; totalMs: number; tokens?: number; activeAgents: string[] }
+  | { type: 'chat:done'; totalMs: number; tokens?: number; activeAgents: string[]; error?: string }
   | { type: 'chat:reset' };
 
 export interface StampedEvent { event: SwarmLiveEvent; at: number }
@@ -26,7 +26,7 @@ function restore(): StampedEvent[] {
     if (!Array.isArray(v) || !v.length) return [];
     const out = v.slice(-MAX_LOG);
     // halaman di-refresh saat chat berjalan: tutup jejaknya agar kanvas tidak tampak berjalan selamanya
-    if (out[out.length - 1].event.type !== 'chat:done') out.push({ event: { type: 'chat:done', totalMs: 0, activeAgents: [] }, at: Date.now() });
+    if (out[out.length - 1].event.type !== 'chat:done') out.push({ event: { type: 'chat:done', totalMs: 0, activeAgents: [], error: 'Terputus sebelum selesai.' }, at: Date.now() });
     return out;
   } catch { return []; }
 }

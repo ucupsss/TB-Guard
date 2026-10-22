@@ -8,7 +8,7 @@ substitutions:
   _REGION: us-central1
   _REPO: cloud-run-source-deploy
   _RUNTIME_SA: hackathon-runtime@hackathon-primestep-19.iam.gserviceaccount.com
-  _GEMINI_MODEL: gemini-3.8-flash
+  _GEMINI_MODEL: gemini-3.5-flash
   _S3_ENDPOINT: https://br-spring-math-b429bcop.storage.c-6.us-east-2.aws.neon.tech
   _GOOGLE_CLIENT_ID: '373014066834-5914fet6h7qp54gp9vbtpr3dv1d7jth0.apps.googleusercontent.com'           # OAuth Web Client ID (login Gmail)
   _ADMIN_EMAILS: 'ahmadyazidarifuddin04@gmail.com'               # opsional: daftar Admin (koma); kosong = semua pengguna Gmail = Admin
@@ -33,7 +33,7 @@ steps:
       - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/tb-guard-api:$COMMIT_SHA
       - --region=${_REGION}
       - --service-account=${_RUNTIME_SA}
-      - --set-env-vars=^|^GCP_PROJECT_ID=$PROJECT_ID|GCP_LOCATION=${_REGION}|GEMINI_MODEL=${_GEMINI_MODEL}|ALLOWED_ORIGINS=${_ALLOWED_ORIGINS}|GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID}|ADMIN_EMAILS=${_ADMIN_EMAILS}|ALLOWED_EMAILS=${_ALLOWED_EMAILS}|S3_ENDPOINT=${_S3_ENDPOINT}|S3_REGION=us-east-2|S3_BUCKET=tbguard-recordings
+      - --set-env-vars=^|^GCP_PROJECT_ID=$PROJECT_ID|GCP_LOCATION=${_REGION}|GEMINI_LOCATION=global|GEMINI_MODEL=${_GEMINI_MODEL}|ALLOWED_ORIGINS=${_ALLOWED_ORIGINS}|GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID}|ADMIN_EMAILS=${_ADMIN_EMAILS}|ALLOWED_EMAILS=${_ALLOWED_EMAILS}|S3_ENDPOINT=${_S3_ENDPOINT}|S3_REGION=us-east-2|S3_BUCKET=tbguard-recordings
       - --set-secrets=GROQ_API_KEYS=groq-api-keys:latest,DATABASE_URL=database-url:latest,S3_ACCESS_KEY_ID=s3-access-key-id:latest,S3_SECRET_ACCESS_KEY=s3-secret-access-key:latest,SESSION_SECRET=session-secret:latest
       - --cpu=1
       - --memory=256Mi
