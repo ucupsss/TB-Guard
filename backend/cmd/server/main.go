@@ -45,7 +45,7 @@ func main() {
 	protect := authSvc.RequireAuth
 
 	// publik
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
 		httpx.JSON(w, http.StatusOK, map[string]any{"status": "ok", "groq": aiSvc.GroqStats(), "storage": store.Enabled()})
 	})
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, _ *http.Request) {

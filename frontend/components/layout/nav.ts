@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import { CubeIcon, DashboardIcon, StackIcon, TargetIcon, Component1Icon, VideoIcon } from '@radix-ui/react-icons';
+import { BarChartIcon, CubeIcon, DashboardIcon, StackIcon, TargetIcon, Component1Icon, VideoIcon } from '@radix-ui/react-icons';
 import { MicIcon } from '@/components/tb/icons';
 
 export type NavIcon = React.ComponentType<{ className?: string }>;
@@ -10,6 +10,7 @@ export const NAV: (NavItem | 'divider')[] = [
   { label: 'Dashboard', to: '/dashboard', icon: DashboardIcon },
   { label: 'Uji Suara Mikrofon', to: '/live-test', icon: MicIcon },
   { label: '3D Prototype', to: '/design', icon: Component1Icon },
+  { label: 'Peluang Pasar', to: '/market', icon: BarChartIcon },
   'divider',
   { label: 'Devices', icon: CubeIcon, children: [{ label: 'Device List', to: '/devices' }, { label: 'Add Device', to: '/devices/new' }] },
   { label: 'Data Batuk', icon: StackIcon, children: [

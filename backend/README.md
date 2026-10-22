@@ -4,7 +4,7 @@ Proxy agen AI (Gemini/Vertex AI + Groq, rotasi key & fallback) dan transkripsi s
 
 | Endpoint | Fungsi |
 |---|---|
-| `GET /healthz` | health check + status pool key Groq |
+| `GET /health` | health check + status pool key Groq |
 | `POST /api/auth/google` | tukar ID token Google (@gmail.com) dengan sesi |
 | `POST /api/uploads` | unggah rekaman (dibatasi) ke Neon Object Storage |
 | `GET /readyz` | siap bila PostgreSQL terkoneksi |
