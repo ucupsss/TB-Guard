@@ -6,6 +6,7 @@ import {
   SpeakerLoudIcon, StopIcon, UpdateIcon, VideoIcon,
 } from '@radix-ui/react-icons';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import {
@@ -448,9 +449,11 @@ export function LiveMicRecorder() {
         {/* hasil & triase */}
         <div className="col-span-12 lg:col-span-6">
           {analyzing ? (
-            <div className="flex h-full min-h-[260px] flex-col items-center justify-center rounded-md border border-dashed border-primary/40 bg-primary/5 p-6 text-center">
-              <UpdateIcon className="mb-3 h-6 w-6 animate-spin text-primary dark:text-blue-300" />
-              <div className="font-medium">Menganalisis…</div>
+            <div role="status" aria-label="Menganalisis" className="space-y-4">
+              <Skeleton className="h-[76px] w-full" />
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[74px]" />)}</div>
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-8 w-32" />
             </div>
           ) : result && f ? (
             <div className="space-y-4">

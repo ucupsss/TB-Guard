@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   Send,
-  Loader2,
   Stethoscope,
   Activity,
   Layers,
@@ -15,6 +14,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -161,9 +161,16 @@ export function AiClinicalCopilot({ d, dev }: { d: Detection; dev: Device }) {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <span className="ml-2 text-sm text-muted-foreground">Menganalisis…</span>
+        <div role="status" aria-label="Menganalisis" className="mt-5 grid grid-cols-12 gap-5">
+          <div className="col-span-12 space-y-4 lg:col-span-7">
+            <Skeleton className="h-36 w-full rounded-lg" />
+            <Skeleton className="h-28 w-full rounded-lg" />
+          </div>
+          <div className="col-span-12 space-y-3 lg:col-span-5">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-40 w-full rounded-lg" />
+            <Skeleton className="h-9 w-full" />
+          </div>
         </div>
       ) : triage ? (
         <div className="mt-5 grid grid-cols-12 gap-5">
@@ -295,9 +302,9 @@ export function AiClinicalCopilot({ d, dev }: { d: Detection; dev: Device }) {
                 ))
               )}
               {chatLoading && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  <span>AI sedang menganalisis protokol klinis...</span>
+                <div role="status" aria-label="AI menjawab" className="mr-auto w-4/5 space-y-2 py-2">
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-3/4" />
                 </div>
               )}
             </div>

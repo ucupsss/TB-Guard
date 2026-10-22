@@ -2,11 +2,12 @@
 
 import dynamic from 'next/dynamic';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { ContentSkeleton } from '@/components/layout/PageSkeleton';
 import '@/components/design/design.css';
 
 const Editor = dynamic(() => import('@/components/design/App'), {
   ssr: false,
-  loading: () => <div className="grid min-h-[500px] place-items-center text-muted-foreground" role="status">Memuat editor prototipe 3D…</div>,
+  loading: () => <div role="status" aria-label="Memuat editor 3D"><ContentSkeleton variant="design" /></div>,
 });
 
 export default function Design() {
