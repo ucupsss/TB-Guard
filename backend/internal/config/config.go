@@ -91,7 +91,7 @@ func Load() Config {
 		UploadTotalMax: int64(atoi(env("UPLOAD_TOTAL_MAX_BYTES", "104857600"), 100<<20)), // 100 MB total
 		UploadPerDay:   atoi(env("UPLOAD_MAX_PER_DAY", "30"), 30),                        // per pengguna
 		UploadTTLDays:  atoi(env("UPLOAD_TTL_DAYS", "30"), 30),
-		SeedAudioMax:   atoi(env("SEED_AUDIO_MAX", "60"), 60), // ~110 KB/rekaman
+		SeedAudioMax:   atoi(env("SEED_AUDIO_MAX", "500"), 500), // ~110 KB/rekaman; cukup untuk semua deteksi contoh (~14 MB)
 	}
 }
 
