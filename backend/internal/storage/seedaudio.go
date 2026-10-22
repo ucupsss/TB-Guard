@@ -143,17 +143,16 @@ func (s *Service) seedAudio(ctx context.Context) error {
 	if err := tx.QueryRow(ctx, "SELECT pg_try_advisory_xact_lock(727004)").Scan(&got); err != nil || !got {
 		return err // instance lain sedang mengerjakan
 	}
-	var done int
-	if err := tx.QueryRow(ctx, "SELECT COUNT(*) FROM meta WHERE key=$1", seedMetaKey).Scan(&done); err != nil || done > 0 {
-		return err
-	}
 	// hanya bila data contoh memang dimuat (tabel meta 'seeded' ada)
 	var seeded int
 	if err := tx.QueryRow(ctx, "SELECT COUNT(*) FROM meta WHERE key='seeded'").Scan(&seeded); err != nil || seeded == 0 {
 		return err
 	}
 
-	rows, err := tx.Query(ctx, "SELECT uuid, result, coughs, type FROM detections ORDER BY time DESC LIMIT $1", s.cfg.SeedAudioMax)
+	// idempoten: hanya deteksi yang belum punya rekaman, jadi restart melengkapi yang kurang (mis. batas dinaikkan)
+	rows, err := tx.Query(ctx, `SELECT d.uuid, d.result, d.coughs, d.type FROM detections d
+		WHERE NOT EXISTS (SELECT 1 FROM uploads u WHERE u.detection = d.uuid)
+		ORDER BY d.time DESC LIMIT $1`, s.cfg.SeedAudioMax)
 	if err != nil {
 		return err
 	}

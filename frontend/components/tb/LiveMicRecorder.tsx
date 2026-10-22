@@ -22,6 +22,7 @@ import { analyzeStereo, type RawCapture } from '@/lib/doa';
 import { RawRecorder } from '@/lib/doa-capture';
 import { DoaPanel } from '@/components/tb/DoaPanel';
 import { useStore } from '@/lib/store';
+import { uploadRecording } from '@/lib/uploads';
 import { cn } from '@/lib/utils';
 
 // Helper: Convert Float32Array PCM buffer to a 16-bit PCM WAV Blob (16 kHz mono)
@@ -71,7 +72,7 @@ function audioBufferToWav(buffer: AudioBuffer): Blob {
 }
 
 export function LiveMicRecorder() {
-  const { addDetection } = useStore() as { addDetection?: (d: any) => void };
+  const { addDetection, devices } = useStore();
   const [hasMicPermission, setHasMicPermission] = React.useState<boolean | null>(null);
   const [isRecording, setIsRecording] = React.useState(false);
   const [countdown, setCountdown] = React.useState<number>(0);
@@ -343,9 +344,30 @@ export function LiveMicRecorder() {
     }
   };
 
-  const handleSaveToDashboard = () => {
-    if (!result) return;
-    toast.success(`Deteksi ${result.uuid} disimpan ke antrean pemantauan!`);
+  const [saving, setSaving] = React.useState(false);
+  /** audio -> Neon Object Storage, metadata deteksi -> Postgres; keduanya dikaitkan lewat uuid */
+  const handleSaveToDashboard = async () => {
+    if (!result || !audioBlob || saving) return;
+    const dev = devices[0];
+    if (!dev) { toast.error('Belum ada perangkat terdaftar untuk menyimpan deteksi.'); return; }
+    setSaving(true);
+    try {
+      let audioSaved = true;
+      try { await uploadRecording(audioBlob, result.uuid); } catch (e) {
+        audioSaved = false;
+        toast.warning(e instanceof Error ? e.message : 'Audio gagal diunggah ke object storage');
+      }
+      const src = att?.source != null ? att.people[att.source] : null;
+      const ok = await addDetection({
+        uuid: result.uuid, deviceId: dev.id, time: new Date(result.timestamp_iso).getTime(), type: result.cough_count > 0 ? 'Batuk' : '-',
+        result: result.result, confidence: result.confidence, name: '', gender: '', age: '',
+        doa: { azimuth: stereo?.ok ? Math.round(stereo.azimuth) : 0, confidence: 0.5, snr: 0, tdoa: [] },
+        person: { tracked: !!src, id: src ? 'P1' : '', score: src ? src.score : 0, crowd: att ? Math.max(0, att.people.length - (src ? 1 : 0)) : 0 },
+        reviewed: false, coughs: result.cough_count,
+      });
+      if (ok) toast.success(audioSaved ? `Deteksi ${result.uuid} & audio tersimpan di Neon` : `Deteksi ${result.uuid} tersimpan (audio gagal)`);
+      else toast.error('Deteksi gagal disimpan ke database (butuh akses admin).');
+    } finally { setSaving(false); }
   };
 
   const f = result?.acoustic_features;
@@ -493,7 +515,7 @@ export function LiveMicRecorder() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <Button size="sm" variant="outline" onClick={handleSaveToDashboard}><BookmarkIcon />Simpan</Button>
+                <Button size="sm" variant="outline" onClick={handleSaveToDashboard} disabled={saving}><BookmarkIcon />{saving ? 'Menyimpan…' : 'Simpan'}</Button>
                 <span className="ml-auto text-xs text-muted-foreground">MobileNetV3</span>
               </div>
             </div>

@@ -33,13 +33,13 @@ export function CoughAudio({ d, autoplayRef }: { d: Detection; autoplayRef?: Rea
       return [...stops[k].map((c, j) => (c + (stops[k + 1][j] - c) * f) / 255), 1];
     });
     // rekaman dari Neon Object Storage; bila belum ada, pakai suara sintetis sebagai cadangan
+    const synth = () => {
+      if (!blobUrl) blobUrl = URL.createObjectURL(toWavBlob(synthCough(d.uuid, { tb, coughs: d.type === '-' ? 1 : d.coughs, seconds })));
+      return blobUrl;
+    };
     const source = backendFetch(`/api/detections/${encodeURIComponent(d.uuid)}/audio`)
       .then((r) => (r.ok ? r.json() : null)).then((j) => (j?.url as string | undefined) || '').catch(() => '')
-      .then((remote) => {
-        if (remote) return remote;
-        blobUrl = URL.createObjectURL(toWavBlob(synthCough(d.uuid, { tb, coughs: d.type === '-' ? 1 : d.coughs, seconds })));
-        return blobUrl;
-      });
+      .then((remote) => remote || synth());
     // wavesurfer dimuat di browser saja
     Promise.all([source, import('wavesurfer.js'), import('wavesurfer.js/dist/plugins/spectrogram.esm.js')]).then(([src, { default: WS }, { default: Spectrogram }]) => {
     url = src;
@@ -51,6 +51,8 @@ export function CoughAudio({ d, autoplayRef }: { d: Detection; autoplayRef?: Rea
     });
     const ww = w;
     ww.on('play', () => setPlaying(true)); ww.on('pause', () => setPlaying(false)); ww.on('finish', () => setPlaying(false));
+    // rekaman remote hilang/gagal didecode: pakai suara sintetis agar demo selalu bisa diputar
+    ww.on('error', () => { if (alive && url !== blobUrl) { url = synth(); void ww.load(url).catch(() => {}); } });
     ww.on('ready', (dur) => setTime(`0:00 / ${mmss(dur)}`));
     ww.on('timeupdate', (t) => setTime(`${mmss(t)} / ${mmss(ww.getDuration())}`));
     ws.current = ww;
