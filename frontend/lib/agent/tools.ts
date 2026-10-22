@@ -104,7 +104,7 @@ export const TOOLS: ToolDef[] = [
 
   // ---------- UI ----------
   { name: 'navigate', kind: 'ui',
-    parameters: obj({ path: str('Path tujuan: / (3D Public Area), /dashboard, /design, /live-test, /devices, /devices/new, /devices/{id}, /detections/{uuid}, /data/webform, /data/offline, /data/primer, /patients, /patients?open={id}, /login') }, ['path']),
+    parameters: obj({ path: str('Path tujuan: / (3D Public Area), /dashboard, /design, /orchestra, /live-test, /devices, /devices/new, /devices/{id}, /detections/{uuid}, /data/webform, /data/offline, /data/primer, /patients, /patients?open={id}, /login') }, ['path']),
     description: 'Buka halaman atau navigasi ke rute yang diminta pengguna.' },
   // kendali tampilan: dipakai saat pengguna meminta "tunjukkan/perlihatkan/buka/lihat"
   { name: 'ui_show_3d', kind: 'ui',

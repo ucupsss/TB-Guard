@@ -339,7 +339,7 @@ export function prepareTool(name: string, a: Args, env: ToolEnv, opts: { confirm
       if (!/^\/[a-zA-Z0-9_\-\/?&=#.]*$/.test(path)) fail(`Path tidak aman: ${path}`);
       
       const cleanPath = path.split('?')[0].split('#')[0];
-      const allowedPrefixes = ['/', '/dashboard', '/design', '/live-test', '/devices', '/detections', '/data', '/patients', '/login', '/public-area'];
+      const allowedPrefixes = ['/', '/dashboard', '/design', '/live-test', '/devices', '/detections', '/data', '/patients', '/login', '/public-area', '/orchestra'];
       const isAllowed = allowedPrefixes.some((p) => cleanPath === p || (p !== '/' && cleanPath.startsWith(p + '/')) || (cleanPath.startsWith('/devices') || cleanPath.startsWith('/detections') || cleanPath.startsWith('/data')));
       if (!isAllowed) fail(`Halaman tidak dikenal: ${cleanPath}. Rute yang tersedia: / (Public 3D), /dashboard, /design, /live-test, /devices, /patients, /data/webform, /login`);
       

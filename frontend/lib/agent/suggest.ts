@@ -5,6 +5,7 @@ export function pageLabel(path: string) {
   if (path === '/') return '3D Public Area';
   if (path === '/dashboard') return 'Dashboard';
   if (path === '/market') return 'Peluang Pasar';
+  if (path === '/orchestra') return 'Orchestra AI';
   if (path === '/users') return 'Pengguna';
   if (path === '/live-test') return 'Uji Suara Mikrofon';
   if (path === '/devices/new') return 'Add Device';
@@ -23,6 +24,7 @@ export function suggestions(path: string): string[] {
   if (path.startsWith('/patients')) return ['Kepatuhan OAT < 90%?', 'Kontrol minggu ini?', 'Pasien tahap Pengobatan'];
   if (path.startsWith('/data/')) return ['Akurasi model?', 'Bandingkan per gender', '5 data terbaru'];
   if (path === '/') return ['Tunjukkan lokasi batuk terakhir', 'Arahkan kamera ke sensor', 'Ada batuk TB hari ini?'];
+  if (path === '/orchestra') return ['Jelaskan arsitektur Orchestra AI', 'Simulasikan alur deteksi ke rujukan', 'Berapa ROI untuk 10 stasiun?'];
   if (path === '/market') return ['Ringkas potensi pasar untuk juri', 'Berapa penghematan jika turun 5%?', 'Buka Dashboard'];
   if (path === '/dashboard') return ['Ringkas kondisi hari ini', 'Berapa batuk TB belum ditinjau?', 'Buka deteksi TB terbaru'];
   return ['Berapa batuk TB belum ditinjau?', 'Jam paling ramai batuk?', 'Tunjukkan lokasi batuk terakhir'];
