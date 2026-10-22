@@ -11,8 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OrchestraRouterVisualizer } from '@/components/orchestra/OrchestraRouterVisualizer';
 import { ExecutionTracePanel } from '@/components/orchestra/ExecutionTracePanel';
 import { AgentBuilderDialog } from '@/components/orchestra/AgentBuilderDialog';
-import { CommercializationMatrix } from '@/components/orchestra/CommercializationMatrix';
 import { useSwarmPlayer } from '@/components/orchestra/useSwarmPlayer';
+import { useLiveSwarm } from '@/components/orchestra/useLiveSwarm';
+import { OrchestraWorkflowBar } from '@/components/orchestra/OrchestraWorkflowBar';
 import { DEFAULT_AGENTS, deleteCustomAgent, loadAgents, toggleAgentStatus, type SubAgent } from '@/lib/agent/orchestrator';
 
 export default function OrchestraView() {
@@ -23,6 +24,14 @@ export default function OrchestraView() {
   React.useEffect(() => { setAgents(loadAgents()); }, []);
   const refresh = () => setAgents(loadAgents());
   const player = useSwarmPlayer(agents);
+  const chatLive = useLiveSwarm(agents);
+  // chat agen yang sedang/baru berjalan menggantikan simulasi di kanvas (kecuali simulasi sedang diputar)
+  const liveOn = chatLive.active && !player.running;
+  const view = liveOn ? { ...player, steps: chatLive.steps, running: chatLive.running, cursor: chatLive.cursor, done: chatLive.done } : player;
+  const activeStep: 1 | 2 | 3 | 4 | undefined = !liveOn ? undefined
+    : !chatLive.running ? 4
+    : chatLive.steps.some((s) => s.toolCalled) ? 3
+    : chatLive.steps[0]?.status === 'completed' ? 2 : 1;
   const live = agents.filter((a) => a.status !== 'disabled').length;
 
   return (
@@ -38,16 +47,16 @@ export default function OrchestraView() {
       </div>
 
       <Tabs defaultValue="canvas">
-        <TabsList className="grid w-full max-w-xl grid-cols-3">
+        <TabsList className="grid w-full max-w-sm grid-cols-2">
           <TabsTrigger value="canvas">Live Swarm Canvas</TabsTrigger>
           <TabsTrigger value="registry">Agent Registry</TabsTrigger>
-          <TabsTrigger value="business">Business &amp; ROI</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="canvas" className="mt-5">
+        <TabsContent value="canvas" className="mt-5 grid gap-5">
+          <OrchestraWorkflowBar activeStep={activeStep} />
           <div className="grid gap-5 xl:grid-cols-5">
-            <div className="xl:col-span-3"><OrchestraRouterVisualizer agents={agents} player={player} /></div>
-            <div className="xl:col-span-2"><ExecutionTracePanel steps={player.steps} agents={agents} /></div>
+            <div className="xl:col-span-3"><OrchestraRouterVisualizer agents={agents} player={view} live={liveOn} onExitLive={chatLive.clear} /></div>
+            <div className="xl:col-span-2"><ExecutionTracePanel steps={view.steps} agents={agents} /></div>
           </div>
         </TabsContent>
 
@@ -92,8 +101,6 @@ export default function OrchestraView() {
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">Metrik contoh untuk demo. Agen kustom tersimpan di browser ini (localStorage).</p>
         </TabsContent>
-
-        <TabsContent value="business" className="mt-5"><CommercializationMatrix /></TabsContent>
       </Tabs>
     </AppLayout>
   );

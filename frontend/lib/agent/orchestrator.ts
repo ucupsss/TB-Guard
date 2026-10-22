@@ -46,6 +46,24 @@ export interface Scenario {
 export const ALL_TOOLS = TOOLS.map((t) => ({ name: t.name, kind: t.kind, description: t.description }));
 const TOOL_NAMES = new Set(ALL_TOOLS.map((t) => t.name));
 
+/** pemilik tool untuk visualisasi live: tiap tool dipetakan ke satu spesialis */
+const TOOL_OWNER: Record<string, string> = {
+  list_devices: 'surveillance', get_device: 'surveillance', ui_show_3d: 'surveillance', ui_filter_devices: 'surveillance',
+  add_device: 'surveillance', update_device: 'surveillance', delete_device: 'surveillance',
+  list_detections: 'clinical', get_detection: 'clinical', update_detections: 'clinical', delete_detections: 'clinical',
+  add_detection: 'clinical', ui_open_detection: 'clinical',
+  list_patients: 'patient', get_patient: 'patient', add_patient: 'patient', update_patient: 'patient', delete_patient: 'patient',
+  get_overview: 'economics', detection_stats: 'economics', query_dataset: 'economics', navigate: 'economics',
+};
+
+/** spesialis yang menangani sebuah tool; sub-agen nonaktif dilewati, tanpa pemilik -> 'orchestrator' */
+export function agentForTool(tool: string, agents: SubAgent[]): string {
+  const usable = (id?: string) => !!id && agents.some((a) => a.id === id && a.status !== 'disabled');
+  const owner = TOOL_OWNER[tool];
+  if (usable(owner)) return owner;
+  return agents.find((a) => a.status !== 'disabled' && a.tools.includes(tool))?.id ?? 'orchestrator';
+}
+
 /** lapisan eksekusi sebuah tool: tulis = database (backend Go), ui = aktuator browser, baca = query backend */
 export function executionLayer(tool?: string): 'database' | 'actuator' | 'read' | 'none' {
   if (!tool) return 'none';

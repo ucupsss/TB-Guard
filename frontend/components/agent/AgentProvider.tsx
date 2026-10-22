@@ -12,10 +12,12 @@ import { toolKind } from '@/lib/agent/tools';
 
 import { DEFAULT_MODEL_ID, migrateModelId } from '@/lib/agent/models';
 import { backendFetch } from '@/lib/backend';
+import { agentForTool, loadAgents } from '@/lib/agent/orchestrator';
+import { emitSwarm } from '@/lib/agent/swarm-bus';
 
 type Args = Record<string, unknown>;
 export type StepStatus = 'running' | 'done' | 'error' | 'awaiting' | 'rejected';
-export interface Step { id: string; name: string; kind: string; label: string; args: Args; status: StepStatus; result?: unknown; error?: string; confirm?: string }
+export interface Step { id: string; name: string; kind: string; label: string; args: Args; status: StepStatus; result?: unknown; error?: string; confirm?: string; agentId?: string; ms?: number }
 export type Part = { kind: 'text'; text: string } | { kind: 'reasoning'; text: string } | { kind: 'step'; step: Step };
 export interface Usage { prompt: number; completion: number; total: number }
 export interface Turn {
@@ -194,7 +196,20 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     const step: Step = { id: call.id || uid(), name, kind: toolKind(name), label: name, args, status: 'running' };
     try { args = JSON.parse(call.function.arguments || '{}'); step.args = args; } catch { /* ditangani di bawah */ }
     step.label = describeTool(name, args);
+    const agentId = agentForTool(name, loadAgents());
+    step.agentId = agentId;
     patch(turnId, (t) => ({ ...t, parts: [...t.parts, { kind: 'step', step }] }));
+    // peristiwa live untuk kanvas /orchestra: tool dimulai, lalu selesai tepat satu kali
+    const tStart = performance.now();
+    emitSwarm({ type: 'chat:tool_call', toolName: name, agentId, args });
+    let closed = false;
+    const close = (ok: boolean) => {
+      if (closed) return 0;
+      closed = true;
+      const ms = Math.round(performance.now() - tStart);
+      emitSwarm({ type: 'chat:tool_done', toolName: name, agentId, latencyMs: ms, ok });
+      return ms;
+    };
     try {
       if (call.function.arguments && !Object.keys(args).length && call.function.arguments.trim() !== '{}') throw new ToolError('Argumen tool bukan JSON valid.');
       const env = { store: () => live.current.store, navigate: (p: string) => router.push(p) };
@@ -206,16 +221,17 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
           signal.addEventListener('abort', () => resolve(false), { once: true });
         });
         pending.current.delete(step.id);
-        if (!ok) { patchStep(turnId, step.id, { status: 'rejected' }); return { ok: false, error: 'Aksi ditolak pengguna. Jangan diulangi kecuali pengguna memintanya lagi.' }; }
+        if (!ok) { patchStep(turnId, step.id, { status: 'rejected', ms: close(false) }); return { ok: false, error: 'Aksi ditolak pengguna. Jangan diulangi kecuali pengguna memintanya lagi.' }; }
         patchStep(turnId, step.id, { status: 'running' });
       }
       const result = await prep.run();
       if (step.kind !== 'read') await tick();
-      patchStep(turnId, step.id, { status: 'done', result });
+      const failed = !!result && typeof result === 'object' && (result as { ok?: unknown }).ok === false;
+      patchStep(turnId, step.id, { status: 'done', result, ms: close(!failed) });
       return result;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      patchStep(turnId, step.id, { status: 'error', error: msg });
+      patchStep(turnId, step.id, { status: 'error', error: msg, ms: close(false) });
       return { ok: false, error: msg };
     }
   }
@@ -226,11 +242,21 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     setRunning(true);
     const t0 = Date.now();
     patch(turnId, (t) => ({ ...t, startedAt: t0 }));
+    const lastUser = [...history.current].reverse().find((m) => m.role === 'user');
+    emitSwarm({ type: 'chat:start', prompt: lastUser && lastUser.role === 'user' ? lastUser.content : '' });
+    let routed = false, tokens = 0;
+    const usedAgents = new Set<string>();
     try {
       for (let i = 0; i < MAX_STEPS; i++) {
         const msg = await callModel(turnId, ctl.signal);
+        tokens += msg.usage?.total ?? 0;
         patch(turnId, (t) => ({ ...t, usage: addUsage(t.usage, msg.usage), model: msg.model || t.model }));
         const calls = (msg.tool_calls || []).filter((c) => c.function?.name).map((c) => ({ ...c, id: c.id || uid() }));
+        if (!routed) {
+          routed = true;
+          emitSwarm({ type: 'chat:routing', intent: lastUser && lastUser.role === 'user' ? lastUser.content : '', targetAgentId: calls.length ? agentForTool(calls[0].function.name, loadAgents()) : undefined });
+        }
+        calls.forEach((c) => usedAgents.add(agentForTool(c.function.name, loadAgents())));
         history.current.push(calls.length ? { role: 'assistant', content: msg.content || '', tool_calls: calls } : { role: 'assistant', content: msg.content || '' });
         if (!calls.length) return;
         // jalankan berurutan: aksi tulis bisa bergantung pada hasil sebelumnya; tiap tool_call wajib punya balasan tool
@@ -245,6 +271,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       if (!ctl.signal.aborted) patch(turnId, (t) => ({ ...t, error: e instanceof Error ? e.message : String(e) }));
     } finally {
       patch(turnId, (t) => ({ ...t, done: true, ms: Date.now() - t0, startedAt: undefined }));
+      emitSwarm({ type: 'chat:done', totalMs: Date.now() - t0, tokens, activeAgents: [...usedAgents] });
       abort.current = null;
       setRunning(false);
       void persistSoon();
@@ -273,7 +300,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   };
 
   const stop = () => { abort.current?.abort(); pending.current.forEach((r) => r(false)); };
-  const reset = () => { stop(); history.current = []; setTurns([]); setChatId(newChatId()); };
+  const reset = () => { stop(); history.current = []; setTurns([]); setChatId(newChatId()); emitSwarm({ type: 'chat:reset' }); };
 
   /* ---- riwayat chat di database ---- */
   const totalTokens = turns.reduce((n, t) => n + (t.usage?.total ?? 0), 0);

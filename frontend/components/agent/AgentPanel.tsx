@@ -17,6 +17,7 @@ import { speak, stopSpeaking, ttsSupported, useRecorder, useSpeakingId } from '.
 import { ModelPicker } from './ModelPicker';
 import { ChatHistory } from './ChatHistory';
 import { suggestions, pageLabel } from '@/lib/agent/suggest';
+import { loadAgents } from '@/lib/agent/orchestrator';
 
 /** baris `<<saran: a | b | c>>` di akhir jawaban; saat streaming potongan yang belum lengkap ikut disembunyikan */
 const SARAN = /<<\s*saran\s*:?([\s\S]*?)(>>|$)/i;
@@ -114,6 +115,30 @@ function SpeakButton({ turn }: { turn: Turn }) {
   );
 }
 
+/** badge spesialis yang bekerja pada satu jawaban, mis. "Surveillance & IoT · 140 ms" */
+function SpecialistBadges({ turn }: { turn: Turn }) {
+  const rows = React.useMemo(() => {
+    const names = new Map(loadAgents().map((a) => [a.id, a.name]));
+    const acc = new Map<string, { name: string; ms: number; n: number }>();
+    for (const p of turn.parts) {
+      if (p.kind !== 'step' || !p.step.agentId || p.step.status === 'running' || p.step.status === 'awaiting') continue;
+      const id = p.step.agentId, cur = acc.get(id) ?? { name: id === 'orchestrator' ? 'Orchestrator' : names.get(id) ?? id, ms: 0, n: 0 };
+      acc.set(id, { ...cur, ms: cur.ms + (p.step.ms ?? 0), n: cur.n + 1 });
+    }
+    return [...acc.values()];
+  }, [turn.parts]);
+  if (!rows.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5" aria-label="Spesialis yang bekerja">
+      {rows.map((r) => (
+        <span key={r.name} className="inline-flex items-center gap-1 rounded-full border bg-primary/5 px-2 py-0.5 text-[11px] text-foreground" title={`${r.n} tool`}>
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />{r.name}<span className="tabular-nums text-muted-foreground">· {r.ms} ms</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 const nfmt = (n: number) => n.toLocaleString('id-ID');
 const secs = (ms: number) => (ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1).replace('.', ',')} dtk`);
 
@@ -160,6 +185,7 @@ function AssistantTurn({ turn, last, fallback, onPick }: { turn: Turn; last: boo
         </div>
       )}
       {turn.done && !turn.error && !turn.parts.length && <p className="text-xs text-muted-foreground">Dihentikan.</p>}
+      {turn.done && <SpecialistBadges turn={turn} />}
       {(turn.done || turn.startedAt) && <GenStats turn={turn} />}
       {turn.done && <SpeakButton turn={turn} />}
       {last && turn.done && !turn.error && !running && turn.parts.length > 0 && (

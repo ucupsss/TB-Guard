@@ -17,7 +17,7 @@ interface Point { x: number; y: number }
 type NodeState = 'idle' | 'routing' | 'completed' | 'off';
 
 /** Kanvas router multi-agent: orchestrator di atas, sub-agen di bawah, kabel bezier SVG dengan partikel data yang mengalir. */
-export function OrchestraRouterVisualizer({ agents, player }: { agents: SubAgent[]; player: SwarmPlayer }) {
+export function OrchestraRouterVisualizer({ agents, player, live = false, onExitLive }: { agents: SubAgent[]; player: SwarmPlayer; live?: boolean; onExitLive?: () => void }) {
   const box = React.useRef<HTMLDivElement>(null);
   const hub = React.useRef<HTMLDivElement>(null);
   const nodes = React.useRef(new Map<string, HTMLDivElement>());
@@ -50,12 +50,20 @@ export function OrchestraRouterVisualizer({ agents, player }: { agents: SubAgent
   }, [measure, agents.length]);
 
   const stateOf = (a: SubAgent): NodeState => (a.status === 'disabled' ? 'off' : routedTo === a.id ? 'routing' : completedAgents.has(a.id) ? 'completed' : 'idle');
-  const hubState: NodeState = running?.agentId === 'orchestrator' ? 'routing' : player.done === player.steps.length && player.done > 0 ? 'completed' : player.running ? 'idle' : 'idle';
+  // koordinator menyala selama ada langkah yang berjalan (menerima intent, membagi tugas, menunggu spesialis)
+  const hubState: NodeState = player.running || running ? 'routing' : player.done === player.steps.length && player.done > 0 ? 'completed' : 'idle';
   const pct = player.steps.length ? Math.round((player.done / player.steps.length) * 100) : 0;
 
   return (
     <div className="box p-4 sm:p-5">
       {/* kontrol pemutar */}
+      {live ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge className="gap-1.5"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" aria-hidden />LIVE dari chat agen</Badge>
+          <span className="text-xs text-muted-foreground">Kanvas mengikuti pertanyaan yang Anda ajukan di panel chat.</span>
+          <Button size="sm" variant="outline" className="ml-auto" onClick={onExitLive}><ResetIcon />Kembali ke simulasi</Button>
+        </div>
+      ) : (
       <div className="flex flex-wrap items-center gap-2">
         <div className="inline-flex rounded-md border p-0.5" role="group" aria-label="Skenario demo">
           {player.scenarios.map((s) => (
@@ -70,8 +78,9 @@ export function OrchestraRouterVisualizer({ agents, player }: { agents: SubAgent
           <Button size="sm" variant="outline" onClick={player.reset}><ResetIcon />Reset</Button>
         </div>
       </div>
+      )}
 
-      <p className="mt-3 text-sm text-foreground"><span className="text-muted-foreground">Intent: </span>&ldquo;{player.scenario.intent}&rdquo;</p>
+      <p className="mt-3 text-sm text-foreground"><span className="text-muted-foreground">Intent: </span>&ldquo;{live ? (player.steps[0]?.inputData ?? '') : player.scenario.intent}&rdquo;</p>
       <div className="mt-2 flex items-center gap-3">
         <Progress value={pct} className="h-1.5 flex-1" aria-label="Progres langkah" />
         <span className="text-xs tabular-nums text-muted-foreground">Langkah {Math.min(player.done + (running ? 1 : 0), player.steps.length)}/{player.steps.length}</span>
@@ -141,7 +150,7 @@ export function OrchestraRouterVisualizer({ agents, player }: { agents: SubAgent
           })}
         </div>
       </div>
-      <p className="mt-4 text-[11px] text-muted-foreground">Mode simulasi terskrip untuk demo alur orkestrasi. Angka pada skenario bersifat ilustratif.</p>
+      <p className="mt-4 text-[11px] text-muted-foreground">{live ? 'Mode live: latensi dan tool berasal dari eksekusi nyata di chat agen.' : 'Mode simulasi terskrip untuk demo alur orkestrasi. Angka pada skenario bersifat ilustratif.'}</p>
     </div>
   );
 }
