@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { usePathname } from 'next/navigation';
 import {
-  CheckIcon, ChevronDownIcon, Cross2Icon, CrossCircledIcon, ExclamationTriangleIcon, ExternalLinkIcon, MagicWandIcon,
+  CheckIcon, ChevronDownIcon, CounterClockwiseClockIcon, ClockIcon, Cross2Icon, CrossCircledIcon, ExclamationTriangleIcon, ExternalLinkIcon, MagicWandIcon,
   MagnifyingGlassIcon, PaperPlaneIcon, Pencil1Icon, PlusIcon, ReloadIcon, SewingPinIcon, SpeakerLoudIcon, SpeakerOffIcon, StopIcon, TrashIcon,
 } from '@radix-ui/react-icons';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { Markdown } from './Markdown';
 import { MicIcon } from '@/components/tb/icons';
 import { speak, stopSpeaking, ttsSupported, useRecorder, useSpeakingId } from './audio';
 import { ModelPicker } from './ModelPicker';
+import { ChatHistory } from './ChatHistory';
 
 /** baris `<<saran: a | b | c>>` di akhir jawaban; saat streaming potongan yang belum lengkap ikut disembunyikan */
 const SARAN = /<<\s*saran\s*:?([\s\S]*?)(>>|$)/i;
@@ -135,6 +136,30 @@ function SpeakButton({ turn }: { turn: Turn }) {
   );
 }
 
+const nfmt = (n: number) => n.toLocaleString('id-ID');
+const secs = (ms: number) => (ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1).replace('.', ',')} dtk`);
+
+/** lama menghasilkan jawaban (berjalan saat streaming) + token yang terpakai */
+function GenStats({ turn }: { turn: Turn }) {
+  const [now, setNow] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    if (turn.done) return;
+    const id = setInterval(() => setNow(Date.now()), 200);
+    return () => clearInterval(id);
+  }, [turn.done]);
+  const ms = turn.done ? turn.ms : turn.startedAt ? now - turn.startedAt : undefined;
+  if (ms === undefined) return null;
+  const u = turn.usage;
+  return (
+    <div className="flex flex-wrap items-center gap-x-1.5 text-[11px] text-muted-foreground tabular-nums" aria-label="Statistik jawaban">
+      <ClockIcon className="h-3 w-3" />
+      <span>{turn.done ? secs(ms) : `Menghasilkan… ${secs(ms)}`}</span>
+      {u && u.total > 0 && <span title={`Masukan ${nfmt(u.prompt)} · keluaran ${nfmt(u.completion)}`}>· {nfmt(u.total)} token <span className="opacity-70">(↑{nfmt(u.prompt)} ↓{nfmt(u.completion)})</span></span>}
+      {turn.done && turn.model && <span className="truncate">· {turn.model}</span>}
+    </div>
+  );
+}
+
 function AssistantTurn({ turn, last, fallback, onPick }: { turn: Turn; last: boolean; fallback: string[]; onPick: (q: string) => void }) {
   const { decide, retry, running } = useAgent();
   const saran = turnSaran(turn);
@@ -157,6 +182,7 @@ function AssistantTurn({ turn, last, fallback, onPick }: { turn: Turn; last: boo
         </div>
       )}
       {turn.done && !turn.error && !turn.parts.length && <p className="text-xs text-muted-foreground">Dihentikan.</p>}
+      {(turn.done || turn.startedAt) && <GenStats turn={turn} />}
       {turn.done && <SpeakButton turn={turn} />}
       {last && turn.done && !turn.error && !running && turn.parts.length > 0 && (
         <div className="flex flex-wrap gap-1.5" aria-label="Saran lanjutan">
@@ -171,7 +197,8 @@ function AssistantTurn({ turn, last, fallback, onPick }: { turn: Turn; last: boo
 }
 
 export function AgentPanel({ className, onClose }: { className?: string; onClose: () => void }) {
-  const { turns, running, send, stop, reset, confirmRisky, setConfirmRisky, model, setModel } = useAgent();
+  const { turns, running, send, stop, reset, confirmRisky, setConfirmRisky, model, setModel, totalTokens } = useAgent();
+  const [view, setView] = React.useState<'chat' | 'history'>('chat');
   const { user } = useStore();
   const path = usePathname() || '/';
   const [text, setText] = React.useState('');
@@ -220,14 +247,17 @@ export function AgentPanel({ className, onClose }: { className?: string; onClose
               <span className="flex items-center gap-1">
                 <span>Siap ·</span>
                 <ModelPicker currentModel={model} onSelectModel={setModel} triggerVariant="header" />
+                {totalTokens > 0 && <span className="tabular-nums" title="Total token percakapan ini">· {nfmt(totalTokens)} token</span>}
               </span>
             )}
           </div>
         </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { stopSpeaking(); reset(); }} title="Percakapan baru" aria-label="Percakapan baru"><PlusIcon /></Button>
+        <Button variant={view === 'history' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setView((v) => (v === 'history' ? 'chat' : 'history'))} title="Riwayat percakapan" aria-label="Riwayat percakapan"><CounterClockwiseClockIcon /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { stopSpeaking(); reset(); setView('chat'); }} title="Percakapan baru" aria-label="Percakapan baru"><PlusIcon /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose} title="Tutup (Ctrl+I)" aria-label="Tutup panel agen"><Cross2Icon /></Button>
       </div>
 
+      {view === 'history' ? <ChatHistory onClose={() => setView('chat')} /> : <>
       <div ref={scroller} onScroll={(e) => { const el = e.currentTarget; stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40; }}
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4" aria-live="polite">
         {turns.length === 0 ? (
@@ -290,6 +320,7 @@ export function AgentPanel({ className, onClose }: { className?: string; onClose
         {audioErr && <p className="mt-1.5 px-1 text-[11px] text-danger">{audioErr}</p>}
         <p className="mt-1.5 px-1 text-[11px] text-muted-foreground" title="Enter kirim · Shift+Enter baris baru · 🎤 bicara · Ctrl+I buka/tutup">Ctrl+I buka/tutup</p>
       </form>
+      </>}
     </div>
   );
 }

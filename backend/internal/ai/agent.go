@@ -58,12 +58,22 @@ func (s *stream) send(ev map[string]any) {
 	}
 }
 
-func (s *stream) done(content string, calls []toolCall) {
+// tokenUsage: pemakaian token satu panggilan model (untuk ditampilkan per jawaban dan per percakapan).
+type tokenUsage struct {
+	Prompt     int `json:"prompt"`
+	Completion int `json:"completion"` // termasuk token "berpikir" bila ada
+	Total      int `json:"total"`
+}
+
+func (s *stream) done(content string, calls []toolCall, u tokenUsage, ms int64, model string) {
 	s.ended = true
 	if calls == nil {
 		calls = []toolCall{}
 	}
-	s.send(map[string]any{"type": "done", "message": map[string]any{"role": "assistant", "content": content, "tool_calls": calls}})
+	s.send(map[string]any{
+		"type": "done", "message": map[string]any{"role": "assistant", "content": content, "tool_calls": calls},
+		"usage": u, "ms": ms, "model": model,
+	})
 }
 
 func (s *stream) wait(sec int, notice string) {
@@ -144,6 +154,18 @@ type agentRun struct {
 	st       *stream
 	req      agentRequest
 	msgs     []message
+	started  time.Time
+	usage    tokenUsage
+	model    string // model yang benar-benar menjawab
+}
+
+// finish menutup satu langkah model dengan event done (isi, tool call, token, dan lama generate).
+func (a *agentRun) finish(content string, calls []toolCall) {
+	u := a.usage
+	if u.Total == 0 {
+		u.Total = u.Prompt + u.Completion
+	}
+	a.st.done(content, calls, u, time.Since(a.started).Milliseconds(), a.model)
 }
 
 func (s *Service) HandleAgent(w http.ResponseWriter, r *http.Request) {
@@ -167,7 +189,7 @@ func (s *Service) HandleAgent(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	run := &agentRun{
 		s: s, ctx: ctx, deadline: time.Now().Add(s.cfg.AgentBudget),
-		st: &stream{w: w, f: f}, req: req, msgs: pruneMessages(req.Messages, 8),
+		st: &stream{w: w, f: f}, req: req, msgs: pruneMessages(req.Messages, 8), started: time.Now(),
 	}
 
 	model := orDef(req.Model, s.cfg.GeminiModel)
@@ -331,6 +353,7 @@ func (a *agentRun) runGemini(auth *geminiAuth, model string) string {
 	if len(contents) == 0 {
 		return "Pesan kosong setelah dipangkas."
 	}
+	a.model, a.usage = normalizeVertexModel(model), tokenUsage{}
 	body, _ := json.Marshal(map[string]any{
 		"systemInstruction": map[string]any{"parts": []any{map[string]any{"text": systemPrompt(a.req.Context)}}},
 		"contents":          contents,
@@ -343,10 +366,10 @@ func (a *agentRun) runGemini(auth *geminiAuth, model string) string {
 	var cancel context.CancelFunc
 	lastErr := ""
 	// satu kali ulang untuk gangguan sementara (429 / 5xx / jaringan)
-	for attempt := 0; attempt < 2 && res == nil; attempt++ {
+	for attempt := 0; attempt < 3 && res == nil; attempt++ {
 		if attempt > 0 {
 			select {
-			case <-time.After(1500 * time.Millisecond):
+			case <-time.After(time.Duration(attempt) * 1200 * time.Millisecond):
 			case <-a.ctx.Done():
 			}
 		}
@@ -366,7 +389,8 @@ func (a *agentRun) runGemini(auth *geminiAuth, model string) string {
 		r.Body.Close()
 		c()
 		lastErr = fmt.Sprintf("Gemini API Error (%d): %s", r.StatusCode, errMessage(b))
-		if r.StatusCode != http.StatusTooManyRequests && r.StatusCode < 500 {
+		// 404 "Publisher model not found" kadang muncul sesaat di Vertex: ulangi, bukan langsung beralih model
+		if r.StatusCode != http.StatusTooManyRequests && r.StatusCode != http.StatusNotFound && r.StatusCode < 500 {
 			return lastErr
 		}
 	}
@@ -396,8 +420,20 @@ func (a *agentRun) runGemini(auth *geminiAuth, model string) string {
 					} `json:"parts"`
 				} `json:"content"`
 			} `json:"candidates"`
+			UsageMetadata *struct {
+				Prompt     int `json:"promptTokenCount"`
+				Candidates int `json:"candidatesTokenCount"`
+				Thoughts   int `json:"thoughtsTokenCount"`
+				Total      int `json:"totalTokenCount"`
+			} `json:"usageMetadata"`
 		}
-		if json.Unmarshal(data, &ev) != nil || len(ev.Candidates) == 0 {
+		if json.Unmarshal(data, &ev) != nil {
+			return
+		}
+		if m := ev.UsageMetadata; m != nil && m.Total > 0 {
+			a.usage = tokenUsage{Prompt: m.Prompt, Completion: m.Candidates + m.Thoughts, Total: m.Total}
+		}
+		if len(ev.Candidates) == 0 {
 			return
 		}
 		for _, p := range ev.Candidates[0].Content.Parts {
@@ -431,7 +467,7 @@ func (a *agentRun) runGemini(auth *geminiAuth, model string) string {
 	if !sentAny && len(calls) == 0 {
 		return "Gemini tidak mengembalikan jawaban."
 	}
-	a.st.done(content.String(), calls)
+	a.finish(content.String(), calls)
 	return ""
 }
 
@@ -492,9 +528,10 @@ func (a *agentRun) runGroq(target string) string {
 		if key == nil {
 			return "Tidak ada API key Groq yang aktif."
 		}
+		a.model, a.usage = models[idx], tokenUsage{}
 		body, _ := json.Marshal(map[string]any{
 			"model": models[idx], "messages": msgs, "tools": groqTools, "tool_choice": "auto",
-			"temperature": 0.3, "max_tokens": 1536, "stream": true,
+			"temperature": 0.3, "max_tokens": 1536, "stream": true, "stream_options": map[string]any{"include_usage": true},
 		})
 		res, cancel, err := a.post(groqURL, func(r *http.Request) {
 			r.Header.Set("Content-Type", "application/json")
@@ -584,8 +621,19 @@ func (a *agentRun) runGroq(target string) string {
 						} `json:"tool_calls"`
 					} `json:"delta"`
 				} `json:"choices"`
+				Usage *struct {
+					Prompt     int `json:"prompt_tokens"`
+					Completion int `json:"completion_tokens"`
+					Total      int `json:"total_tokens"`
+				} `json:"usage"`
 			}
-			if json.Unmarshal(data, &ev) != nil || len(ev.Choices) == 0 {
+			if json.Unmarshal(data, &ev) != nil {
+				return
+			}
+			if u := ev.Usage; u != nil && u.Total > 0 {
+				a.usage = tokenUsage{Prompt: u.Prompt, Completion: u.Completion, Total: u.Total}
+			}
+			if len(ev.Choices) == 0 {
 				return
 			}
 			d := ev.Choices[0].Delta
@@ -638,7 +686,7 @@ func (a *agentRun) runGroq(target string) string {
 			}
 			continue
 		}
-		a.st.done(content.String(), calls)
+		a.finish(content.String(), calls)
 		return ""
 	}
 	if a.gone() {

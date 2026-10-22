@@ -17,7 +17,15 @@ type Args = Record<string, unknown>;
 export type StepStatus = 'running' | 'done' | 'error' | 'awaiting' | 'rejected';
 export interface Step { id: string; name: string; kind: string; label: string; args: Args; status: StepStatus; result?: unknown; error?: string; confirm?: string }
 export type Part = { kind: 'text'; text: string } | { kind: 'reasoning'; text: string } | { kind: 'step'; step: Step };
-export interface Turn { id: string; role: 'user' | 'assistant'; text: string; parts: Part[]; error?: string; done?: boolean; notice?: string }
+export interface Usage { prompt: number; completion: number; total: number }
+export interface Turn {
+  id: string; role: 'user' | 'assistant'; text: string; parts: Part[]; error?: string; done?: boolean; notice?: string;
+  usage?: Usage;      // total token seluruh langkah model pada jawaban ini
+  ms?: number;        // lama sampai jawaban selesai (termasuk eksekusi tool)
+  startedAt?: number; // untuk penghitung waktu saat menghasilkan
+  model?: string;     // model yang benar-benar menjawab
+}
+export interface ChatSummary { id: string; title: string; pinned: boolean; model: string; tokens: number; turns: number; createdAt: number; updatedAt: number }
 
 interface ToolCall { id: string; type: 'function'; function: { name: string; arguments: string } }
 type ApiMessage = { role: 'user'; content: string } | { role: 'assistant'; content: string; tool_calls?: ToolCall[] } | { role: 'tool'; tool_call_id: string; content: string };
@@ -26,6 +34,11 @@ interface Agent {
   open: boolean; setOpen: (v: boolean) => void; toggle: () => void;
   turns: Turn[]; running: boolean;
   send: (text: string) => void; stop: () => void; reset: () => void; retry: () => void;
+  /* riwayat chat tersimpan di database (per pengguna) */
+  chatId: string; chats: ChatSummary[]; chatsLoading: boolean; totalTokens: number;
+  refreshChats: () => void; openChat: (id: string) => Promise<void>;
+  renameChat: (id: string, title: string) => Promise<void>; pinChat: (id: string, pinned: boolean) => Promise<void>;
+  deleteChat: (id: string) => Promise<void>; clearChats: () => Promise<void>;
   decide: (stepId: string, ok: boolean) => void;
   confirmRisky: boolean; setConfirmRisky: (v: boolean) => void;
   model: string; setModel: (m: string) => void;
@@ -35,6 +48,14 @@ const Ctx = React.createContext<Agent | null>(null);
 const MAX_STEPS = 12;
 const MODEL_RETRIES = 2;
 const uid = () => Math.random().toString(36).slice(2, 10);
+const newChatId = () => `c${uid()}${uid()}`;
+const addUsage = (a: Usage | undefined, b: Usage | undefined): Usage | undefined => (b ? { prompt: (a?.prompt ?? 0) + b.prompt, completion: (a?.completion ?? 0) + b.completion, total: (a?.total ?? 0) + b.total } : a);
+const MAX_SAVE_BYTES = 1_800_000;
+/** chat yang dipulihkan: langkah yang belum selesai saat disimpan ditandai terputus */
+const sanitizeTurns = (turns: Turn[]): Turn[] => turns.map((t) => ({
+  ...t, done: true, notice: undefined,
+  parts: t.parts.map((p) => (p.kind === 'step' && (p.step.status === 'running' || p.step.status === 'awaiting') ? { ...p, step: { ...p.step, status: 'error' as const, error: 'Terputus sebelum selesai.' } } : p)),
+}));
 const tick = () => new Promise((r) => setTimeout(r, 30)); // beri React waktu me-render perubahan store sebelum tool berikutnya
 
 export function AgentProvider({ children }: { children: React.ReactNode }) {
@@ -47,6 +68,12 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const [confirmRisky, setConfirmRisky] = React.useState(true);
   // selalu mulai dari Gemini (service account Vertex AI); pilihan model lain hanya berlaku selama sesi
   const [model, setModel] = React.useState<string>(DEFAULT_MODEL_ID);
+  const [chatId, setChatId] = React.useState(newChatId);
+  const [chats, setChats] = React.useState<ChatSummary[]>([]);
+  const [chatsLoading, setChatsLoading] = React.useState(false);
+  const chatIdRef = React.useRef(chatId);
+  const turnsRef = React.useRef<Turn[]>([]);
+  React.useEffect(() => { chatIdRef.current = chatId; turnsRef.current = turns; });
 
   // nilai terbaru untuk dipakai di dalam loop async
   const live = React.useRef({ store, confirmRisky, model });
@@ -79,7 +106,12 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       return { ...t, parts: [...t.parts, { kind, text: delta }] };
     });
 
-  async function callModelOnce(turnId: string, signal: AbortSignal): Promise<{ content: string; tool_calls: ToolCall[] }> {
+  type ModelResult = { content: string; tool_calls: ToolCall[]; usage?: Usage; model?: string };
+  const doneResult = (ev: { message?: { content?: string; tool_calls?: ToolCall[] }; usage?: Usage; model?: string }): ModelResult => ({
+    content: ev.message?.content || '', tool_calls: Array.isArray(ev.message?.tool_calls) ? ev.message!.tool_calls! : [], usage: ev.usage, model: ev.model,
+  });
+
+  async function callModelOnce(turnId: string, signal: AbortSignal): Promise<ModelResult> {
     const { store: s, model: activeModel } = live.current;
     // halaman dibaca saat kirim; hook routing (usePathname dsb.) di root akan memblokir prerender rute dinamis
     const p = window.location.pathname + window.location.search;
@@ -101,7 +133,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       else if (ev.type === 'content') appendDelta(turnId, 'text', ev.delta);
       else if (ev.type === 'wait') patch(turnId, (t) => ({ ...t, notice: ev.notice || `Menunggu kuota pulih, melanjutkan dalam ${ev.seconds} detik…` }));
       else if (ev.type === 'error') throw new Error(ev.error || 'Agen mengalami kesalahan.');
-      else if (ev.type === 'done') { patch(turnId, (t) => (t.notice ? { ...t, notice: undefined } : t)); return ev.message; }
+      else if (ev.type === 'done') { patch(turnId, (t) => (t.notice ? { ...t, notice: undefined } : t)); return ev; }
     };
     for (;;) {
       const { value, done } = await reader.read();
@@ -111,12 +143,12 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       while ((nl = buf.indexOf('\n')) >= 0) {
         const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
         if (!line) continue;
-        const msg = handle(line);
-        if (msg) return { content: msg.content || '', tool_calls: Array.isArray(msg.tool_calls) ? msg.tool_calls : [] };
+        const ev = handle(line);
+        if (ev) return doneResult(ev);
       }
     }
     const msg = buf.trim() && handle(buf.trim());
-    if (msg) return { content: msg.content || '', tool_calls: Array.isArray(msg.tool_calls) ? msg.tool_calls : [] };
+    if (msg) return doneResult(msg);
     throw new Error('Koneksi ke agen terputus.');
   }
 
@@ -171,9 +203,12 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     const ctl = new AbortController();
     abort.current = ctl;
     setRunning(true);
+    const t0 = Date.now();
+    patch(turnId, (t) => ({ ...t, startedAt: t0 }));
     try {
       for (let i = 0; i < MAX_STEPS; i++) {
         const msg = await callModel(turnId, ctl.signal);
+        patch(turnId, (t) => ({ ...t, usage: addUsage(t.usage, msg.usage), model: msg.model || t.model }));
         const calls = (msg.tool_calls || []).filter((c) => c.function?.name).map((c) => ({ ...c, id: c.id || uid() }));
         history.current.push(calls.length ? { role: 'assistant', content: msg.content || '', tool_calls: calls } : { role: 'assistant', content: msg.content || '' });
         if (!calls.length) return;
@@ -188,9 +223,10 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       if (!ctl.signal.aborted) patch(turnId, (t) => ({ ...t, error: e instanceof Error ? e.message : String(e) }));
     } finally {
-      patch(turnId, (t) => ({ ...t, done: true }));
+      patch(turnId, (t) => ({ ...t, done: true, ms: Date.now() - t0, startedAt: undefined }));
       abort.current = null;
       setRunning(false);
+      void persistSoon();
     }
   }
 
@@ -215,10 +251,69 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   };
 
   const stop = () => { abort.current?.abort(); pending.current.forEach((r) => r(false)); };
-  const reset = () => { stop(); history.current = []; setTurns([]); };
+  const reset = () => { stop(); history.current = []; setTurns([]); setChatId(newChatId()); };
+
+  /* ---- riwayat chat di database ---- */
+  const totalTokens = turns.reduce((n, t) => n + (t.usage?.total ?? 0), 0);
+  const refreshChats = React.useCallback(async () => {
+    if (!live.current.store.user) return;
+    setChatsLoading(true);
+    try { const r = await backendFetch('/api/chats'); if (r.ok) setChats((await r.json()).chats ?? []); } catch { /* offline */ }
+    finally { setChatsLoading(false); }
+  }, []);
+  React.useEffect(() => { if (store.user && open) void refreshChats(); }, [store.user, open, refreshChats]);
+
+  /** simpan chat aktif; dipanggil setelah tiap jawaban selesai (menunggu React menerapkan state terakhir) */
+  async function persistSoon() {
+    await new Promise((r) => setTimeout(r, 60));
+    const turnsNow = turnsRef.current, id = chatIdRef.current;
+    if (!live.current.store.user || !turnsNow.some((t) => t.role === 'assistant' && t.done)) return;
+    let saveTurns = turnsNow, saveHist = history.current;
+    let body = JSON.stringify({ turns: saveTurns, history: saveHist });
+    // terlalu besar: buang bagian paling lama (riwayat dipotong mulai dari pesan user)
+    while (body.length > MAX_SAVE_BYTES && saveTurns.length > 2) {
+      saveTurns = saveTurns.slice(Math.ceil(saveTurns.length / 2));
+      let h = saveHist.slice(Math.ceil(saveHist.length / 2));
+      const u = h.findIndex((m) => m.role === 'user'); h = u >= 0 ? h.slice(u) : h;
+      saveHist = h;
+      body = JSON.stringify({ turns: saveTurns, history: saveHist });
+    }
+    const first = turnsNow.find((t) => t.role === 'user')?.text ?? 'Percakapan';
+    const tokens = turnsNow.reduce((n, t) => n + (t.usage?.total ?? 0), 0);
+    try {
+      const r = await backendFetch(`/api/chats/${id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: first.slice(0, 60), model: live.current.model, tokens, turns: saveTurns, history: saveHist }),
+      });
+      if (r.ok) void refreshChats();
+    } catch { /* simpan berikutnya akan mencoba lagi */ }
+  }
+
+  const openChat = async (id: string) => {
+    if (running) return;
+    const r = await backendFetch(`/api/chats/${encodeURIComponent(id)}`);
+    if (!r.ok) throw new Error('Chat tidak ditemukan');
+    const c = await r.json();
+    history.current = Array.isArray(c.history) ? c.history : [];
+    setTurns(sanitizeTurns(Array.isArray(c.turns) ? c.turns : []));
+    setChatId(c.id);
+    if (c.model) setModel(c.model);
+  };
+  const call = async (method: string, path: string, body?: unknown) => {
+    const r = await backendFetch(path, { method, headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined });
+    if (!r.ok) throw new Error(((await r.json().catch(() => ({}))) as { error?: string }).error || `HTTP ${r.status}`);
+  };
+  const renameChat = async (id: string, title: string) => { await call('PATCH', `/api/chats/${encodeURIComponent(id)}`, { title }); await refreshChats(); };
+  const pinChat = async (id: string, pinned: boolean) => { await call('PATCH', `/api/chats/${encodeURIComponent(id)}`, { pinned }); await refreshChats(); };
+  const deleteChat = async (id: string) => {
+    await call('DELETE', `/api/chats/${encodeURIComponent(id)}`);
+    if (id === chatIdRef.current) reset();
+    await refreshChats();
+  };
+  const clearChats = async () => { await call('DELETE', '/api/chats'); await refreshChats(); };
   const decide = (stepId: string, ok: boolean) => pending.current.get(stepId)?.(ok);
 
-  const value: Agent = { open, setOpen, toggle, turns, running, send, stop, reset, retry, decide, confirmRisky, setConfirmRisky, model, setModel };
+  const value: Agent = { open, setOpen, toggle, turns, running, send, stop, reset, retry, decide, confirmRisky, setConfirmRisky, model, setModel, chatId, chats, chatsLoading, totalTokens, refreshChats, openChat, renameChat, pinChat, deleteChat, clearChats };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

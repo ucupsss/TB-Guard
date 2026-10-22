@@ -14,6 +14,7 @@ import (
 
 	"tbguard/backend/internal/ai"
 	"tbguard/backend/internal/auth"
+	"tbguard/backend/internal/chats"
 	"tbguard/backend/internal/config"
 	"tbguard/backend/internal/data"
 	"tbguard/backend/internal/db"
@@ -37,11 +38,12 @@ func main() {
 	store := storage.New(cfg, database, hc)
 	records := data.NewHandlers(database)
 	userSvc := users.New(cfg, database)
+	chatSvc := chats.New(database)
 	authSvc.UseDirectory(userSvc)
 
 	bg, stopBg := context.WithCancel(context.Background())
 	defer stopBg()
-	go database.Connect(bg, data.Migrate(cfg.Seed), users.Migrate, storage.Migrate)
+	go database.Connect(bg, data.Migrate(cfg.Seed), users.Migrate, chats.Migrate, storage.Migrate)
 	go store.Janitor(bg)
 	go store.SeedAudio(bg)
 
@@ -95,6 +97,12 @@ func main() {
 	mux.HandleFunc("GET /api/uploads/usage", protect(store.Usage()))
 	mux.HandleFunc("GET /api/uploads/{id}/url", protect(store.URL()))
 	mux.HandleFunc("DELETE /api/uploads/{id}", admin(store.Delete()))
+	mux.HandleFunc("GET /api/chats", protect(chatSvc.List()))
+	mux.HandleFunc("GET /api/chats/{id}", protect(chatSvc.Get()))
+	mux.HandleFunc("PUT /api/chats/{id}", protect(chatSvc.Save()))
+	mux.HandleFunc("PATCH /api/chats/{id}", protect(chatSvc.Patch()))
+	mux.HandleFunc("DELETE /api/chats/{id}", protect(chatSvc.Remove()))
+	mux.HandleFunc("DELETE /api/chats", protect(chatSvc.RemoveAll()))
 	mux.HandleFunc("POST /api/agent", metered(aiSvc.HandleAgent))
 	mux.HandleFunc("POST /api/agent/transcribe", metered(aiSvc.HandleTranscribe))
 
