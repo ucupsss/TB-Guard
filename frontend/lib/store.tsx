@@ -15,6 +15,7 @@ export interface Store {
   datasets: { webform: WebformRow[]; offline: OfflineRow[]; primer: PrimerRow[] };
   login: (u: User) => void;
   logout: () => void;
+  addDetection: (d: Detection) => void;
   updateDetection: (uuid: string, patch: Partial<Detection>) => void;   // nanti: PATCH /api/detections/:uuid
   removeDetections: (uuids: string[]) => void;                         // nanti: DELETE /api/detections/:uuid
   addDevice: (d: Device) => void;                                     // nanti: POST /api/devices
@@ -45,6 +46,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     user, ready, devices, detections, patients, datasets,
     login: (u) => { setUser(u); try { sessionStorage.setItem(KEY, JSON.stringify(u)); } catch { /* mode privat */ } },
     logout: () => { setUser(null); try { sessionStorage.removeItem(KEY); } catch { /* mode privat */ } },
+    addDetection: (d) => setDetections((all) => [d, ...all]),
     updateDetection: (uuid, patch) => setDetections((all) => all.map((d) => (d.uuid === uuid ? { ...d, ...patch } : d))),
     removeDetections: (uuids) => setDetections((all) => all.filter((d) => !uuids.includes(d.uuid))),
     addDevice: (d) => setDevices((all) => [...all, d]),

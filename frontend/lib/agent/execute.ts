@@ -256,9 +256,49 @@ export function prepareTool(name: string, a: Args, env: ToolEnv, opts: { confirm
       return { confirm: ask(`Hapus pasien **${p.name}** (${p.id}) dari pelacakan?`), run: () => { s.removePatient(p.id); return { ok: true, deleted: p.id }; } };
     }
 
+    case 'add_detection': {
+      const devId = Number(a.device_id);
+      const dev = findDevice(s, devId);
+      const result = String(a.result).toUpperCase() === 'TB' ? 'TB' : 'NEG';
+      const conf = Math.max(0, Math.min(1, Number(a.confidence) || 0.85));
+      const uuid = 'det-' + Math.random().toString(36).substring(2, 9);
+      const azimuth = has(a, 'azimuth') ? Math.max(0, Math.min(360, Number(a.azimuth))) : 90;
+      const newDet: Detection = {
+        uuid,
+        deviceId: dev.id,
+        time: now,
+        type: (a.type as Detection['type']) || 'Batuk',
+        result,
+        confidence: conf,
+        name: has(a, 'name') ? String(a.name).trim() : '',
+        gender: (a.gender as Detection['gender']) || '',
+        age: has(a, 'age') ? Number(a.age) : '',
+        doa: { azimuth, confidence: 0.9, snr: 16.5, tdoa: [0.12, -0.05, 0.08] },
+        person: { tracked: true, id: 'TRK-' + Math.floor(Math.random() * 900 + 100), score: 0.92, crowd: 2 },
+        reviewed: false,
+        coughs: 1,
+        verified: a.verified === 'TB' || a.verified === 'NEG' ? a.verified : null,
+      };
+      return {
+        confirm: null,
+        run: () => {
+          s.addDetection(newDet);
+          return { ok: true, created: detOut(newDet, s), link: `/detections/${uuid}` };
+        },
+      };
+    }
+
     case 'navigate': {
-      const path = String(a.path || '');
-      if (!/^\/(dashboard|design|live-test|devices(\/new|\/\d+)?|detections\/[\w-]+|data\/(webform|offline|primer)|patients(\?open=[\w-]+)?)?$/.test(path)) fail(`Path tidak dikenal: ${path}`);
+      let path = String(a.path || '').trim();
+      if (!path.startsWith('/')) path = '/' + path;
+      // Validasi keamanan: hanya izinkan karakter path URL internal yang aman (tanpa protokol eksternal/javascript:)
+      if (!/^\/[a-zA-Z0-9_\-\/?&=#.]*$/.test(path)) fail(`Path tidak aman: ${path}`);
+      
+      const cleanPath = path.split('?')[0].split('#')[0];
+      const allowedPrefixes = ['/', '/dashboard', '/design', '/live-test', '/devices', '/detections', '/data', '/patients', '/login', '/public-area'];
+      const isAllowed = allowedPrefixes.some((p) => cleanPath === p || (p !== '/' && cleanPath.startsWith(p + '/')) || (cleanPath.startsWith('/devices') || cleanPath.startsWith('/detections') || cleanPath.startsWith('/data')));
+      if (!isAllowed) fail(`Halaman tidak dikenal: ${cleanPath}. Rute yang tersedia: / (Public 3D), /dashboard, /design, /live-test, /devices, /patients, /data/webform, /login`);
+      
       return { confirm: null, run: () => { env.navigate(path); return { ok: true, opened: path }; } };
     }
 
@@ -282,6 +322,7 @@ export function describeTool(name: string, a: Args): string {
     case 'add_device': return `Menambah perangkat ${a.name ?? ''}`;
     case 'update_device': return `Mengubah perangkat #${a.id}`;
     case 'delete_device': return `Menghapus perangkat #${a.id}`;
+    case 'add_detection': return `Mencatat deteksi batuk ${a.result ?? ''} (#${a.device_id ?? ''})`;
     case 'update_detections': return `Mengubah ${n(a.uuids)} deteksi`;
     case 'delete_detections': return `Menghapus ${n(a.uuids)} deteksi`;
     case 'add_patient': return `Mendaftarkan pasien ${a.name ?? ''}`;

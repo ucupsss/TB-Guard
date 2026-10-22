@@ -62,6 +62,19 @@ export const TOOLS: ToolDef[] = [
     description: 'Ubah data perangkat.' },
   { name: 'delete_device', kind: 'delete', parameters: obj({ id: num() }, ['id']),
     description: 'Hapus perangkat (deteksi lama tetap ada).' },
+  { name: 'add_detection', kind: 'write',
+    parameters: obj({
+      device_id: num('ID perangkat yang mendeteksi (mis. 401)'),
+      result: str('Hasil klasifikasi', { enum: ['TB', 'NEG'] }),
+      confidence: num('Tingkat keyakinan (0.0 sampai 1.0, mis. 0.88)'),
+      name: str('Nama individu jika diketahui'),
+      gender: str('Gender', { enum: ['L', 'P', ''] }),
+      age: num('Usia'),
+      type: str('Tipe deteksi suara', { enum: ['Batuk', '-'] }),
+      azimuth: num('Derajat sudut DOA datangnya suara (0-360, default 90)'),
+      verified: str('Verifikasi nakes jika sudah ada', { enum: ['TB', 'NEG', 'none'] }),
+    }, ['device_id', 'result', 'confidence']),
+    description: 'Catat deteksi batuk baru ke sistem.' },
   { name: 'update_detections', kind: 'write',
     parameters: obj({
       uuids: { type: 'array', items: { type: 'string' }, description: 'maks 200' },
@@ -91,8 +104,8 @@ export const TOOLS: ToolDef[] = [
 
   // ---------- UI ----------
   { name: 'navigate', kind: 'ui',
-    parameters: obj({ path: str('/ (3D Public Area), /dashboard, /design, /live-test, /devices, /devices/new, /devices/{id}, /detections/{uuid}, /data/{webform|offline|primer}, /patients, /patients?open={id}') }, ['path']),
-    description: 'Buka halaman untuk pengguna.' },
+    parameters: obj({ path: str('Path tujuan: / (3D Public Area), /dashboard, /design, /live-test, /devices, /devices/new, /devices/{id}, /detections/{uuid}, /data/webform, /data/offline, /data/primer, /patients, /patients?open={id}, /login') }, ['path']),
+    description: 'Buka halaman atau navigasi ke rute yang diminta pengguna.' },
 ];
 
 export const TOOL_SCHEMAS = TOOLS.map((t) => ({ type: 'function' as const, function: { name: t.name, description: t.description, parameters: t.parameters } }));
