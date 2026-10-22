@@ -1,5 +1,6 @@
 'use client';
 
+import { MagicWandIcon as AgentPillIcon } from '@radix-ui/react-icons';
 import { useUiCommand } from '@/lib/agent/ui-bus';
 import * as React from 'react';
 import Link from 'next/link';
@@ -171,6 +172,14 @@ export function AppLayout({ crumbs, children, guest }: { crumbs: Crumb[]; childr
             <AgentPanel className="h-full" onClose={() => agent.setOpen(false)} />
           </SheetContent>
         </Sheet>
+      )}
+      {/* pintasan agen di semua halaman: klik atau Ctrl K membuka palet perintah */}
+      {mounted && !guest && !agent.open && (
+        <button type="button" onClick={() => agent.setPaletteOpen(true)} aria-label="Tanya agen (Ctrl K)"
+          className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-primary py-2.5 pl-3.5 pr-3 text-sm font-medium text-white shadow-lg shadow-primary/30 transition hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <AgentPillIcon className="h-4 w-4" />Tanya Agen
+          <kbd className="rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-normal">Ctrl K</kbd>
+        </button>
       )}
     </div>
   );

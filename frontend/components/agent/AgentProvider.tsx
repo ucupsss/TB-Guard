@@ -42,12 +42,24 @@ interface Agent {
   decide: (stepId: string, ok: boolean) => void;
   confirmRisky: boolean; setConfirmRisky: (v: boolean) => void;
   model: string; setModel: (m: string) => void;
+  /* agen dari halaman mana pun: buka panel lalu kirim pertanyaan; palet perintah Ctrl+K */
+  ask: (text: string) => void; paletteOpen: boolean; setPaletteOpen: (v: boolean) => void;
 }
 
 const Ctx = React.createContext<Agent | null>(null);
 const MAX_STEPS = 12;
 const MODEL_RETRIES = 2;
 const uid = () => Math.random().toString(36).slice(2, 10);
+/** ringkasan singkat entitas yang sedang tampil di layar, agar kata "ini" pada perintah langsung bermakna */
+function screenEntity(path: string, s: ReturnType<typeof useStore>): string {
+  const dev = path.match(/^\/devices\/(\d+)/);
+  if (dev) { const d = s.device(dev[1]); return d ? `Perangkat #${d.id} ${d.name} (${d.status}) di ${d.location}, ${d.zone}` : ''; }
+  const det = path.match(/^\/detections\/([^/?#]+)/);
+  if (det) { const d = s.detection(det[1]); return d ? `Deteksi ${d.uuid}: ${d.result} (${Math.round(d.confidence * 100)}%), perangkat #${d.deviceId}, ${d.reviewed ? 'sudah' : 'belum'} ditinjau` : ''; }
+  const pat = path.match(/[?&]open=([^&]+)/);
+  if (pat) { const p = s.patients.find((x) => x.id === decodeURIComponent(pat[1])); return p ? `Pasien ${p.id} ${p.name}, tahap ${p.stage}, ${p.facility}` : ''; }
+  return '';
+}
 const newChatId = () => `c${uid()}${uid()}`;
 const addUsage = (a: Usage | undefined, b: Usage | undefined): Usage | undefined => (b ? { prompt: (a?.prompt ?? 0) + b.prompt, completion: (a?.completion ?? 0) + b.completion, total: (a?.total ?? 0) + b.total } : a);
 const MAX_SAVE_BYTES = 1_800_000;
@@ -72,6 +84,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const [chatId, setChatId] = React.useState('');
   const [chats, setChats] = React.useState<ChatSummary[]>([]);
   const [chatsLoading, setChatsLoading] = React.useState(false);
+  const [paletteOpen, setPaletteOpen] = React.useState(false);
   const chatIdRef = React.useRef(chatId);
   const turnsRef = React.useRef<Turn[]>([]);
   React.useEffect(() => { chatIdRef.current = chatId; turnsRef.current = turns; });
@@ -93,7 +106,12 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const toggle = React.useCallback(() => setOpenState((v) => !v), []);
 
   React.useEffect(() => {
-    const k = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'i') { e.preventDefault(); toggle(); } };
+    const k = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const key = e.key.toLowerCase();
+      if (key === 'i') { e.preventDefault(); toggle(); }
+      else if (key === 'k') { e.preventDefault(); setPaletteOpen((v) => !v); }
+    };
     window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k);
   }, [toggle]);
 
@@ -123,7 +141,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({
         messages: history.current,
         model: activeModel,
-        context: { path: p, user: s.user ? { name: s.user.name, role: s.user.role } : undefined, systemTime: fmt.longDate(NOW.getTime()) },
+        context: { path: p, user: s.user ? { name: s.user.name, role: s.user.role } : undefined, systemTime: fmt.longDate(NOW.getTime()), entity: screenEntity(p, s) },
       }),
     });
     if (!res.ok || !res.body) { const j = await res.json().catch(() => ({})); throw new Error(j.error || `Server agen error (HTTP ${res.status})`); }
@@ -317,7 +335,10 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const clearChats = async () => { await call('DELETE', '/api/chats'); await refreshChats(); };
   const decide = (stepId: string, ok: boolean) => pending.current.get(stepId)?.(ok);
 
-  const value: Agent = { open, setOpen, toggle, turns, running, send, stop, reset, retry, decide, confirmRisky, setConfirmRisky, model, setModel, chatId, chats, chatsLoading, totalTokens, refreshChats, openChat, renameChat, pinChat, deleteChat, clearChats };
+  /** tanya agen dari mana saja: buka panel dan kirim (bila agen sedang bekerja, hanya membuka panel) */
+  const ask = (text: string) => { setOpenState(true); setTimeout(() => send(text), 0); };
+
+  const value: Agent = { open, setOpen, toggle, ask, paletteOpen, setPaletteOpen, turns, running, send, stop, reset, retry, decide, confirmRisky, setConfirmRisky, model, setModel, chatId, chats, chatsLoading, totalTokens, refreshChats, openChat, renameChat, pinChat, deleteChat, clearChats };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

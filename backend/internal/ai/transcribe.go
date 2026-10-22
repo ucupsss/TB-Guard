@@ -178,7 +178,8 @@ func scoreSegments(raw string, segs []whisperSeg) (string, float64) {
 	var parts []string
 	var sumLP, sumDur float64
 	for _, sg := range segs {
-		if sg.CompressionRatio > 2.4 || (sg.NoSpeechProb > 0.6 && sg.AvgLogprob < -1.0) {
+		// hanya buang segmen yang JELAS halusinasi/derau; ucapan nyata dengan skor sedang tetap dipertahankan
+		if sg.CompressionRatio > 2.4 || (sg.NoSpeechProb > 0.85 && sg.AvgLogprob < -1.3) {
 			continue
 		}
 		t := strings.TrimSpace(sg.Text)

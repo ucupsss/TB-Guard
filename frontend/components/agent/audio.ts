@@ -56,6 +56,7 @@ export function useRecorder(onText: (text: string, meta?: TranscribeMeta) => voi
   const cb = React.useRef({ onText, onError, onInterim });
   React.useEffect(() => { cb.current = { onText, onError, onInterim }; });
   const speech = React.useRef<SpeechRec | null>(null);
+  const lastInterim = React.useRef('');
 
   React.useEffect(() => {
     if (state !== 'recording') return;
@@ -81,6 +82,7 @@ export function useRecorder(onText: (text: string, meta?: TranscribeMeta) => voi
     const chunks: Blob[] = [];
     cancelled.current = false;
     heard.current = false;
+    lastInterim.current = '';
     r.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
 
     // ---- teks langsung ----
@@ -90,9 +92,14 @@ export function useRecorder(onText: (text: string, meta?: TranscribeMeta) => voi
         const sr = new Ctor();
         sr.lang = 'id-ID'; sr.continuous = true; sr.interimResults = true; sr.maxAlternatives = 1;
         sr.onresult = (e) => {
-          let t = '';
-          for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
-          cb.current.onInterim?.(t.trim());
+          // gabungkan hasil; buang potongan yang sudah tercakup oleh potongan berikutnya (Chrome kadang mengulang)
+          const parts: string[] = [];
+          for (let i = 0; i < e.results.length; i++) parts.push(e.results[i][0].transcript.trim());
+          const norm = (x: string) => x.toLowerCase().replace(/[.,!?]+$/g, '').trim();
+          const kept = parts.filter((p, i) => p && !(i < parts.length - 1 && norm(parts[i + 1]).startsWith(norm(p))));
+          const text = kept.join(' ').replace(/\s+/g, ' ').trim();
+          lastInterim.current = text;
+          cb.current.onInterim?.(text);
         };
         sr.onerror = () => { /* tidak ada suara / izin ditolak: perekam tetap jalan tanpa teks langsung */ };
         sr.start();
@@ -150,9 +157,12 @@ export function useRecorder(onText: (text: string, meta?: TranscribeMeta) => voi
         const j = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(j.error || `Transkripsi gagal (HTTP ${res.status})`);
         if (j.text) cb.current.onText(j.text, { language: j.language, confidence: j.confidence, engine: j.engine });
+        else if (lastInterim.current) cb.current.onText(lastInterim.current, { confidence: 0.3, engine: 'browser' }); // server kosong: pakai teks langsung
         else cb.current.onError('Suara tidak terdengar jelas, coba lagi.');
       } catch (e) {
-        cb.current.onError(e instanceof Error ? e.message : String(e));
+        // server tidak terjangkau: teks langsung dari browser tetap bisa dipakai
+        if (lastInterim.current) cb.current.onText(lastInterim.current, { confidence: 0.3, engine: 'browser' });
+        else cb.current.onError(e instanceof Error ? e.message : String(e));
       } finally { setState('idle'); }
     };
     rec.current = r;

@@ -16,6 +16,7 @@ import { MicIcon } from '@/components/tb/icons';
 import { speak, stopSpeaking, ttsSupported, useRecorder, useSpeakingId } from './audio';
 import { ModelPicker } from './ModelPicker';
 import { ChatHistory } from './ChatHistory';
+import { suggestions, pageLabel } from '@/lib/agent/suggest';
 
 /** baris `<<saran: a | b | c>>` di akhir jawaban; saat streaming potongan yang belum lengkap ikut disembunyikan */
 const SARAN = /<<\s*saran\s*:?([\s\S]*?)(>>|$)/i;
@@ -27,29 +28,6 @@ function splitSaran(text: string) {
 }
 const turnText = (t: Turn) => t.parts.flatMap((p) => (p.kind === 'text' ? [splitSaran(p.text).body] : [])).join('\n\n');
 const turnSaran = (t: Turn) => { const last = [...t.parts].reverse().find((p) => p.kind === 'text'); return last?.kind === 'text' ? splitSaran(last.text).saran : []; };
-
-function pageLabel(path: string) {
-  if (path === '/design') return '3D Prototype';
-  if (path === '/') return '3D Public Area';
-  if (path === '/dashboard') return 'Dashboard';
-  if (path === '/devices/new') return 'Add Device';
-  if (/^\/devices\/\d+/.test(path)) return `Perangkat #${path.split('/')[2]}`;
-  if (path.startsWith('/devices')) return 'Device List';
-  if (path.startsWith('/detections/')) return `Deteksi ${path.split('/')[2]}`;
-  if (path.startsWith('/data/')) return `Data ${path.split('/')[2]}`;
-  if (path.startsWith('/patients')) return 'Pelacakan Pasien';
-  return path;
-}
-
-/** saran perintah sesuai halaman yang sedang dibuka */
-function suggestions(path: string): string[] {
-  if (path.startsWith('/devices/new') || path === '/devices') return ['Tambah perangkat di Puskesmas Gubeng', 'Perangkat mana yang rusak?', 'Nonaktifkan TB Guard 4'];
-  if (/^\/devices\/\d+/.test(path)) return ['Ringkas perangkat ini', 'Tandai semua deteksi ditinjau', 'Jam paling ramai?'];
-  if (path.startsWith('/detections/')) return ['Jelaskan deteksi ini', 'Tandai ditinjau · label TB', 'Daftarkan jadi pasien'];
-  if (path.startsWith('/patients')) return ['Kepatuhan OAT < 90%?', 'Kontrol minggu ini?', 'Majukan PSN-2510'];
-  if (path.startsWith('/data/')) return ['Akurasi model?', 'Bandingkan per gender', '5 data terbaru'];
-  return ['Berapa batuk TB belum ditinjau?', 'Jam paling ramai batuk?', 'Tambah perangkat di Wonokromo'];
-}
 
 const KIND_ICON = { read: MagnifyingGlassIcon, write: Pencil1Icon, delete: TrashIcon, ui: ExternalLinkIcon } as const;
 

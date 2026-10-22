@@ -60,7 +60,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const load = React.useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await backendFetch('/api/bootstrap', { signal, cache: 'no-store' });
+      let res = await backendFetch('/api/bootstrap', { signal, cache: 'no-store' });
+      // Neon / Cloud Run yang baru bangun bisa membalas 503 sesaat: coba lagi beberapa kali
+      for (let i = 0; i < 4 && res.status === 503 && !signal?.aborted; i++) {
+        await new Promise((r) => setTimeout(r, 1500 * (i + 1)));
+        res = await backendFetch('/api/bootstrap', { signal, cache: 'no-store' });
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const d = await res.json();
       setDevices(d.devices); setDetections(d.detections); setPatients(d.patients); setDatasets(d.datasets);

@@ -20,7 +20,7 @@ func TestNormalizeText(t *testing.T) {
 func TestScoreSegmentsFiltersNoiseAndScores(t *testing.T) {
 	segs := []whisperSeg{
 		{Text: " halo agen", Start: 0, End: 1, AvgLogprob: -0.1, NoSpeechProb: 0.01, CompressionRatio: 1.2},
-		{Text: " Terima kasih telah menonton", Start: 1, End: 2, AvgLogprob: -1.8, NoSpeechProb: 0.9, CompressionRatio: 1.0},
+		{Text: " Terima kasih telah menonton", Start: 1, End: 2, AvgLogprob: -1.9, NoSpeechProb: 0.95, CompressionRatio: 1.0},
 	}
 	text, conf := scoreSegments("x", segs)
 	if text != "halo agen" || conf < 0.85 {

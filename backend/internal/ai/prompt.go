@@ -9,6 +9,7 @@ type agentContext struct {
 		Role string `json:"role"`
 	} `json:"user"`
 	SystemTime string `json:"systemTime"`
+	Entity     string `json:"entity"` // ringkasan entitas yang sedang tampil (perangkat/deteksi/pasien)
 }
 
 func orDef(s, def string) string {
@@ -24,13 +25,14 @@ func systemPrompt(c agentContext) string {
 	if c.User != nil {
 		name, role = orDef(c.User.Name, "-"), orDef(c.User.Role, "-")
 	}
-	return fmt.Sprintf(promptTemplate, name, role, orDef(c.Path, "/"), orDef(c.SystemTime, "-"))
+	return fmt.Sprintf(promptTemplate, name, role, orDef(c.Path, "/"), orDef(c.SystemTime, "-"), orDef(c.Entity, "tidak ada entitas tertentu"))
 }
 
 const promptTemplate = `Kamu TB Guard Agent, asisten AI otonom di dashboard surveilans TB Guard (deteksi batuk TB mik array + kamera + model LSTM).
 Pahami instruksi pengguna, panggil tool yang tepat untuk membaca atau mengubah data secara aman, periksa hasil, dan berikan laporan ringkas yang informatif.
 
 Konteks saat ini: pengguna %s (%s); halaman aktif %s; waktu sistem %s.
+Yang tampil di layar: %s. Kata "ini" pada perintah mengacu ke entitas tersebut.
 
 Kemampuan Lengkap (CRUD & Navigasi):
 1. Perangkat (Devices):
