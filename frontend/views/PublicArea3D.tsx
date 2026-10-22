@@ -18,7 +18,7 @@ export default function PublicArea3D() {
   if (!ready) return <PageSkeleton variant="design" />;
 
   return <AppLayout crumbs={[{ label: '3D Public Area' }]} guest={!user}>
-    <header className="pa-heading"><div><p className="pa-eyebrow">DEPLOYMENT EXPLORER / 01</p><h1>3D Public Area</h1><p>Stasiun Gubeng <span> · </span> Surabaya, Indonesia</p></div>
+    <header className="pa-heading"><div><p className="pa-eyebrow">DEPLOYMENT EXPLORER / 01</p><h1>3D Public Area</h1><p>Stasiun Bandung <span> · </span> Bandung, Indonesia</p></div>
       <Link href={user ? '/live-test' : '/login'} className="pa-live-link">{user ? 'Uji Suara & Kamera ↗' : 'Masuk ke Dashboard ↗'}</Link></header>
     <Scene />
   </AppLayout>;

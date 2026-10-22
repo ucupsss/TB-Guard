@@ -28,12 +28,12 @@ const NOW = new Date('2025-10-20T16:00:00+07:00');
 const DAY = 86400000;
 
 const devices = [
-  { id: 400, name: 'TB Guard 1', type: 'cough', status: 'active', location: 'Stasiun Gubeng', zone: 'Antrian – Ruang Tunggu Utama', city: 'Surabaya',
-    mics: 4, array: 'ReSpeaker 4-Mic Circular', camera: 'USB Cam 1080p (FOV 78°)', fw: 'v1.3.2', installed: '2025-09-28', lastSeen: NOW.getTime() - 2 * 60000, lat: -7.2652, lng: 112.7522 },
+  { id: 400, name: 'TB Guard 1', type: 'cough', status: 'active', location: 'Stasiun Bandung', zone: 'Antrian – Ruang Tunggu Utama', city: 'Bandung',
+    mics: 4, array: 'ReSpeaker 4-Mic Circular', camera: 'USB Cam 1080p (FOV 78°)', fw: 'v1.3.2', installed: '2025-09-28', lastSeen: NOW.getTime() - 2 * 60000, lat: -6.9147, lng: 107.6025 },
   { id: 401, name: 'TB Guard 2', type: 'cough', status: 'active', location: 'RSKI Universitas Airlangga', zone: 'Poli Paru – Ruang Tunggu', city: 'Surabaya',
     mics: 4, array: 'ReSpeaker 4-Mic Circular', camera: 'USB Cam 1080p (FOV 78°)', fw: 'v1.3.2', installed: '2025-10-03', lastSeen: NOW.getTime() - 6 * 60000, lat: -7.2701, lng: 112.7849 },
-  { id: 402, name: 'TB Guard 3', type: 'cough', status: 'inactive', location: 'Stasiun Gubeng', zone: 'Peron 2', city: 'Surabaya',
-    mics: 4, array: 'ReSpeaker 4-Mic Circular', camera: 'USB Cam 720p (FOV 90°)', fw: 'v1.2.9', installed: '2025-10-10', lastSeen: NOW.getTime() - 26 * 3600000, lat: -7.2649, lng: 112.7529 },
+  { id: 402, name: 'TB Guard 3', type: 'cough', status: 'inactive', location: 'Stasiun Bandung', zone: 'Peron 2', city: 'Bandung',
+    mics: 4, array: 'ReSpeaker 4-Mic Circular', camera: 'USB Cam 720p (FOV 90°)', fw: 'v1.2.9', installed: '2025-10-10', lastSeen: NOW.getTime() - 26 * 3600000, lat: -6.9145, lng: 107.6028 },
   { id: 403, name: 'TB Guard 4', type: 'cough', status: 'broken', location: 'Lab Pengembangan', zone: 'Unit Uji', city: 'Surabaya',
     mics: 6, array: 'Linear 6-Mic Array', camera: '—', fw: 'v1.4.0-beta', installed: '2025-10-15', lastSeen: NOW.getTime() - 4 * DAY, lat: -7.2797, lng: 112.7975 }
 ];
