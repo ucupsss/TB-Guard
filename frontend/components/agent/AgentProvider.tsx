@@ -10,6 +10,8 @@ import { fmt } from '@/lib/format';
 import { prepareTool, describeTool, ToolError } from '@/lib/agent/execute';
 import { toolKind } from '@/lib/agent/tools';
 
+import { DEFAULT_MODEL_ID } from '@/lib/agent/models';
+
 type Args = Record<string, unknown>;
 export type StepStatus = 'running' | 'done' | 'error' | 'awaiting' | 'rejected';
 export interface Step { id: string; name: string; kind: string; label: string; args: Args; status: StepStatus; result?: unknown; error?: string; confirm?: string }
@@ -25,11 +27,13 @@ interface Agent {
   send: (text: string) => void; stop: () => void; reset: () => void; retry: () => void;
   decide: (stepId: string, ok: boolean) => void;
   confirmRisky: boolean; setConfirmRisky: (v: boolean) => void;
+  model: string; setModel: (m: string) => void;
 }
 
 const Ctx = React.createContext<Agent | null>(null);
 const MAX_STEPS = 12;
 const OPEN_KEY = 'tbv_agent_open';
+const MODEL_KEY = 'tbv_agent_model';
 const uid = () => Math.random().toString(36).slice(2, 10);
 const tick = () => new Promise((r) => setTimeout(r, 30)); // beri React waktu me-render perubahan store sebelum tool berikutnya
 
@@ -41,10 +45,29 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const [turns, setTurns] = React.useState<Turn[]>([]);
   const [running, setRunning] = React.useState(false);
   const [confirmRisky, setConfirmRisky] = React.useState(true);
+  const [model, setModelState] = React.useState<string>(DEFAULT_MODEL_ID);
+
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem(MODEL_KEY);
+      if (saved) setModelState(saved);
+    } catch {
+      // abaikan
+    }
+  }, []);
+
+  const setModel = React.useCallback((m: string) => {
+    setModelState(m);
+    try {
+      localStorage.setItem(MODEL_KEY, m);
+    } catch {
+      // abaikan
+    }
+  }, []);
 
   // nilai terbaru untuk dipakai di dalam loop async
-  const live = React.useRef({ store, confirmRisky });
-  React.useEffect(() => { live.current = { store, confirmRisky }; });
+  const live = React.useRef({ store, confirmRisky, model });
+  React.useEffect(() => { live.current = { store, confirmRisky, model }; });
   const history = React.useRef<ApiMessage[]>([]);
   const abort = React.useRef<AbortController | null>(null);
   const pending = React.useRef(new Map<string, (ok: boolean) => void>());
@@ -73,12 +96,16 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     });
 
   async function callModel(turnId: string, signal: AbortSignal): Promise<{ content: string; tool_calls: ToolCall[] }> {
-    const { store: s } = live.current;
+    const { store: s, model: activeModel } = live.current;
     // halaman dibaca saat kirim; hook routing (usePathname dsb.) di root akan memblokir prerender rute dinamis
     const p = window.location.pathname + window.location.search;
     const res = await fetch('/api/agent', {
       method: 'POST', signal, headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: history.current, context: { path: p, user: s.user ? { name: s.user.name, role: s.user.role } : undefined, systemTime: fmt.longDate(NOW.getTime()) } }),
+      body: JSON.stringify({
+        messages: history.current,
+        model: activeModel,
+        context: { path: p, user: s.user ? { name: s.user.name, role: s.user.role } : undefined, systemTime: fmt.longDate(NOW.getTime()) },
+      }),
     });
     if (!res.ok || !res.body) { const j = await res.json().catch(() => ({})); throw new Error(j.error || `Server agen error (HTTP ${res.status})`); }
     const reader = res.body.getReader(), dec = new TextDecoder();
@@ -185,7 +212,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const reset = () => { stop(); history.current = []; setTurns([]); };
   const decide = (stepId: string, ok: boolean) => pending.current.get(stepId)?.(ok);
 
-  const value: Agent = { open, setOpen, toggle, turns, running, send, stop, reset, retry, decide, confirmRisky, setConfirmRisky };
+  const value: Agent = { open, setOpen, toggle, turns, running, send, stop, reset, retry, decide, confirmRisky, setConfirmRisky, model, setModel };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

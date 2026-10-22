@@ -86,15 +86,15 @@ function SimTab({ mono }: { mono: AudioBuffer }) {
           Rekaman batuk Anda diletakkan secara virtual di sekitar mic array TB Guard (ReSpeaker 4 mic, radius 32 mm), lalu diberi bising.
           Sistem harus menemukan kembali sudutnya tanpa mengetahui jawaban.
         </p>
-        <Field label="Sudut sumber batuk (jawaban)" value={`${az}°`}><Slider value={[az]} min={0} max={359} step={1} onValueChange={([v]) => setAz(v)} /></Field>
-        <Field label="SNR bising sensor" value={`${snr} dB`}><Slider value={[snr]} min={-10} max={30} step={1} onValueChange={([v]) => setSnr(v)} /></Field>
+        <Field label="Sudut sumber batuk (jawaban)" value={`${az}°`}><Slider value={[az]} min={0} max={359} step={1} onValueChange={([v]: number[]) => setAz(v)} /></Field>
+        <Field label="SNR bising sensor" value={`${snr} dB`}><Slider value={[snr]} min={-10} max={30} step={1} onValueChange={([v]: number[]) => setSnr(v)} /></Field>
         <label className="flex items-center justify-between gap-2 text-xs">
           <span className="text-muted-foreground">Sumber bising terarah (obrolan/pengumuman)</span>
           <Switch checked={interOn} onCheckedChange={setInterOn} aria-label="Sumber bising terarah" />
         </label>
         {interOn && <>
-          <Field label="Sudut sumber bising" value={`${interAz}°`}><Slider value={[interAz]} min={0} max={359} step={1} onValueChange={([v]) => setInterAz(v)} /></Field>
-          <Field label="Rasio batuk : bising" value={`${sir} dB`}><Slider value={[sir]} min={-10} max={20} step={1} onValueChange={([v]) => setSir(v)} /></Field>
+          <Field label="Sudut sumber bising" value={`${interAz}°`}><Slider value={[interAz]} min={0} max={359} step={1} onValueChange={([v]: number[]) => setInterAz(v)} /></Field>
+          <Field label="Rasio batuk : bising" value={`${sir} dB`}><Slider value={[sir]} min={-10} max={20} step={1} onValueChange={([v]: number[]) => setSir(v)} /></Field>
         </>}
       </div>
 
@@ -153,7 +153,7 @@ function StereoTab({ stereo, micCm, onMicCm, swap, onSwap }: { stereo: StereoDoa
           <Stat k="Confidence (puncak PHAT)" v={stereo.confidence.toFixed(2)} />
           <Stat k="SNR 1 mic → beamforming" v={`${stereo.snrMicDb.toFixed(1)} → ${stereo.snrBeamDb.toFixed(1)} dB`} />
         </div>
-        <Field label="Jarak antar-mic laptop" value={`${micCm} cm`}><Slider value={[micCm]} min={2} max={30} step={0.5} onValueChange={([v]) => onMicCm(v)} /></Field>
+        <Field label="Jarak antar-mic laptop" value={`${micCm} cm`}><Slider value={[micCm]} min={2} max={30} step={0.5} onValueChange={([v]: number[]) => onMicCm(v)} /></Field>
         <label className="flex items-center justify-between gap-2 text-xs">
           <span className="text-muted-foreground">Tukar kanal kiri/kanan</span>
           <Switch checked={swap} onCheckedChange={onSwap} aria-label="Tukar kanal kiri/kanan" />
