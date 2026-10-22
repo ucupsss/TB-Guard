@@ -314,43 +314,6 @@ export default function BusinessPotential() {
         </div>
       </div>
 
-      {/* Bagian 3: Arsip Dokumen PDF Resmi Lengkap */}
-      <div className="mt-8 box intro-y p-5 sm:p-6">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-sm font-semibold text-foreground sm:text-base">
-              Arsip Dokumen PDF Resmi Pemerintah &amp; Institusi
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Dokumen asli lengkap (Perpres, Renaksi, Laporan WHO, &amp; Laporan KAI) dapat dibuka dan ditelaah langsung oleh juri.
-            </p>
-          </div>
-          <Badge>4 Dokumen Lengkap</Badge>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          {EVIDENCE_DOCS.map((doc) => (
-            <div key={`pdf-${doc.id}`} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200/80 p-3.5 dark:border-white/10">
-              <div className="flex items-center gap-3 min-w-0">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-500/10 text-red-600 dark:text-red-400">
-                  <FileText className="h-5 w-5" />
-                </span>
-                <div className="min-w-0">
-                  <div className="text-xs font-semibold text-foreground truncate">{doc.title}</div>
-                  <div className="text-[11px] text-muted-foreground truncate">{doc.code} · {doc.source}</div>
-                </div>
-              </div>
-              {doc.pdfUrl && (
-                <Button asChild size="sm" variant="outline" className="h-8 text-xs shrink-0">
-                  <a href={doc.pdfUrl} target="_blank" rel="noopener noreferrer">
-                    Buka PDF ↗
-                  </a>
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* Modal Lightbox untuk Memperbesar Screenshot */}
       <Dialog open={!!activeModal} onOpenChange={(open) => !open && setActiveModal(null)}>
