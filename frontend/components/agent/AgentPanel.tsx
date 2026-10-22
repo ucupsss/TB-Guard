@@ -182,7 +182,12 @@ export function AgentPanel({ className, onClose }: { className?: string; onClose
   const [audioErr, setAudioErr] = React.useState('');
   // pesan dari suara → balasannya otomatis dibacakan
   const voiceReply = React.useRef(false);
-  const rec = useRecorder((t) => { setAudioErr(''); voiceReply.current = true; submit(t); }, setAudioErr);
+  const rec = useRecorder((t, meta) => {
+    setAudioErr('');
+    // transkripsi kurang yakin: tampilkan di kotak input agar diperiksa dulu, jangan langsung dieksekusi agen
+    if (meta?.confidence !== undefined && meta.confidence < 0.6) { setText(t); setAudioErr('Suara kurang jelas. Periksa teksnya lalu tekan kirim.'); return; }
+    voiceReply.current = true; submit(t);
+  }, setAudioErr);
   const [micOk, setMicOk] = React.useState(false);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- dukungan browser baru diketahui setelah mount (SSR)
   React.useEffect(() => setMicOk(rec.supported), [rec.supported]);
@@ -252,7 +257,9 @@ export function AgentPanel({ className, onClose }: { className?: string; onClose
           {rec.state !== 'idle' ? (
             <div className="flex items-center gap-2.5 px-3 pb-1 pt-2.5 text-sm" role="status">
               {rec.state === 'recording'
-                ? <><span className="h-2.5 w-2.5 animate-pulse rounded-full bg-danger" />Merekam… <span className="tabular-nums text-muted-foreground">{Math.floor(rec.seconds / 60)}:{String(rec.seconds % 60).padStart(2, '0')}</span></>
+                ? <><span className={`h-2.5 w-2.5 rounded-full ${rec.phase === 'speaking' ? 'animate-pulse bg-danger' : 'bg-slate-300'}`} />{rec.phase === 'speaking' ? 'Mendengarkan…' : 'Silakan bicara…'}
+                  <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10" aria-hidden><span className="block h-full rounded-full bg-primary transition-[width] duration-100" style={{ width: `${Math.round(rec.level * 100)}%` }} /></span>
+                  <span className="tabular-nums text-muted-foreground">{Math.floor(rec.seconds / 60)}:{String(rec.seconds % 60).padStart(2, '0')}</span></>
                 : <><Spinner className="text-primary" />Mentranskripsi suara…</>}
             </div>
           ) : <textarea ref={input} rows={1} value={text} onChange={(e) => setText(e.target.value)} aria-label="Pesan untuk agen"

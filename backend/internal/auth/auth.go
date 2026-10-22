@@ -216,6 +216,18 @@ func (s *Service) HandleGoogleLogin(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{"token": s.signSession(u), "user": u, "expiresIn": int(sessionTTL.Seconds())})
 }
 
+// RequireAdmin: hanya peran Admin yang boleh mengubah data; peran lain read-only.
+// Pakai di dalam RequireAuth: RequireAuth(RequireAdmin(h)).
+func (s *Service) RequireAdmin(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if UserFrom(r.Context()).Role != "Admin" {
+			httpx.JSON(w, http.StatusForbidden, map[string]string{"error": "Hanya Admin yang boleh mengubah data"})
+			return
+		}
+		next(w, r)
+	}
+}
+
 func (s *Service) HandleMe(w http.ResponseWriter, r *http.Request) {
 	u := UserFrom(r.Context())
 	httpx.JSON(w, http.StatusOK, map[string]any{"user": User{Email: u.Email, Name: u.Name, Role: u.Role}})

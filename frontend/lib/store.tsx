@@ -4,6 +4,7 @@
    Perubahan diterapkan langsung di UI (optimistik) lalu disimpan ke backend; bila gagal, data dimuat ulang dari server.
    Tidak ada data contoh di frontend: semua data simulasi berasal dari database. */
 import * as React from 'react';
+import { toast } from 'sonner';
 import { NOW, STAGES } from './data';
 import { backendFetch, setToken } from './backend';
 import type { Device, Detection, Patient, User, WebformRow, OfflineRow, PrimerRow } from './types';
@@ -20,15 +21,15 @@ export interface Store {
   datasets: { webform: WebformRow[]; offline: OfflineRow[]; primer: PrimerRow[] };
   login: (u: User, token: string) => void;
   logout: () => void;
-  addDetection: (d: Detection) => void;
-  updateDetection: (uuid: string, patch: Partial<Detection>) => void;   
-  removeDetections: (uuids: string[]) => void;                         
-  addDevice: (d: Device) => void;                                     
-  updateDevice: (id: number, patch: Partial<Device>) => void;          
-  removeDevice: (id: number) => void;                                  
-  addPatient: (p: Patient) => void;                                   
-  updatePatient: (id: string, patch: Partial<Patient>) => void;        
-  removePatient: (id: string) => void;                                 
+  addDetection: (d: Detection) => Promise<boolean>;
+  updateDetection: (uuid: string, patch: Partial<Detection>) => Promise<boolean>;   
+  removeDetections: (uuids: string[]) => Promise<boolean>;                         
+  addDevice: (d: Device) => Promise<boolean>;                                     
+  updateDevice: (id: number, patch: Partial<Device>) => Promise<boolean>;          
+  removeDevice: (id: number) => Promise<boolean>;                                  
+  addPatient: (p: Patient) => Promise<boolean>;                                   
+  updatePatient: (id: string, patch: Partial<Patient>) => Promise<boolean>;        
+  removePatient: (id: string) => Promise<boolean>;                                 
   device: (id: number | string) => Device | undefined;
   detection: (uuid: string) => Detection | undefined;
 }
@@ -74,22 +75,29 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // data hanya dimuat setelah login (backend menolak tanpa token)
   // eslint-disable-next-line react-hooks/set-state-in-effect -- muat data dari backend saat login
   React.useEffect(() => { if (!user) return; const c = new AbortController(); load(c.signal); return () => c.abort(); }, [user, load]);
-  /** simpan ke backend; gagal -> sinkronkan ulang dari server */
-  const sync = (...args: Parameters<typeof api>) => { api(...args).catch((e) => { console.warn('[store] gagal menyimpan:', e); load(); }); };
+  /** simpan ke backend; true bila tersimpan. Gagal -> sinkronkan ulang dari server (membatalkan perubahan optimistik) */
+  const sync = async (...args: Parameters<typeof api>): Promise<boolean> => {
+    try { await api(...args); return true; } catch (e) {
+      console.warn('[store] gagal menyimpan:', e);
+      toast.error('Perubahan tidak tersimpan di server.');
+      void load();
+      return false;
+    }
+  };
 
   const value: Store = {
     user, ready, loaded, loadError, reload: () => { setLoadError(''); load(); }, devices, detections, patients, datasets,
     login: (u, token) => { setToken(token); setUser(u); try { sessionStorage.setItem(KEY, JSON.stringify(u)); } catch { /* mode privat */ } },
     logout,
-    addDetection: (d) => { setDetections((all) => [d, ...all]); sync('POST', '/detections', d); },
-    updateDetection: (uuid, patch) => { setDetections((all) => all.map((d) => (d.uuid === uuid ? { ...d, ...patch } : d))); sync('PATCH', `/detections/${encodeURIComponent(uuid)}`, patch); },
-    removeDetections: (uuids) => { setDetections((all) => all.filter((d) => !uuids.includes(d.uuid))); sync('POST', '/detections/delete', { uuids }); },
-    addDevice: (d) => { setDevices((all) => [...all, d]); sync('POST', '/devices', d); },
-    updateDevice: (id, patch) => { setDevices((all) => all.map((d) => (d.id === id ? { ...d, ...patch } : d))); sync('PATCH', `/devices/${id}`, patch); },
-    removeDevice: (id) => { setDevices((all) => all.filter((d) => d.id !== id)); sync('DELETE', `/devices/${id}`); },
-    addPatient: (p) => { setPatients((all) => [p, ...all]); sync('POST', '/patients', p); },
-    updatePatient: (id, patch) => { setPatients((all) => all.map((p) => (p.id === id ? { ...p, ...patch } : p))); sync('PATCH', `/patients/${encodeURIComponent(id)}`, patch); },
-    removePatient: (id) => { setPatients((all) => all.filter((p) => p.id !== id)); sync('DELETE', `/patients/${encodeURIComponent(id)}`); },
+    addDetection: (d) => { setDetections((all) => [d, ...all]); return sync('POST', '/detections', d); },
+    updateDetection: (uuid, patch) => { setDetections((all) => all.map((d) => (d.uuid === uuid ? { ...d, ...patch } : d))); return sync('PATCH', `/detections/${encodeURIComponent(uuid)}`, patch); },
+    removeDetections: (uuids) => { setDetections((all) => all.filter((d) => !uuids.includes(d.uuid))); return sync('POST', '/detections/delete', { uuids }); },
+    addDevice: (d) => { setDevices((all) => [...all, d]); return sync('POST', '/devices', d); },
+    updateDevice: (id, patch) => { setDevices((all) => all.map((d) => (d.id === id ? { ...d, ...patch } : d))); return sync('PATCH', `/devices/${id}`, patch); },
+    removeDevice: (id) => { setDevices((all) => all.filter((d) => d.id !== id)); return sync('DELETE', `/devices/${id}`); },
+    addPatient: (p) => { setPatients((all) => [p, ...all]); return sync('POST', '/patients', p); },
+    updatePatient: (id, patch) => { setPatients((all) => all.map((p) => (p.id === id ? { ...p, ...patch } : p))); return sync('PATCH', `/patients/${encodeURIComponent(id)}`, patch); },
+    removePatient: (id) => { setPatients((all) => all.filter((p) => p.id !== id)); return sync('DELETE', `/patients/${encodeURIComponent(id)}`); },
     device: (id) => devices.find((d) => d.id === +id),
     detection: (uuid) => detections.find((d) => d.uuid === uuid),
   };

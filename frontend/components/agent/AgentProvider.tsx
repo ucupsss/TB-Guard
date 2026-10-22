@@ -156,7 +156,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
         if (!ok) { patchStep(turnId, step.id, { status: 'rejected' }); return { ok: false, error: 'Aksi ditolak pengguna. Jangan diulangi kecuali pengguna memintanya lagi.' }; }
         patchStep(turnId, step.id, { status: 'running' });
       }
-      const result = prep.run();
+      const result = await prep.run();
       if (step.kind !== 'read') await tick();
       patchStep(turnId, step.id, { status: 'done', result });
       return result;

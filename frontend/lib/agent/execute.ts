@@ -10,10 +10,12 @@ type Args = Record<string, unknown>;
 
 export interface ToolEnv { store: () => Store; navigate: (path: string) => void }
 /** aksi yang perlu persetujuan: null = langsung jalan; string = kalimat yang ditampilkan di kartu konfirmasi */
-export interface Prepared { confirm: string | null; run: () => unknown }
+export interface Prepared { confirm: string | null; run: () => unknown | Promise<unknown> }
 
 export class ToolError extends Error {}
 const fail = (msg: string): never => { throw new ToolError(msg); };
+/** aksi tulis baru dianggap berhasil bila backend benar-benar menyimpannya (hindari melapor sukses palsu) */
+const saved = async (p: Promise<boolean>) => { if (!(await p)) fail('Gagal menyimpan ke database (mungkin bukan Admin, ID bentrok, atau server bermasalah). Perubahan dibatalkan; jangan melapor berhasil.'); };
 
 // nilai null/'' dari model dianggap "tidak diisi"
 const has = (a: Args, k: string) => a[k] !== undefined && a[k] !== null && a[k] !== '';
@@ -172,23 +174,23 @@ export function prepareTool(name: string, a: Args, env: ToolEnv, opts: { confirm
       const id = has(a, 'id') ? Number(a.id) : Math.max(0, ...s.devices.map((d) => d.id)) + 1;
       if (!Number.isInteger(id) || id <= 0) fail('Device ID harus angka bulat positif.');
       if (s.device(id)) fail(`Device ID ${id} sudah dipakai ${s.device(id)!.name}.`);
-      if (!has(a, 'name') || !has(a, 'location')) fail('name dan location wajib diisi.');
+      if (!has(a, 'name')) fail('name wajib diisi.');
       const d: Device = {
-        id, name: '', type: 'cough', status: 'active', location: '', zone: '-', city: 'Surabaya', mics: 4, array: 'ReSpeaker 4-Mic Circular',
+        id, name: '', type: 'cough', status: 'active', location: 'Belum ditentukan', zone: '-', city: 'Surabaya', mics: 4, array: 'ReSpeaker 4-Mic Circular',
         camera: 'USB Cam 1080p', fw: 'v1.3.2', installed: ymd(now), lastSeen: now, lat: -7.27, lng: 112.77, ...devicePatch(a),
       };
-      return { confirm: null, run: () => { s.addDevice(d); return { ok: true, created: devOut(d, s) }; } };
+      return { confirm: null, run: async () => { await saved(s.addDevice(d)); return { ok: true, created: devOut(d, s) }; } };
     }
 
     case 'update_device': {
       const d = findDevice(s, a.id), patch = devicePatch(a.patch as Args);
       if (!Object.keys(patch).length) fail('patch kosong.');
-      return { confirm: null, run: () => { s.updateDevice(d.id, patch); return { ok: true, updated: devOut({ ...d, ...patch }, s) }; } };
+      return { confirm: null, run: async () => { await saved(s.updateDevice(d.id, patch)); return { ok: true, updated: devOut({ ...d, ...patch }, s) }; } };
     }
 
     case 'delete_device': {
       const d = findDevice(s, a.id);
-      return { confirm: ask(`Hapus perangkat **${d.name}** (#${d.id}, ${d.location})?`), run: () => { s.removeDevice(d.id); return { ok: true, deleted: d.id }; } };
+      return { confirm: ask(`Hapus perangkat **${d.name}** (#${d.id}, ${d.location})?`), run: async () => { await saved(s.removeDevice(d.id)); return { ok: true, deleted: d.id }; } };
     }
 
     case 'update_detections': {
@@ -208,14 +210,14 @@ export function prepareTool(name: string, a: Args, env: ToolEnv, opts: { confirm
       const what = Object.entries(patch).map(([k, v]) => `${k} = ${v === null ? 'kosong' : v}`).join(', ');
       return {
         confirm: uuids.length > 1 ? ask(`Ubah **${plural(uuids.length, 'deteksi')}** (${what})?`) : null,
-        run: () => { uuids.forEach((u) => s.updateDetection(u, patch)); return { ok: true, updated: uuids.length, patch }; },
+        run: async () => { await saved(Promise.all(uuids.map((u) => s.updateDetection(u, patch))).then((r) => r.every(Boolean))); return { ok: true, updated: uuids.length, patch }; },
       };
     }
 
     case 'delete_detections': {
       const uuids = [...new Set((a.uuids as string[]) || [])].filter((u) => s.detection(u));
       if (!uuids.length) fail('Tidak ada UUID valid.');
-      return { confirm: ask(`Hapus **${plural(uuids.length, 'deteksi')}** secara permanen?`), run: () => { s.removeDetections(uuids); return { ok: true, deleted: uuids.length }; } };
+      return { confirm: ask(`Hapus **${plural(uuids.length, 'deteksi')}** secara permanen?`), run: async () => { await saved(s.removeDetections(uuids)); return { ok: true, deleted: uuids.length }; } };
     }
 
     case 'add_patient': {
@@ -230,7 +232,7 @@ export function prepareTool(name: string, a: Args, env: ToolEnv, opts: { confirm
         pic: has(a, 'pic') ? String(a.pic) : 'Belum ditentukan',
         events: [{ stage: 0, t: now, text: 'Didaftarkan ke pelacakan oleh agen' + (det ? ' dari deteksi ' + det.uuid : '') }],
       };
-      return { confirm: null, run: () => { s.addPatient(p); return { ok: true, created: patOut(p) }; } };
+      return { confirm: null, run: async () => { await saved(s.addPatient(p)); return { ok: true, created: patOut(p) }; } };
     }
 
     case 'update_patient': {
@@ -248,12 +250,12 @@ export function prepareTool(name: string, a: Args, env: ToolEnv, opts: { confirm
       if (has(a, 'note')) events.push({ stage: patch.stage ?? p.stage, t: now, text: String(a.note) });
       if (events.length !== p.events.length) patch.events = events;
       if (!Object.keys(patch).length) fail('Tidak ada perubahan.');
-      return { confirm: null, run: () => { s.updatePatient(p.id, patch); return { ok: true, updated: patOut({ ...p, ...patch }) }; } };
+      return { confirm: null, run: async () => { await saved(s.updatePatient(p.id, patch)); return { ok: true, updated: patOut({ ...p, ...patch }) }; } };
     }
 
     case 'delete_patient': {
       const p = findPatient(s, a.id);
-      return { confirm: ask(`Hapus pasien **${p.name}** (${p.id}) dari pelacakan?`), run: () => { s.removePatient(p.id); return { ok: true, deleted: p.id }; } };
+      return { confirm: ask(`Hapus pasien **${p.name}** (${p.id}) dari pelacakan?`), run: async () => { await saved(s.removePatient(p.id)); return { ok: true, deleted: p.id }; } };
     }
 
     case 'add_detection': {
@@ -281,8 +283,8 @@ export function prepareTool(name: string, a: Args, env: ToolEnv, opts: { confirm
       };
       return {
         confirm: null,
-        run: () => {
-          s.addDetection(newDet);
+        run: async () => {
+          await saved(s.addDetection(newDet));
           return { ok: true, created: detOut(newDet, s), link: `/detections/${uuid}` };
         },
       };

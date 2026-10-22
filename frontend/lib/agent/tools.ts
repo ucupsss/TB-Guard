@@ -56,8 +56,8 @@ export const TOOLS: ToolDef[] = [
     description: 'Query dataset penelitian. Mengembalikan total, metrik (akurasi/recall), hitungan per grup, contoh baris.' },
 
   // ---------- tulis ----------
-  { name: 'add_device', kind: 'write', parameters: obj({ ...devicePatch, id: num('opsional, = ID firmware') }, ['name', 'location']),
-    description: 'Tambah perangkat. Default: active, cough, 4 mic, kamera, Surabaya.' },
+  { name: 'add_device', kind: 'write', parameters: obj({ ...devicePatch, id: num('opsional, = ID firmware') }, ['name']),
+    description: 'Tambah perangkat. Hanya name wajib; semua field lain opsional dan punya default (active, cough, 4 mic, kamera, lokasi "Belum ditentukan"). Jangan menanyakan field opsional; bisa diubah nanti lewat update_device.' },
   { name: 'update_device', kind: 'write', parameters: obj({ id: num(), patch: obj(devicePatch) }, ['id', 'patch']),
     description: 'Ubah data perangkat.' },
   { name: 'delete_device', kind: 'delete', parameters: obj({ id: num() }, ['id']),

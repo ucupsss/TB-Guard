@@ -44,6 +44,19 @@ func main() {
 
 	mux := http.NewServeMux()
 	protect := authSvc.RequireAuth
+	admin := func(h http.HandlerFunc) http.HandlerFunc { return protect(authSvc.RequireAdmin(h)) } // tulis = Admin
+	// agen & transkripsi memakai kuota Gemini/Groq: batasi per pengguna
+	aiLimit := httpx.NewLimiter(40, time.Minute)
+	metered := func(h http.HandlerFunc) http.HandlerFunc {
+		return protect(func(w http.ResponseWriter, r *http.Request) {
+			if !aiLimit.Allow(auth.UserFrom(r.Context()).Email) {
+				w.Header().Set("Retry-After", "30")
+				httpx.JSON(w, http.StatusTooManyRequests, map[string]string{"error": "Terlalu banyak permintaan, coba lagi sebentar"})
+				return
+			}
+			h(w, r)
+		})
+	}
 
 	// publik
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
@@ -61,22 +74,22 @@ func main() {
 	// terlindungi (wajib login Gmail)
 	mux.HandleFunc("GET /api/auth/me", protect(authSvc.HandleMe))
 	mux.HandleFunc("GET /api/bootstrap", protect(records.Bootstrap()))
-	mux.HandleFunc("POST /api/devices", protect(records.Create(data.DeviceEntity)))
-	mux.HandleFunc("PATCH /api/devices/{id}", protect(records.Patch(data.DeviceEntity)))
-	mux.HandleFunc("DELETE /api/devices/{id}", protect(records.Remove(data.DeviceEntity)))
-	mux.HandleFunc("POST /api/detections", protect(records.Create(data.DetectionEntity)))
-	mux.HandleFunc("PATCH /api/detections/{id}", protect(records.Patch(data.DetectionEntity)))
-	mux.HandleFunc("POST /api/detections/delete", protect(records.RemoveDetections()))
-	mux.HandleFunc("POST /api/patients", protect(records.Create(data.PatientEntity)))
-	mux.HandleFunc("PATCH /api/patients/{id}", protect(records.Patch(data.PatientEntity)))
-	mux.HandleFunc("DELETE /api/patients/{id}", protect(records.Remove(data.PatientEntity)))
+	mux.HandleFunc("POST /api/devices", admin(records.Create(data.DeviceEntity)))
+	mux.HandleFunc("PATCH /api/devices/{id}", admin(records.Patch(data.DeviceEntity)))
+	mux.HandleFunc("DELETE /api/devices/{id}", admin(records.Remove(data.DeviceEntity)))
+	mux.HandleFunc("POST /api/detections", admin(records.Create(data.DetectionEntity)))
+	mux.HandleFunc("PATCH /api/detections/{id}", admin(records.Patch(data.DetectionEntity)))
+	mux.HandleFunc("POST /api/detections/delete", admin(records.RemoveDetections()))
+	mux.HandleFunc("POST /api/patients", admin(records.Create(data.PatientEntity)))
+	mux.HandleFunc("PATCH /api/patients/{id}", admin(records.Patch(data.PatientEntity)))
+	mux.HandleFunc("DELETE /api/patients/{id}", admin(records.Remove(data.PatientEntity)))
 	mux.HandleFunc("GET /api/detections/{id}/audio", protect(store.DetectionAudio()))
 	mux.HandleFunc("POST /api/uploads", protect(store.Upload()))
 	mux.HandleFunc("GET /api/uploads/usage", protect(store.Usage()))
 	mux.HandleFunc("GET /api/uploads/{id}/url", protect(store.URL()))
-	mux.HandleFunc("DELETE /api/uploads/{id}", protect(store.Delete()))
-	mux.HandleFunc("POST /api/agent", protect(aiSvc.HandleAgent))
-	mux.HandleFunc("POST /api/agent/transcribe", protect(aiSvc.HandleTranscribe))
+	mux.HandleFunc("DELETE /api/uploads/{id}", admin(store.Delete()))
+	mux.HandleFunc("POST /api/agent", metered(aiSvc.HandleAgent))
+	mux.HandleFunc("POST /api/agent/transcribe", metered(aiSvc.HandleTranscribe))
 
 	var origins []string
 	for _, o := range strings.Split(cfg.AllowedOrigins, ",") {

@@ -1,23 +1,40 @@
 'use client';
 
-/* Fitur audio agen: rekam suara → transkripsi (/api/agent/transcribe), dan bacakan balasan
-   dengan speechSynthesis bawaan browser. */
+/* Fitur audio agen: rekam suara dengan deteksi bicara adaptif → transkripsi (/api/agent/transcribe),
+   dan bacakan balasan dengan speechSynthesis bawaan browser. */
 import * as React from 'react';
 import { backendFetch } from '@/lib/backend';
 
 type RecState = 'idle' | 'recording' | 'transcribing';
+/** fase saat merekam: menunggu suara atau pengguna sedang berbicara */
+type Phase = 'listening' | 'speaking';
+
+export interface TranscribeMeta { language?: string; confidence?: number; engine?: string }
 
 function pickMime() {
   if (typeof MediaRecorder === 'undefined') return '';
   return ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'].find((m) => MediaRecorder.isTypeSupported(m)) ?? '';
 }
 
-/** rekam dari mikrofon; `stop()` mengirim rekaman ke server lalu memanggil onText dengan hasilnya */
-export function useRecorder(onText: (text: string) => void, onError: (msg: string) => void) {
+/* Parameter VAD (voice activity detection) adaptif */
+const FRAME_MS = 50;
+const CALIBRATE_MS = 500; // ukur derau latar sebelum menilai suara
+const START_FRAMES = 3; // ~150 ms di atas ambang = mulai bicara
+const MAX_WAIT_MS = 9000; // tidak ada suara sama sekali -> berhenti
+const MAX_REC_MS = 60000;
+const rmsOf = (buf: Float32Array) => { let s = 0; for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i]; return Math.sqrt(s / buf.length); };
+
+/** rekam dari mikrofon dengan deteksi bicara otomatis: mulai terdeteksi saat suara melewati ambang adaptif
+ *  (menyesuaikan derau ruangan), berhenti sendiri setelah jeda bicara, dan tidak mengirim rekaman kosong. */
+export function useRecorder(onText: (text: string, meta?: TranscribeMeta) => void, onError: (msg: string) => void) {
   const [state, setState] = React.useState<RecState>('idle');
+  const [phase, setPhase] = React.useState<Phase>('listening');
+  const [level, setLevel] = React.useState(0);
   const [seconds, setSeconds] = React.useState(0);
   const rec = React.useRef<MediaRecorder | null>(null);
   const cancelled = React.useRef(false);
+  const stopVad = React.useRef<() => void>(() => {});
+  const heard = React.useRef(false);
   const cb = React.useRef({ onText, onError });
   React.useEffect(() => { cb.current = { onText, onError }; });
 
@@ -28,48 +45,88 @@ export function useRecorder(onText: (text: string) => void, onError: (msg: strin
     return () => clearInterval(id);
   }, [state]);
   // lepas mikrofon bila komponen dilepas saat merekam
-  React.useEffect(() => () => { cancelled.current = true; rec.current?.stop(); }, []);
+  React.useEffect(() => () => { cancelled.current = true; stopVad.current(); rec.current?.stop(); }, []);
 
   const supported = typeof window !== 'undefined' && !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined';
 
   const start = async () => {
     if (state !== 'idle') return;
     let stream: MediaStream;
-    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    } catch {
       cb.current.onError('Akses mikrofon ditolak. Izinkan mikrofon di pengaturan browser.'); return;
     }
     const mime = pickMime();
-    const r = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    const r = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), audioBitsPerSecond: 32000 });
     const chunks: Blob[] = [];
     cancelled.current = false;
+    heard.current = false;
     r.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+
+    // ---- VAD adaptif ----
+    const ctx = new AudioContext();
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+    ctx.createMediaStreamSource(stream).connect(analyser);
+    const buf = new Float32Array(analyser.fftSize);
+    const t0 = Date.now();
+    let noise = 0, calibN = 0, above = 0, speaking = false, speechStart = 0, silenceFrom = 0, lastLevelAt = 0;
+    const vad = setInterval(() => {
+      analyser.getFloatTimeDomainData(buf);
+      const rms = rmsOf(buf), now = Date.now(), elapsed = now - t0;
+      if (now - lastLevelAt > 90) { lastLevelAt = now; setLevel(Math.min(1, rms * 9)); }
+      if (elapsed < CALIBRATE_MS) { noise = (noise * calibN + rms) / (calibN + 1); calibN++; return; }
+      const high = Math.max(noise * 3, noise + 0.012, 0.015); // ambang mulai bicara
+      const low = high * 0.55; // histeresis: ambang berhenti
+      if (!speaking) {
+        noise = noise * 0.96 + Math.min(rms, high) * 0.04; // derau latar ikut menyesuaikan
+        above = rms > high ? above + 1 : 0;
+        if (above >= START_FRAMES) { speaking = true; heard.current = true; speechStart = now; silenceFrom = 0; setPhase('speaking'); }
+        else if (elapsed > MAX_WAIT_MS) { clearInterval(vad); r.stop(); }
+      } else if (rms < low) {
+        silenceFrom ||= now;
+        // ucapan panjang diberi jeda lebih longgar (orang berpikir di tengah kalimat)
+        const gap = Math.min(1900, 1000 + (now - speechStart) * 0.08);
+        if (now - silenceFrom > gap) { clearInterval(vad); r.stop(); }
+      } else silenceFrom = 0;
+      if (elapsed > MAX_REC_MS) { clearInterval(vad); r.stop(); }
+    }, FRAME_MS);
+    stopVad.current = () => { clearInterval(vad); void ctx.close().catch(() => {}); setLevel(0); };
+
     r.onstop = async () => {
+      stopVad.current();
       stream.getTracks().forEach((t) => t.stop());
       rec.current = null;
       if (cancelled.current || !chunks.length) { setState('idle'); return; }
+      // tanpa ucapan: jangan buang kuota transkripsi
+      if (!heard.current) { cb.current.onError('Tidak ada suara terdeteksi. Coba bicara lebih dekat ke mikrofon.'); setState('idle'); return; }
       setState('transcribing');
       try {
         const type = r.mimeType || 'audio/webm';
         const ext = type.includes('mp4') ? 'mp4' : type.includes('ogg') ? 'ogg' : 'webm';
         const fd = new FormData();
         fd.append('audio', new File(chunks, `suara.${ext}`, { type }));
+        fd.append('duration', String(Math.round((Date.now() - t0) / 100) / 10));
         const res = await backendFetch('/api/agent/transcribe', { method: 'POST', body: fd });
         const j = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(j.error || `Transkripsi gagal (HTTP ${res.status})`);
-        if (j.text) cb.current.onText(j.text); else cb.current.onError('Suara tidak terdengar jelas, coba lagi.');
+        if (j.text) cb.current.onText(j.text, { language: j.language, confidence: j.confidence, engine: j.engine });
+        else cb.current.onError('Suara tidak terdengar jelas, coba lagi.');
       } catch (e) {
         cb.current.onError(e instanceof Error ? e.message : String(e));
       } finally { setState('idle'); }
     };
     rec.current = r;
-    r.start();
+    r.start(250);
     setSeconds(0);
+    setPhase('listening');
     setState('recording');
   };
   const stop = () => rec.current?.stop();
   const cancel = () => { cancelled.current = true; rec.current?.stop(); };
 
-  return { state, seconds, supported, start, stop, cancel };
+  return { state, phase, level, seconds, supported, start, stop, cancel };
 }
 
 /* ---- text-to-speech: satu pembicara global supaya hanya satu balasan dibacakan sekaligus ---- */
