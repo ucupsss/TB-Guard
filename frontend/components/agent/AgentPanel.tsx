@@ -16,7 +16,16 @@ import { MicIcon } from '@/components/tb/icons';
 import { speak, stopSpeaking, ttsSupported, useRecorder, useSpeakingId } from './audio';
 import { ModelPicker } from './ModelPicker';
 
-const turnText = (t: Turn) => t.parts.flatMap((p) => (p.kind === 'text' ? [p.text] : [])).join('\n\n');
+/** baris `<<saran: a | b | c>>` di akhir jawaban; saat streaming potongan yang belum lengkap ikut disembunyikan */
+const SARAN = /<<\s*saran\s*:?([\s\S]*?)(>>|$)/i;
+function splitSaran(text: string) {
+  const m = text.match(SARAN);
+  if (!m) return { body: text, saran: [] as string[] };
+  const saran = m[2] === '>>' ? m[1].split('|').map((s) => s.trim().replace(/^["'*\-\s]+|["'*\s]+$/g, '')).filter(Boolean).slice(0, 3) : [];
+  return { body: text.slice(0, m.index).trimEnd(), saran };
+}
+const turnText = (t: Turn) => t.parts.flatMap((p) => (p.kind === 'text' ? [splitSaran(p.text).body] : [])).join('\n\n');
+const turnSaran = (t: Turn) => { const last = [...t.parts].reverse().find((p) => p.kind === 'text'); return last?.kind === 'text' ? splitSaran(last.text).saran : []; };
 
 function pageLabel(path: string) {
   if (path === '/design') return '3D Prototype';
@@ -126,15 +135,17 @@ function SpeakButton({ turn }: { turn: Turn }) {
   );
 }
 
-function AssistantTurn({ turn, last }: { turn: Turn; last: boolean }) {
+function AssistantTurn({ turn, last, fallback, onPick }: { turn: Turn; last: boolean; fallback: string[]; onPick: (q: string) => void }) {
   const { decide, retry, running } = useAgent();
+  const saran = turnSaran(turn);
+  const picks = saran.length ? saran : fallback;
   const tail = turn.parts[turn.parts.length - 1];
   const busy = !turn.done;
   return (
     <div className="grid gap-2.5">
       {turn.parts.map((p, i) => {
         if (p.kind === 'reasoning') return <Reasoning key={i} text={p.text} live={busy && i === turn.parts.length - 1} />;
-        if (p.kind === 'text') return <Markdown key={i} text={p.text} />;
+        if (p.kind === 'text') return <Markdown key={i} text={splitSaran(p.text).body} />;
         return <StepRow key={p.step.id} step={p.step} onDecide={(ok) => decide(p.step.id, ok)} />;
       })}
       {busy && turn.notice && <div className="flex items-center gap-2 text-xs text-pending"><Spinner />{turn.notice}</div>}
@@ -147,6 +158,14 @@ function AssistantTurn({ turn, last }: { turn: Turn; last: boolean }) {
       )}
       {turn.done && !turn.error && !turn.parts.length && <p className="text-xs text-muted-foreground">Dihentikan.</p>}
       {turn.done && <SpeakButton turn={turn} />}
+      {last && turn.done && !turn.error && !running && turn.parts.length > 0 && (
+        <div className="flex flex-wrap gap-1.5" aria-label="Saran lanjutan">
+          {picks.map((s) => (
+            <button key={s} type="button" onClick={() => onPick(s)}
+              className="rounded-full border border-primary/25 bg-primary/5 px-3 py-1.5 text-left text-xs text-primary transition hover:border-primary/50 hover:bg-primary/10 dark:text-blue-300">{s}</button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -223,7 +242,7 @@ export function AgentPanel({ className, onClose }: { className?: string; onClose
           <div className="grid gap-5">
             {turns.map((t, i) => (t.role === 'user'
               ? <div key={t.id} className="ml-auto max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-primary px-3.5 py-2 text-white">{t.text}</div>
-              : <AssistantTurn key={t.id} turn={t} last={i === turns.length - 1} />))}
+              : <AssistantTurn key={t.id} turn={t} last={i === turns.length - 1} fallback={suggestions(path)} onPick={submit} />))}
           </div>
         )}
       </div>

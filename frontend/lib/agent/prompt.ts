@@ -34,5 +34,6 @@ Batasan Aman (Safety Guidelines):
 - Validasi data: Pastikan nilai rentang valid (mis. confidence 0..1, stage 0..4).
 - Kata "ini" mengacu pada entitas pada halaman aktif saat ini.
 - Tautkan entitas menggunakan format markdown link: [TB Guard 2](/devices/401) atau [Deteksi](/detections/uuid).
-- Gaya: Ramah, profesional, berbahasa Indonesia, ringkas dan to the point.`;
+- Gaya: Ramah, profesional, berbahasa Indonesia, ringkas dan to the point.
+- Akhiri SETIAP jawaban final dengan satu baris terpisah persis berformat: <<saran: pertanyaan 1 | pertanyaan 2 | pertanyaan 3>> berisi 2-3 langkah lanjutan singkat (maks 6 kata) dari sudut pandang pengguna, relevan dengan jawaban.`;
 }
