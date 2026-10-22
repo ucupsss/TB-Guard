@@ -6,8 +6,7 @@ import { TOOLS } from '@/lib/agent/tools';
 import { systemPrompt, type AgentContext } from '@/lib/agent/prompt';
 import { groqPool } from '@/lib/agent/groq-keys';
 import { isGroqModel, DEFAULT_MODEL_ID } from '@/lib/agent/models';
-
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+import { getGoogleGeminiAuth, normalizeVertexModel } from '@/lib/agent/google-auth';
 
 interface InToolCall {
   id: string;
@@ -383,11 +382,20 @@ export async function POST(req: Request) {
   }
 
   // =========================================================================
-  // ALUR 2: GOOGLE GEMINI (Gemini 2.5 Flash, 1.5 Flash, 1.5 Pro)
+  // ALUR 2: GOOGLE GEMINI (Vertex AI Google Cloud & Generative Language API)
+  // Kompatibel dengan GCP Service Account (Vercel, Cloud Run, Local Dev)
   // =========================================================================
-  if (!GEMINI_API_KEY) {
+  let googleAuth;
+  try {
+    googleAuth = await getGoogleGeminiAuth();
+  } catch (err: unknown) {
+    const e = err as Error;
     return Response.json(
-      { error: 'GEMINI_API_KEY belum dikonfigurasi di frontend/.env.local.' },
+      {
+        error:
+          e.message ||
+          'Kredensial Google Cloud Vertex AI atau GEMINI_API_KEY belum tersedia.',
+      },
       { status: 500 }
     );
   }
@@ -491,7 +499,18 @@ export async function POST(req: Request) {
     },
   };
 
-  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?key=${GEMINI_API_KEY}&alt=sse`;
+  let geminiUrl: string;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (googleAuth.mode === 'vertex') {
+    const vertexModel = normalizeVertexModel(selectedModel);
+    geminiUrl = `https://${googleAuth.location}-aiplatform.googleapis.com/v1/projects/${googleAuth.projectId}/locations/${googleAuth.location}/publishers/google/models/${vertexModel}:streamGenerateContent?alt=sse`;
+    headers['Authorization'] = `Bearer ${googleAuth.token}`;
+  } else {
+    geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?key=${googleAuth.apiKey}&alt=sse`;
+  }
 
   const stream = new ReadableStream({
     async start(ctl) {
@@ -500,7 +519,7 @@ export async function POST(req: Request) {
       try {
         const response = await fetch(geminiUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify(payload),
           signal: req.signal,
         });

@@ -18,40 +18,53 @@ class GroqKeyPool {
     this.reloadKeys();
   }
 
-  /** Membaca ulang daftar API key dari groq_keys.txt atau environment variable */
+  /** Membaca ulang daftar API key dari file groq_keys.txt atau environment variable */
   public reloadKeys() {
-    const filePath = path.join(process.cwd(), 'groq_keys.txt');
     const existingMap = new Map<string, KeyState>(this.keys.map((k) => [k.key, k]));
     const newKeys: string[] = [];
 
-    // 1. Baca dari file groq_keys.txt (hot-reload)
-    try {
-      if (fs.existsSync(filePath)) {
-        const stats = fs.statSync(filePath);
-        this.lastMtime = stats.mtimeMs;
-        const content = fs.readFileSync(filePath, 'utf-8');
-        const lines = content.split('\n');
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || trimmed.startsWith('#')) continue;
-          if (trimmed.startsWith('gsk_') && trimmed.length >= 20) {
-            newKeys.push(trimmed);
-          } else if (trimmed.length >= 20) {
-            newKeys.push('gsk_' + trimmed);
+    // 1. Baca dari file groq_keys.txt di beberapa kemungkinan lokasi (Vercel / Local)
+    const possiblePaths = [
+      path.join(process.cwd(), 'groq_keys.txt'),
+      path.join(process.cwd(), 'frontend', 'groq_keys.txt'),
+      path.join(process.cwd(), '..', 'groq_keys.txt'),
+      path.resolve(__dirname, 'groq_keys.txt'),
+      path.resolve(__dirname, '..', '..', 'groq_keys.txt'),
+      path.resolve(__dirname, '..', '..', '..', 'groq_keys.txt'),
+    ];
+
+    for (const filePath of possiblePaths) {
+      try {
+        if (fs.existsSync(filePath)) {
+          const stats = fs.statSync(filePath);
+          this.lastMtime = stats.mtimeMs;
+          const content = fs.readFileSync(filePath, 'utf-8');
+          const lines = content.split('\n');
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith('#')) continue;
+            if (trimmed.startsWith('gsk_') && trimmed.length >= 20) {
+              newKeys.push(trimmed);
+            } else if (trimmed.length >= 20) {
+              newKeys.push('gsk_' + trimmed);
+            }
           }
+          if (newKeys.length > 0) break; // Berhasil menemukan dan membaca file
         }
+      } catch {
+        // Abaikan jika tidak dapat dibaca di path ini
       }
-    } catch (err) {
-      console.warn('[GroqKeyPool] Gagal membaca groq_keys.txt:', err);
     }
 
-    // 2. Baca dari environment variable
+    // 2. Baca dari environment variable (GROQ_API_KEYS atau GROQ_API_KEY di dashboard Vercel)
     const envKeys = process.env.GROQ_API_KEYS || process.env.GROQ_API_KEY;
     if (envKeys) {
       const parts = envKeys.split(/[,\s\n]+/).map((s) => s.trim());
       for (const p of parts) {
         if (p.startsWith('gsk_') && !newKeys.includes(p)) {
           newKeys.push(p);
+        } else if (p.length >= 20 && !newKeys.includes('gsk_' + p)) {
+          newKeys.push('gsk_' + p);
         }
       }
     }
@@ -79,20 +92,27 @@ class GroqKeyPool {
   /** Cek apakah file groq_keys.txt diperbarui (Hot-Reload) */
   private checkHotReload() {
     const now = Date.now();
-    if (now - this.lastFileCheck < 3000) return; // batasi pengecekan file tiap 3 detik
+    if (now - this.lastFileCheck < 3000) return; // batasi pengecekan tiap 3 detik
     this.lastFileCheck = now;
 
-    try {
-      const filePath = path.join(process.cwd(), 'groq_keys.txt');
-      if (fs.existsSync(filePath)) {
-        const stats = fs.statSync(filePath);
-        if (stats.mtimeMs > this.lastMtime) {
-          console.log('[GroqKeyPool] Perubahan groq_keys.txt terdeteksi, me-reload keys...');
-          this.reloadKeys();
+    const possiblePaths = [
+      path.join(process.cwd(), 'groq_keys.txt'),
+      path.join(process.cwd(), 'frontend', 'groq_keys.txt'),
+    ];
+
+    for (const filePath of possiblePaths) {
+      try {
+        if (fs.existsSync(filePath)) {
+          const stats = fs.statSync(filePath);
+          if (stats.mtimeMs > this.lastMtime) {
+            console.log('[GroqKeyPool] Perubahan groq_keys.txt terdeteksi, me-reload keys...');
+            this.reloadKeys();
+            break;
+          }
         }
+      } catch {
+        // abaikan jika filesystem read-only (e.g. Vercel)
       }
-    } catch {
-      // abaikan
     }
   }
 

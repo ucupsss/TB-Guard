@@ -39,4 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# GCP Service Account keys
+*key*.json
+*credentials*.json
+gcp-*.json
 
