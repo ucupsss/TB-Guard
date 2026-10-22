@@ -8,6 +8,8 @@ import { groqPool } from '@/lib/agent/groq-keys';
 import { isGroqModel, DEFAULT_MODEL_ID } from '@/lib/agent/models';
 import { getGoogleGeminiAuth, normalizeVertexModel } from '@/lib/agent/google-auth';
 
+export const maxDuration = 60;
+
 interface InToolCall {
   id: string;
   type: 'function';
@@ -171,10 +173,10 @@ export async function POST(req: Request) {
   const enc = new TextEncoder();
 
   // =========================================================================
-  // ALUR 1: GROQ CLOUD (Llama 3.3, DeepSeek R1, Mixtral, Qwen, dll.)
+  // HANDLER GROQ CLOUD (Llama 3.3, DeepSeek R1, Mixtral, Qwen, dll.)
   // Didukung Auto-Rotation 85+ API Keys & Hot-Reload jika terkena rate limit
   // =========================================================================
-  if (useGroq) {
+  const handleGroqStream = (targetModel: string, noticePrefix?: string) => {
     const keyInfo = groqPool.getActiveKey();
     if (!keyInfo) {
       return Response.json(
@@ -218,6 +220,14 @@ export async function POST(req: Request) {
     const stream = new ReadableStream({
       async start(ctl) {
         const send = (e: object) => ctl.enqueue(enc.encode(JSON.stringify(e) + '\n'));
+        if (noticePrefix) {
+          send({
+            type: 'wait',
+            seconds: 1,
+            notice: noticePrefix,
+          });
+        }
+
         const MAX_KEY_RETRIES = 5;
         let attempts = 0;
         let success = false;
@@ -238,7 +248,7 @@ export async function POST(req: Request) {
                 Authorization: `Bearer ${currentKey.key}`,
               },
               body: JSON.stringify({
-                model: selectedModel,
+                model: targetModel,
                 messages: openAiMsgs,
                 tools: groqTools,
                 tool_choice: 'auto',
@@ -269,7 +279,7 @@ export async function POST(req: Request) {
               }
 
               // Jika model tidak tersedia atau rate limit, rotasi atau lempar error
-              if (groqRes.status >= 500 || groqRes.status === 400 && parsedErr.includes('rate_limit')) {
+              if (groqRes.status >= 500 || (groqRes.status === 400 && parsedErr.includes('rate_limit'))) {
                 groqPool.markRateLimited(currentKey.key, 30);
                 continue;
               }
@@ -379,17 +389,32 @@ export async function POST(req: Request) {
         'Cache-Control': 'no-store',
       },
     });
+  };
+
+  if (useGroq) {
+    return handleGroqStream(selectedModel);
   }
 
   // =========================================================================
   // ALUR 2: GOOGLE GEMINI (Vertex AI Google Cloud & Generative Language API)
   // Kompatibel dengan GCP Service Account (Vercel, Cloud Run, Local Dev)
+  // Dilengkapi Auto-Failover ke Groq jika kredensial GCP belum disetel di Vercel
   // =========================================================================
   let googleAuth;
   try {
     googleAuth = await getGoogleGeminiAuth();
   } catch (err: unknown) {
     const e = err as Error;
+    // Otomatis fallback ke Groq Engine jika di Vercel belum disetel GCP_SERVICE_ACCOUNT_KEY
+    const fallbackKey = groqPool.getActiveKey();
+    if (fallbackKey) {
+      console.warn('[AgentRoute] Mengalihkan ke Groq AI Engine karena Google Gemini Auth belum disetel di Vercel:', e.message);
+      return handleGroqStream(
+        'qwen/qwen3.8-27b',
+        'Mengalihkan ke Groq AI Engine (Qwen 3.8 27B) karena kredensial Google Service Account belum disetel di Environment Variables Vercel.'
+      );
+    }
+
     return Response.json(
       {
         error:
