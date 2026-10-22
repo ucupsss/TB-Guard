@@ -20,6 +20,7 @@ const turnText = (t: Turn) => t.parts.flatMap((p) => (p.kind === 'text' ? [p.tex
 
 function pageLabel(path: string) {
   if (path === '/design') return '3D Prototype';
+  if (path === '/public-area') return '3D Public Area';
   if (path === '/') return 'Dashboard';
   if (path === '/devices/new') return 'Add Device';
   if (/^\/devices\/\d+/.test(path)) return `Perangkat #${path.split('/')[2]}`;
@@ -32,12 +33,12 @@ function pageLabel(path: string) {
 
 /** saran perintah sesuai halaman yang sedang dibuka */
 function suggestions(path: string): string[] {
-  if (path.startsWith('/devices/new') || path === '/devices') return ['Tambahkan perangkat TB Guard 5 di Puskesmas Gubeng, zona Ruang Tunggu Poli', 'Perangkat mana yang rusak atau tidak aktif, dan sejak kapan?', 'Ubah status TB Guard 4 menjadi inactive'];
-  if (/^\/devices\/\d+/.test(path)) return ['Ringkas kondisi perangkat ini', 'Tandai semua deteksi TB perangkat ini sudah ditinjau', 'Jam berapa perangkat ini paling ramai batuk?'];
-  if (path.startsWith('/detections/')) return ['Jelaskan hasil deteksi ini', 'Tandai deteksi ini sudah ditinjau dan beri label TB', 'Daftarkan individu di deteksi ini sebagai pasien'];
-  if (path.startsWith('/patients')) return ['Siapa pasien dengan kepatuhan obat di bawah 90%?', 'Pasien mana yang dijadwalkan kunjungan minggu ini?', 'Majukan PSN-2510 ke tahap berikutnya'];
-  if (path.startsWith('/data/')) return ['Berapa akurasi model di dataset ini?', 'Bandingkan hasil per gender', 'Tampilkan 5 data terbaru'];
-  return ['Ada berapa batuk terindikasi TB yang belum ditinjau?', 'Jam berapa paling ramai batuk dalam 14 hari terakhir?', 'Tambah perangkat baru di Stasiun Wonokromo'];
+  if (path.startsWith('/devices/new') || path === '/devices') return ['Tambah perangkat di Puskesmas Gubeng', 'Perangkat mana yang rusak?', 'Nonaktifkan TB Guard 4'];
+  if (/^\/devices\/\d+/.test(path)) return ['Ringkas perangkat ini', 'Tandai semua deteksi ditinjau', 'Jam paling ramai?'];
+  if (path.startsWith('/detections/')) return ['Jelaskan deteksi ini', 'Tandai ditinjau · label TB', 'Daftarkan jadi pasien'];
+  if (path.startsWith('/patients')) return ['Kepatuhan OAT < 90%?', 'Kontrol minggu ini?', 'Majukan PSN-2510'];
+  if (path.startsWith('/data/')) return ['Akurasi model?', 'Bandingkan per gender', '5 data terbaru'];
+  return ['Berapa batuk TB belum ditinjau?', 'Jam paling ramai batuk?', 'Tambah perangkat di Wonokromo'];
 }
 
 const KIND_ICON = { read: MagnifyingGlassIcon, write: Pencil1Icon, delete: TrashIcon, ui: ExternalLinkIcon } as const;
@@ -237,7 +238,7 @@ export function AgentPanel({ className, onClose }: { className?: string; onClose
             </div>
           ) : <textarea ref={input} rows={1} value={text} onChange={(e) => setText(e.target.value)} aria-label="Pesan untuk agen"
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit(); } }}
-            placeholder="Minta apa saja, mis. tambah perangkat baru…"
+            placeholder="Tanya apa saja…"
             className="block max-h-40 w-full resize-none bg-transparent px-3 pb-1 pt-2.5 text-sm outline-none placeholder:text-muted-foreground" />}
           <div className="flex items-center gap-2 px-2 pb-2">
             <ModelPicker currentModel={model} onSelectModel={setModel} triggerVariant="footer" />
@@ -261,7 +262,7 @@ export function AgentPanel({ className, onClose }: { className?: string; onClose
           </div>
         </div>
         {audioErr && <p className="mt-1.5 px-1 text-[11px] text-danger">{audioErr}</p>}
-        <p className="mt-1.5 px-1 text-[11px] text-muted-foreground">Enter kirim · Shift+Enter baris baru · 🎤 bicara · Ctrl+I buka/tutup</p>
+        <p className="mt-1.5 px-1 text-[11px] text-muted-foreground" title="Enter kirim · Shift+Enter baris baru · 🎤 bicara · Ctrl+I buka/tutup">Ctrl+I buka/tutup</p>
       </form>
     </div>
   );

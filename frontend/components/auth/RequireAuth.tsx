@@ -3,10 +3,11 @@
 import * as React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useStore } from '@/lib/store';
+import { PageSkeleton, type SkeletonVariant } from '@/components/layout/PageSkeleton';
 
 /** Halaman hanya tampil setelah login (sesi demo di sessionStorage).
  *  ?preview=1 masuk otomatis dengan akun demo, berguna untuk cek tampilan. */
-export function RequireAuth({ children }: { children: React.ReactNode }) {
+export function RequireAuth({ children, skeleton = 'dashboard' }: { children: React.ReactNode; skeleton?: SkeletonVariant }) {
   const { user, ready, login } = useStore();
   const router = useRouter();
   const preview = useSearchParams()?.get('preview');
@@ -17,6 +18,6 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     else router.replace('/login');
   }, [ready, user, preview, login, router]);
 
-  if (!ready || !user) return null;
+  if (!ready || !user) return <PageSkeleton variant={skeleton} />;
   return <>{children}</>;
 }

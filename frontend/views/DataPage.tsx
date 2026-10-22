@@ -71,7 +71,7 @@ function DataView({ src }: { src: Src }) {
   return (
     <AppLayout crumbs={[{ label: 'Data' }, { label: title }]}>
       <div className="intro-y mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="mr-auto"><h2 className="text-lg font-medium">{title}</h2><p className="mt-1 max-w-2xl text-muted-foreground">{desc}</p></div>
+        <div className="mr-auto"><h2 className="text-lg font-medium" title={desc}>{title}</h2></div>
         <Button onClick={exportCSV}><DownloadIcon />Export CSV</Button>
       </div>
 
@@ -117,7 +117,7 @@ function DataView({ src }: { src: Src }) {
                 <td className={td}>{r.pred === 'TB' ? 'TB' : 'Non-TB'} <span className="text-muted-foreground num">({r.confidence.toFixed(2)})</span></td></tr>))}</tbody>
           </>}
         </table>
-        {!rows.length && <div className="box p-10 text-center text-muted-foreground">Tidak ada data yang cocok.</div>}
+        {!rows.length && <div className="box p-10 text-center text-muted-foreground">Kosong</div>}
       </div>
       <TablePager page={pg.page} pages={pg.pages} onPage={pg.setPage} size={pg.size} onSize={pg.setSize} />
     </AppLayout>

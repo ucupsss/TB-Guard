@@ -82,19 +82,15 @@ export default function Login() {
       <div className="grid min-h-screen lg:grid-cols-2">
         {/* kiri: info */}
         <div className="relative hidden flex-col px-12 pb-16 pt-10 text-white lg:flex xl:px-20">
-          <div className="flex items-center gap-4">
-            <Logo className="h-16 w-16" />
-            <span className="text-2xl font-bold tracking-tight">TB Guard</span>
+          <div className="flex items-center">
+            <Logo variant="full" tone="white" className="h-14 w-auto" />
           </div>
           <div className="my-auto">
             <Illustration />
             <div className="mt-10 text-4xl font-medium leading-tight">
-              Beberapa klik lagi untuk <br />
-              masuk ke akun Anda.
+              Masuk ke TB Guard
             </div>
-            <div className="mt-5 text-lg text-white/70">
-              Skrining tuberkulosis di ruang publik dengan AI Acoustic Sensing dan Computer Vision.
-            </div>
+            <div className="mt-5 text-lg text-white/70">Skrining TB berbasis suara & AI.</div>
           </div>
         </div>
 
@@ -104,12 +100,11 @@ export default function Login() {
             onSubmit={submit}
             className="mx-auto w-full max-w-md rounded-md bg-card px-5 py-8 shadow-box sm:px-8 lg:bg-transparent lg:shadow-none"
           >
-            <div className="mb-8 flex items-center gap-3.5 lg:hidden">
-              <Logo className="h-12 w-12" tone="primary" />
-              <span className="text-2xl font-bold tracking-tight text-foreground">TB Guard</span>
+            <div className="mb-8 flex items-center lg:hidden">
+              <Logo variant="full" tone="primary" className="h-12 w-auto" />
             </div>
             <h1 className="text-2xl font-bold xl:text-3xl text-foreground">Sign In</h1>
-            <p className="mt-2 text-muted-foreground">Masuk ke panel admin TB Guard.</p>
+            
 
             <div className="mt-8 grid gap-4">
               <Input
@@ -179,7 +174,7 @@ export default function Login() {
             </div>
 
             <p className="mt-8 text-sm text-muted-foreground">
-              Demo: email apa saja + password minimal 6 karakter.
+              Demo: email bebas · password ≥ 6 karakter
             </p>
           </form>
         </div>

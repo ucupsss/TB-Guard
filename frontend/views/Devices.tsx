@@ -78,7 +78,7 @@ export default function Devices() {
             </div>
           );
         })}
-        {list.length === 0 && <div className="box intro-y col-span-12 p-10 text-center text-muted-foreground">Tidak ada perangkat yang cocok.</div>}
+        {list.length === 0 && <div className="box intro-y col-span-12 p-10 text-center text-muted-foreground">Kosong</div>}
       </div>
     </AppLayout>
   );

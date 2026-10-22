@@ -57,7 +57,7 @@ export function EditDetectionDialog({ uuid, open, onOpenChange }: { uuid: string
               <Label>Label verifikasi tenaga kesehatan</Label>
               <Select value={verified} onValueChange={setVerified}><SelectTrigger aria-label="Label verifikasi"><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="none">Belum diverifikasi</SelectItem><SelectItem value="TB">TB (terkonfirmasi)</SelectItem><SelectItem value="NEG">Bukan TB</SelectItem></SelectContent></Select>
-              <p className="text-xs text-muted-foreground">Dipakai untuk continuous learning model.</p>
+              
             </div>
           </div>
           <DialogFooter>

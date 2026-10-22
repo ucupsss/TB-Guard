@@ -397,16 +397,13 @@ export default function Patients() {
       <div className="intro-y mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200/80 pb-5 dark:border-white/10">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl" title="Deteksi akustik → verifikasi TCM/dahak → terapi OAT → sembuh">
               Pelacakan Pasien
             </h1>
             <Badge variant="outline" className="border-primary/30 bg-primary/5 text-primary text-xs font-semibold px-2 py-0.5">
-              Kohort Terpadu
+              Kohort
             </Badge>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-            Pantau alur rujukan dari deteksi akustik awal, verifikasi diagnostik TCM/dahak, kepatuhan terapi OAT, hingga evaluasi kesembuhan.
-          </p>
         </div>
         <div className="flex items-center gap-2.5 shrink-0">
           <Button
@@ -414,7 +411,7 @@ export default function Patients() {
             className="shadow-sm font-medium gap-1.5 px-4"
           >
             <Plus className="h-4 w-4" />
-            <span>Daftarkan Pasien</span>
+            <span>Tambah</span>
           </Button>
         </div>
       </div>
@@ -425,11 +422,8 @@ export default function Patients() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
             <div>
-              <p className="font-semibold text-sm">
-                Rujukan Deteksi Akustik: <span className="font-mono">{fromDet.uuid}</span> (Keyakinan: {(fromDet.confidence * 100).toFixed(1)}%)
-              </p>
-              <p className="mt-0.5 text-xs text-amber-800 dark:text-amber-300">
-                Deteksi akustik adalah alat bantu penapisan awal (non-diagnostik). Daftarkan data pasien untuk memulai alur skrining klinis dan konfirmasi sputum TCM.
+              <p className="font-semibold text-sm" title="Deteksi akustik = penapisan awal (non-diagnostik). Daftarkan pasien untuk skrining klinis & TCM.">
+                Rujukan <span className="font-mono">{fromDet.uuid}</span> · {(fromDet.confidence * 100).toFixed(1)}%
               </p>
             </div>
           </div>
@@ -465,12 +459,12 @@ export default function Patients() {
       <div className="intro-y mt-4 flex items-center justify-between gap-3 rounded-md border border-slate-200/90 bg-white px-3.5 py-2.5 text-xs text-slate-600 shadow-xs dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
-          <span>
-            <b>Integritas Medis:</b> Deteksi akustik model AI berfungsi sebagai alat penapisan epidemiologis. Seluruh diagnosis definitif wajib melalui verifikasi klinis & laboratorium standar (TCM / BTA).
+          <span title="Deteksi akustik AI = penapisan awal. Diagnosis definitif wajib lewat verifikasi klinis & lab (TCM / BTA).">
+            Bukan diagnosis · wajib verifikasi TCM / BTA
           </span>
         </div>
         <span className="hidden sm:inline-block font-mono text-[11px] text-muted-foreground">
-          Protokol DOTS WHO & Kemenkes RI
+          DOTS WHO
         </span>
       </div>
 
@@ -509,18 +503,15 @@ export default function Patients() {
                   </span>
                   <span className="text-xs text-muted-foreground font-medium">pasien</span>
                 </div>
-                <div className="mt-1 font-semibold text-sm text-foreground line-clamp-1">
+                <div className="mt-1 font-semibold text-sm text-foreground line-clamp-1" title={cfg.sublabel}>
                   {cfg.name}
-                </div>
-                <div className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
-                  {cfg.sublabel}
                 </div>
               </div>
 
               {/* Real Metric Progress Bar (Proportion of Cohort) */}
               <div className="mt-3.5 pt-2.5 border-t border-slate-100 dark:border-slate-800/80">
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1.5">
-                  <span>Porsi Kohort</span>
+                  <span>Porsi</span>
                   <span className="font-semibold text-foreground">{pctCohort}%</span>
                 </div>
                 <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden dark:bg-slate-800">
@@ -544,7 +535,7 @@ export default function Patients() {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Cari nama, ID, NIK, PIC, atau UUID..."
+              placeholder="Cari pasien…"
               className="pl-9 pr-8 h-9 text-sm bg-background border-slate-200 dark:border-slate-700"
             />
             {query && (
@@ -601,7 +592,7 @@ export default function Patients() {
         {/* Status Count & Clear Action */}
         <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-muted-foreground pt-1 sm:pt-0">
           <span>
-            Menampilkan <b className="text-foreground">{filteredPatients.length}</b> dari {totalPatients} pasien
+            <b className="text-foreground">{filteredPatients.length}</b>/{totalPatients}
           </span>
           {isFiltered && (
             <Button
@@ -634,10 +625,10 @@ export default function Patients() {
               className="flex flex-col min-w-[285px] w-[285px] xl:w-auto xl:flex-1 shrink-0 rounded-xl border border-slate-200/90 bg-slate-100/70 p-3.5 dark:border-slate-800 dark:bg-slate-900/40"
             >
               {/* Column Header */}
-              <div className="mb-2 flex items-center justify-between pb-2 border-b border-slate-200/80 dark:border-slate-800/80">
+              <div className="mb-3 flex items-center justify-between pb-2 border-b border-slate-200/80 dark:border-slate-800/80">
                 <div className="flex items-center gap-2">
                   <span className={cn('h-2.5 w-2.5 rounded-full', cfg.colorDot)} />
-                  <span className="font-semibold text-sm text-foreground">{cfg.name}</span>
+                  <span className="font-semibold text-sm text-foreground" title={cfg.hint}>{cfg.name}</span>
                 </div>
                 <Badge
                   variant="secondary"
@@ -647,10 +638,6 @@ export default function Patients() {
                 </Badge>
               </div>
 
-              {/* Column Workflow Hint */}
-              <p className="mb-3 text-[11px] text-muted-foreground leading-tight px-0.5">
-                {cfg.hint}
-              </p>
 
               {/* Patient Cards Stack */}
               <div className="flex flex-col gap-3 min-h-[350px]">
@@ -744,7 +731,7 @@ export default function Patients() {
                         {hasAcoustic ? (
                           <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                             <Mic className="h-2.5 w-2.5 text-primary" />
-                            Skrining Akustik: {patient.uuid}
+                            {patient.uuid}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
@@ -754,7 +741,7 @@ export default function Patients() {
                         )}
 
                         <span className="inline-flex items-center rounded border border-slate-200/80 px-1.5 py-0.5 text-[10px] text-muted-foreground dark:border-slate-800">
-                          Hari ke-{patient.daysIn}
+                          H+{patient.daysIn}
                         </span>
                       </div>
 
@@ -774,7 +761,7 @@ export default function Patients() {
                       {patient.stage === 3 && patient.adherence != null && (
                         <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800">
                           <div className="flex items-center justify-between text-xs mb-1">
-                            <span className="text-[11px] text-muted-foreground">Kepatuhan OAT</span>
+                            <span className="text-[11px] text-muted-foreground">OAT</span>
                             <span className={cn('font-semibold text-xs', patient.adherence >= 85 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400')}>
                               {patient.adherence}%
                             </span>
@@ -801,7 +788,7 @@ export default function Patients() {
                               </>
                             ) : (
                               <span className="text-emerald-600 font-medium dark:text-emerald-400">
-                                Selesai Terapi
+                                Selesai
                               </span>
                             )}
                           </span>
@@ -821,11 +808,6 @@ export default function Patients() {
                     <CheckCircle2 className="h-6 w-6 text-slate-300 dark:text-slate-700 mb-2" />
                     <p className="font-medium text-slate-600 dark:text-slate-400">
                       Tidak ada pasien
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {isFiltered
-                        ? 'Sesuaikan filter pencarian Anda'
-                        : `Belum ada pasien pada tahap ${cfg.name.toLowerCase()}`}
                     </p>
                   </div>
                 )}
@@ -903,11 +885,8 @@ export default function Patients() {
                   <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="text-xs font-semibold text-foreground">
-                          Rekomendasi Tindak Lanjut Alur Klinis
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          Tingkatkan status pasien ke tahap berikutnya setelah evaluasi klinis.
+                        <div className="text-xs font-semibold text-foreground" title="Naikkan tahap setelah evaluasi klinis">
+                          Tindak Lanjut
                         </div>
                       </div>
                       <Button
@@ -951,7 +930,7 @@ export default function Patients() {
                     <div className="rounded-lg border border-slate-100 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-900/50">
                       <span className="text-muted-foreground">Lama Masa Pelacakan</span>
                       <div className="font-medium text-foreground mt-1">
-                        Hari ke-{activePatient.daysIn} sejak didaftarkan
+                        H+{activePatient.daysIn}
                       </div>
                     </div>
                   </div>
@@ -962,12 +941,12 @@ export default function Patients() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-xs font-bold text-foreground">
-                        Jadwal Kontrol & Rencana Kunjungan
+                        Jadwal Kontrol
                       </h4>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {activePatient.nextVisit
-                          ? `Jadwal terdekat: ${fmt.date(activePatient.nextVisit)}`
-                          : 'Tidak ada jadwal kontrol tertunda (pengobatan selesai).'}
+                          ? fmt.date(activePatient.nextVisit)
+                          : 'Selesai'}
                       </p>
                     </div>
                     {activePatient.nextVisit && (
@@ -1120,11 +1099,9 @@ export default function Patients() {
               <DialogHeader>
                 <DialogTitle className="text-base font-bold flex items-center gap-2">
                   <ArrowRight className="h-5 w-5 text-primary" />
-                  Konfirmasi Peningkatan Tahap Pasien
+                  Naikkan Tahap
                 </DialogTitle>
-                <DialogDescription className="text-xs mt-1">
-                  Perubahan status klinis pasien akan diverifikasi dan dicatat pada rekam jejak kohort.
-                </DialogDescription>
+                <DialogDescription className="sr-only">Konfirmasi perubahan tahap pasien</DialogDescription>
               </DialogHeader>
 
               <div className="mt-4 space-y-3.5 text-xs">
@@ -1146,14 +1123,14 @@ export default function Patients() {
                 </div>
 
                 {/* Explicit Safety Notice */}
-                <div className="rounded-md border border-amber-200 bg-amber-50 p-2.5 text-amber-900 text-[11px] dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-200">
-                  Pastikan bukti verifikasi (misal hasil lab TCM GeneXpert, rontgen dada, atau evaluasi klinis dokter) telah valid sebelum mengonfirmasi peningkatan status ini.
+                <div className="rounded-md border border-amber-200 bg-amber-50 p-2.5 text-amber-900 text-[11px] dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-200" title="Contoh: hasil TCM GeneXpert, rontgen dada, atau evaluasi dokter.">
+                  Pastikan bukti verifikasi valid.
                 </div>
 
                 {/* Clinical Note Input */}
                 <div className="space-y-1.5">
                   <Label htmlFor="advNote" className="text-xs font-medium">
-                    Catatan Verifikasi / Tindak Lanjut (Wajib diisi):
+                    Catatan *
                   </Label>
                   <Input
                     id="advNote"
@@ -1195,11 +1172,9 @@ export default function Patients() {
             <DialogHeader>
               <DialogTitle className="text-base font-bold flex items-center gap-2">
                 <Plus className="h-4 w-4 text-primary" />
-                Daftarkan Pasien Baru
+                Pasien Baru
               </DialogTitle>
-              <DialogDescription className="text-xs">
-                Registrasi pasien baru ke alur pelacakan kohort TB-Guard. Pasien akan otomatis masuk ke tahap awal (Terdeteksi).
-              </DialogDescription>
+              <DialogDescription className="text-xs">Masuk tahap Terdeteksi.</DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-3.5 sm:grid-cols-2 text-xs">

@@ -92,26 +92,26 @@ export default function Dashboard() {
     <AppLayout crumbs={[{ label: 'Dashboard' }]}>
       {notice && pending.length > 0 && (
         <div className="intro-y mt-5 flex items-center rounded-md bg-primary px-4 py-3 text-white shadow-box">
-          <span className="flex-1">Ada {pending.length} batuk terindikasi TB yang belum ditinjau. Tinjau sekarang di <Link href={`/detections/${pending[0].uuid}`} className="font-medium underline underline-offset-2">antrean peringatan</Link>.</span>
+          <span className="flex-1">{pending.length} batuk TB belum ditinjau · <Link href={`/detections/${pending[0].uuid}`} className="font-medium underline underline-offset-2">Tinjau</Link></span>
           <button onClick={() => setNotice(false)} className="ml-3 rounded p-1 hover:bg-white/10" aria-label="Tutup pemberitahuan"><Cross2Icon className="h-4 w-4" /></button>
         </div>
       )}
 
       <div className="mt-6 grid grid-cols-12 gap-6">
         {/* ===== Ringkasan (General Report) ===== */}
-        <div className="col-span-12 lg:col-span-8 xl:col-span-6">
+        <div className="col-span-12 flex flex-col lg:col-span-8 xl:col-span-6">
           <SectionHeader title="Ringkasan Skrining">
             <Select value={period} onValueChange={setPeriod}>
               <SelectTrigger className="box h-9 w-36 border-0" aria-label="Periode"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="7">7 hari</SelectItem><SelectItem value="14">14 hari</SelectItem><SelectItem value="30">30 hari</SelectItem></SelectContent>
             </Select>
           </SectionHeader>
-          <div className="box intro-y flex flex-col md:flex-row">
+          <div className="box intro-y flex flex-1 flex-col md:flex-row">
             <div className="flex-1 px-8 py-12">
               <SpeakerLoudIcon className="h-10 w-10 text-pending" />
               <div className="mt-6 flex items-end gap-1 text-3xl font-medium xl:text-4xl"><span className="num">{cur.length}</span><span className="mb-1 text-base font-normal text-muted-foreground">suara</span></div>
               <div className="mt-4 flex items-center gap-2"><DeltaPill value={pctChange(cur.length, prev.length)} goodWhenUp /><span className="text-xs text-muted-foreground">vs {days} hari sebelumnya</span></div>
-              <div className="mt-4 text-muted-foreground">Suara terekam oleh {active.length} perangkat aktif dalam {days} hari terakhir, lalu diklasifikasi model LSTM.</div>
+              <div className="mt-4 text-muted-foreground" title={`Dari ${active.length} perangkat aktif, diklasifikasi model LSTM`}>{active.length} perangkat aktif</div>
               <button onClick={exportCSV} className="relative mt-12 flex h-10 items-center justify-start rounded-full border border-dashed border-slate-300 pl-5 pr-14 text-sm font-medium transition-all cursor-pointer hover:border-primary hover:text-primary hover:bg-primary/5 active:scale-95 dark:border-white/20">
                 Download Laporan
                 <span className="absolute inset-y-0 right-0 my-auto mr-1 grid h-8 w-8 place-items-center rounded-full bg-primary text-white"><ArrowRightIcon className="h-4 w-4" /></span>
@@ -138,9 +138,9 @@ export default function Dashboard() {
         </div>
 
         {/* ===== Aktivitas perangkat (Visitors) ===== */}
-        <div className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3">
+        <div className="col-span-12 flex flex-col sm:col-span-6 lg:col-span-4 xl:col-span-3">
           <SectionHeader title="Aktivitas Perangkat"><Link href="/devices" className="truncate text-sm text-primary dark:text-blue-300">Lihat di Peta</Link></SectionHeader>
-          <div className="box intro-y p-5">
+          <div className="box intro-y flex flex-1 flex-col p-5">
             <div className="flex items-center">
               <div className="text-muted-foreground">Rekaman masuk hari ini</div>
               <DropdownMenu>
@@ -153,7 +153,7 @@ export default function Dashboard() {
             </div>
             <div className="mt-1 text-2xl font-medium num">{today.length}</div>
             <div className="mt-4 flex items-center border-b border-slate-200 pb-2 dark:border-white/10">
-              <div className="text-muted-foreground">Rekaman per jam (14 hari)</div>
+              <div className="text-muted-foreground">Per jam · 14 hari</div>
               <div className="ml-auto text-xs text-success">jam ramai {hours.reduce((a, b) => (b.n > a.n ? b : a)).h}</div>
             </div>
             <div className="mt-2 h-[72px]">
@@ -168,14 +168,15 @@ export default function Dashboard() {
             {perDevice.map(({ d, n }) => (
               <Link key={d.id} href={`/devices/${d.id}`} className="mt-1.5 flex items-center justify-between hover:text-primary"><span className="truncate">{d.name} · {d.zone.split(' – ')[0]}</span><span className="num">{n}</span></Link>
             ))}
-            <Button asChild variant="outline" className="mt-4 w-full border-dashed shadow-none"><Link href="/devices">Laporan Real-Time</Link></Button>
+            <div className="min-h-4 flex-1" />
+            <Button asChild variant="outline" className="w-full border-dashed shadow-none"><Link href="/devices">Laporan Real-Time</Link></Button>
           </div>
         </div>
 
         {/* ===== Komposisi (Users By Age) ===== */}
-        <div className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3">
+        <div className="col-span-12 flex flex-col sm:col-span-6 lg:col-span-4 xl:col-span-3">
           <SectionHeader title="Komposisi"><Link href="/patients" className="truncate text-sm text-primary dark:text-blue-300">Show More</Link></SectionHeader>
-          <div className="box intro-y p-5">
+          <div className="box intro-y flex flex-1 flex-col p-5">
             <Tabs value={mix} onValueChange={setMix} className="flex justify-center">
               <TabsList className="mx-auto w-4/5 bg-secondary/70">
                 <TabsTrigger value="hasil" className="flex-1">Hasil</TabsTrigger>
@@ -196,7 +197,8 @@ export default function Dashboard() {
                 <div className="mt-0.5 text-muted-foreground">{mix === 'hasil' ? `suara, ${days} hari` : 'pasien'}</div>
               </div>
             </div>
-            <div className="mx-auto mt-6 w-52 sm:w-auto">
+            <div className="min-h-6 flex-1" />
+            <div className="mx-auto w-52 sm:w-auto">
               {pie.map((p) => (
                 <div key={p.name} className="mt-3 flex items-center first:mt-0">
                   <span className="mr-3 h-2 w-2 rounded-full" style={{ background: p.color }} />
@@ -213,11 +215,11 @@ export default function Dashboard() {
           <SectionHeader title="Peta Perangkat">
             <div className="relative hidden sm:block">
               <SewingPinIcon className="absolute inset-y-0 left-0 my-auto ml-3 h-4 w-4 text-muted-foreground" />
-              <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Filter berdasarkan kota" className="box h-9 w-56 border-0 pl-9" aria-label="Filter berdasarkan kota" />
+              <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Kota" className="box h-9 w-56 border-0 pl-9" aria-label="Filter berdasarkan kota" />
             </div>
           </SectionHeader>
           <div className="box intro-y p-5">
-            <div>{devices.length} perangkat TB Guard di 1 kota (Surabaya). Klik penanda untuk melihat detail; angka di penanda = jumlah batuk terindikasi TB.</div>
+            <div title="Klik penanda untuk detail · angka = batuk terindikasi TB">{devices.length} perangkat · Surabaya</div>
             <DeviceMap devices={devices.filter((d) => !city || d.city.toLowerCase().includes(city.toLowerCase()) || d.location.toLowerCase().includes(city.toLowerCase()))} detections={detections} className="z-0 mt-5 h-[310px] overflow-hidden rounded-md bg-slate-200" />
           </div>
         </div>
@@ -244,16 +246,14 @@ export default function Dashboard() {
         <div className="col-span-12 grid grid-cols-12 gap-6">
           <div className="intro-y relative col-span-12 overflow-hidden rounded-md bg-primary p-6 text-white shadow-box sm:col-span-6 sm:p-8">
             <div className="relative z-10 w-full sm:w-3/5">
-              <div className="text-lg font-medium leading-snug sm:text-xl">Daftarkan pasien terindikasi TB ke pelacakan</div>
-              <div className="mt-3 text-sm leading-relaxed text-white/70">Pantau dari skrining lanjut, konfirmasi lab, sampai sembuh.</div>
+              <div className="text-lg font-medium leading-snug sm:text-xl" title="Pantau dari skrining lanjut, konfirmasi lab, sampai sembuh.">Lacak pasien TB</div>
               <Button variant="white" className="mt-6 w-32 sm:mt-10" onClick={() => router.push('/patients')}>Mulai</Button>
             </div>
             <NurseIllustration className="absolute bottom-0 right-0 hidden h-[95%] sm:block" />
           </div>
           <div className="intro-y box relative col-span-12 overflow-hidden p-6 sm:col-span-6 sm:p-8">
             <div className="relative z-10 sm:w-3/5">
-              <div className="text-lg font-medium leading-snug text-primary dark:text-blue-300 sm:text-xl">Bagikan formulir batuk untuk <span className="font-bold">SKRINING MANDIRI</span></div>
-              <div className="mt-3 text-sm leading-relaxed text-muted-foreground">Masyarakat merekam batuk dan mengisi gejala sendiri. Hasilnya masuk ke Data Batuk Web Form.</div>
+              <div className="text-lg font-medium leading-snug text-primary dark:text-blue-300 sm:text-xl" title="Masyarakat merekam batuk & isi gejala sendiri. Hasil masuk ke Data Batuk Web Form."><span className="font-bold">SKRINING MANDIRI</span></div>
               <div className="relative mt-6 w-56 sm:mt-10">
                 <Input readOnly value="https://tbguard.id/batuk" aria-label="Tautan formulir" className="pr-10" />
                 <button className="absolute inset-y-0 right-0 my-auto mr-2 rounded p-1 text-muted-foreground hover:text-foreground" aria-label="Salin tautan"
@@ -311,9 +311,8 @@ export default function Dashboard() {
             <Button variant="outline" size="icon" className="box h-8 w-8 border-0" onClick={() => setNote((x) => (x + 1) % notes.length)} aria-label="Catatan berikutnya"><ChevronRightIcon /></Button>
           </SectionHeader>
           <div className="box intro-y p-5" aria-live="polite">
-            <div className="text-base font-medium">{n.title}</div>
+            <div className="text-base font-medium" title={n.body}>{n.title}</div>
             <div className="mt-1 text-muted-foreground">{fmt.ago(n.when)}</div>
-            <div className="mt-1 text-justify text-muted-foreground">{n.body}</div>
             <div className="mt-5 flex font-medium">
               <Button variant="secondary" size="sm" onClick={() => router.push(n.to)}>Lihat Detail</Button>
               <Button variant="outline" size="sm" className="ml-auto" onClick={() => setNote((x) => (x + 1) % notes.length)}>Dismiss</Button>

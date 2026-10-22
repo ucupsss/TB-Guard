@@ -5,7 +5,17 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BellIcon, ExitIcon, HamburgerMenuIcon, LockClosedIcon, MagicWandIcon, MagnifyingGlassIcon, MoonIcon, PersonIcon, SpeakerLoudIcon, SunIcon } from '@radix-ui/react-icons';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+} from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useStore } from '@/lib/store';
@@ -86,60 +96,117 @@ export function TopBar({ crumbs, onMenu, dark, onToggleDark }: { crumbs: Crumb[]
         </PopoverContent>
       </Popover>
 
-      {/* toggle mode gelap */}
-      {onToggleDark && (
-        <button
-          type="button"
-          onClick={onToggleDark}
-          title={dark ? 'Beralih ke mode terang' : 'Beralih ke mode gelap'}
-          aria-label={dark ? 'Mode terang' : 'Mode gelap'}
-          className="mr-3 inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-200/60 dark:text-slate-300 dark:hover:bg-white/10"
-        >
-          {dark ? <SunIcon className="h-4 w-4 text-amber-400" /> : <MoonIcon className="h-4 w-4" />}
-        </button>
-      )}
-
       {/* agen AI */}
-      <button type="button" onClick={agent.toggle} aria-pressed={agent.open} title="TB Guard Agent (Ctrl+I)"
-        className={cn('mr-3 sm:mr-6 inline-flex h-9 items-center gap-2 rounded-full px-3 text-sm font-medium outline-none transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-ring hover:scale-[1.02] active:scale-95',
-          agent.open ? 'bg-primary text-white shadow-box' : 'bg-primary/10 text-primary hover:bg-primary/15 dark:bg-white/10 dark:text-blue-200')}>
+      <button
+        type="button"
+        onClick={agent.toggle}
+        aria-pressed={agent.open}
+        title="TB Guard Agent (Ctrl+I)"
+        className={cn(
+          'mr-3 sm:mr-4 inline-flex h-9 items-center gap-2 rounded-full px-3 text-sm font-medium outline-none transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-ring hover:scale-[1.02] active:scale-95',
+          agent.open
+            ? 'bg-primary text-white shadow-box'
+            : 'bg-primary/10 text-primary hover:bg-primary/15 dark:bg-white/10 dark:text-blue-200'
+        )}
+      >
         <MagicWandIcon className="h-4 w-4" />
         <span className="hidden sm:inline">Agent</span>
         {agent.running && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-pending" />}
       </button>
 
-      {/* notifikasi */}
+      {/* akun & preferensi */}
       <DropdownMenu>
-        <DropdownMenuTrigger className="relative mr-3 sm:mr-6 rounded-full p-1.5 text-slate-600 outline-none hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-ring dark:text-slate-300 cursor-pointer" aria-label={`${pending.length} peringatan TB belum ditinjau`}>
-          <BellIcon className="h-5 w-5" />
-          {pending.length > 0 && <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-danger ring-2 ring-page" />}
+        <DropdownMenuTrigger
+          className="relative rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer transition-transform hover:scale-105 active:scale-95"
+          aria-label="Menu akun & preferensi"
+        >
+          <Avatar className="h-8 w-8 shadow-sm ring-2 ring-primary/20 dark:ring-white/20 transition-all hover:ring-primary">
+            <AvatarFallback className="bg-primary text-xs font-semibold text-white">
+              {initials(user?.name || 'A')}
+            </AvatarFallback>
+          </Avatar>
+          {pending.length > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-danger ring-2 ring-page animate-pulse" />
+          )}
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-80 p-4 sm:w-[350px]">
-          <div className="mb-4 font-medium">Notifikasi <span className="text-muted-foreground">· {pending.length} peringatan TB</span></div>
-          {pending.slice(0, 5).map((d) => (
-            <DropdownMenuItem key={d.uuid} className="mb-2.5 items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors last:mb-0 hover:bg-accent focus:bg-accent" onSelect={() => router.push(`/detections/${d.uuid}`)}>
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-danger/10 text-danger"><SpeakerLoudIcon className="h-5 w-5" /></span>
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center justify-between gap-2"><b className="truncate font-medium">{device(d.deviceId)?.name}</b><span className="whitespace-nowrap text-xs text-muted-foreground">{fmt.ago(d.time)}</span></span>
-                <span className="block truncate text-muted-foreground text-xs mt-0.5">Batuk terindikasi TB · conf. {d.confidence.toFixed(2)}</span>
-              </span>
-            </DropdownMenuItem>
-          ))}
-          {pending.length === 0 && <p className="text-sm text-muted-foreground">Tidak ada peringatan baru.</p>}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* akun */}
-      <DropdownMenu>
-        <DropdownMenuTrigger className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer transition-transform hover:scale-105 active:scale-95" aria-label="Menu akun">
-          <Avatar className="h-8 w-8 shadow-sm ring-2 ring-primary/20 dark:ring-white/20 transition-all hover:ring-primary"><AvatarFallback className="bg-primary text-xs font-semibold text-white">{initials(user?.name || 'A')}</AvatarFallback></Avatar>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-60 p-1.5 shadow-lg rounded-xl border bg-popover text-popover-foreground">
+        <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-lg rounded-xl border bg-popover text-popover-foreground">
           <DropdownMenuLabel className="font-normal px-3 py-2.5">
             <div className="font-semibold text-sm text-foreground">{user?.name}</div>
             <div className="text-xs text-muted-foreground mt-0.5 truncate">{user?.role} · {user?.email}</div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+
+          {/* Notifikasi */}
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="cursor-pointer gap-2.5 px-3 py-2 text-sm rounded-md transition-colors flex items-center">
+              <BellIcon className="h-4 w-4 text-muted-foreground" />
+              <span>Notifikasi</span>
+              {pending.length > 0 && (
+                <span className="ml-auto mr-1 rounded-full bg-danger px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                  {pending.length}
+                </span>
+              )}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="w-80 p-2">
+              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                {pending.length} Peringatan Belum Ditinjau
+              </div>
+              {pending.length === 0 ? (
+                <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                  Tidak ada peringatan baru
+                </div>
+              ) : (
+                pending.slice(0, 4).map((d) => (
+                  <DropdownMenuItem
+                    key={d.uuid}
+                    className="cursor-pointer gap-2.5 p-2 rounded-md mb-1 last:mb-0"
+                    onSelect={() => router.push(`/detections/${d.uuid}`)}
+                  >
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-danger/10 text-danger">
+                      <SpeakerLoudIcon className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0 flex-1 text-xs">
+                      <div className="font-medium truncate">{device(d.deviceId)?.name}</div>
+                      <div className="text-muted-foreground text-[11px]">{fmt.ago(d.time)} · Conf. {(d.confidence * 100).toFixed(0)}%</div>
+                    </div>
+                  </DropdownMenuItem>
+                ))
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="cursor-pointer justify-center text-center text-xs text-primary font-medium"
+                onSelect={() => router.push('/detections')}
+              >
+                Lihat Semua Deteksi
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+
+          {/* Mode Gelap */}
+          {onToggleDark && (
+            <DropdownMenuItem
+              className="cursor-pointer gap-2.5 px-3 py-2 text-sm rounded-md transition-colors flex items-center justify-between"
+              onSelect={(e) => {
+                e.preventDefault();
+                onToggleDark();
+              }}
+            >
+              <div className="flex items-center gap-2.5">
+                {dark ? (
+                  <SunIcon className="h-4 w-4 text-amber-500" />
+                ) : (
+                  <MoonIcon className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span>Mode Gelap</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {dark ? 'Aktif' : 'Nonaktif'}
+              </span>
+            </DropdownMenuItem>
+          )}
+
+          <DropdownMenuSeparator />
+
           <DropdownMenuItem className="cursor-pointer gap-2.5 px-3 py-2 text-sm rounded-md transition-colors" onSelect={() => router.push('/patients')}>
             <PersonIcon className="h-4 w-4 text-muted-foreground" />
             <span>Pelacakan pasien</span>
@@ -148,7 +215,9 @@ export function TopBar({ crumbs, onMenu, dark, onToggleDark }: { crumbs: Crumb[]
             <LockClosedIcon className="h-4 w-4 text-muted-foreground" />
             <span>Perangkat</span>
           </DropdownMenuItem>
+
           <DropdownMenuSeparator />
+
           <DropdownMenuItem className="cursor-pointer gap-2.5 px-3 py-2 text-sm rounded-md text-danger focus:text-danger focus:bg-danger/10 hover:bg-danger/10 transition-colors" onSelect={() => { logout(); router.push('/login'); }}>
             <ExitIcon className="h-4 w-4" />
             <span>Logout</span>

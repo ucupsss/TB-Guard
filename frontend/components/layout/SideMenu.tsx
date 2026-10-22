@@ -25,10 +25,37 @@ function Group({ item, path, rail, onNavigate }: { item: NavItem; path: string; 
 
   return (
     <Collapsible open={isOpen} onOpenChange={setOpen}>
-      <CollapsibleTrigger className={cn('side-menu w-full text-left', active && 'side-menu--active')}>
-        <Icon className="mr-3 h-5 w-5 shrink-0" />
-        <span className={cn('flex-1 whitespace-nowrap', rail && 'side-label')}>{item.label}</span>
-        <ChevronDownIcon className={cn('mr-5 h-4 w-4 shrink-0 transition-transform duration-200', isOpen && 'rotate-180', rail && 'side-label')} />
+      <CollapsibleTrigger
+        className={cn(
+          'side-menu w-full text-left group/item transition-colors',
+          active
+            ? 'side-menu--active bg-page !text-slate-900 font-semibold dark:!text-slate-100'
+            : 'text-white/80 hover:text-white hover:bg-white/[0.08]'
+        )}
+      >
+        <Icon
+          className={cn(
+            'mr-3 h-5 w-5 shrink-0 transition-colors',
+            active ? '!text-primary dark:!text-blue-400' : 'text-white/75 group-hover/item:text-white'
+          )}
+        />
+        <span
+          className={cn(
+            'flex-1 whitespace-nowrap transition-colors',
+            active ? '!text-slate-900 dark:!text-slate-100 font-semibold' : 'text-white/80 group-hover/item:text-white',
+            rail && 'side-label'
+          )}
+        >
+          {item.label}
+        </span>
+        <ChevronDownIcon
+          className={cn(
+            'mr-5 h-4 w-4 shrink-0 transition-transform duration-200',
+            isOpen && 'rotate-180',
+            active ? '!text-slate-900 dark:!text-slate-100' : 'text-white/60 group-hover/item:text-white',
+            rail && 'side-label'
+          )}
+        />
       </CollapsibleTrigger>
       {/* mode rel: sub-menu hanya tampil saat sidebar melebar */}
       <CollapsibleContent className={cn('side-sub mr-5 data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down', rail && 'side-rail-sub')}>
@@ -55,9 +82,33 @@ export function SideMenu({ rail, onNavigate }: { rail?: boolean; onNavigate?: ()
         const Icon = item.icon;
         const active = isActive(item, pathname);
         return (
-          <Link key={item.label} href={item.to!} onClick={onNavigate} className={cn('side-menu', active && 'side-menu--active')} aria-current={active ? 'page' : undefined}>
-            <Icon className="mr-3 h-5 w-5 shrink-0" />
-            <span className={cn('whitespace-nowrap', rail && 'side-label')}>{item.label}</span>
+          <Link
+            key={item.label}
+            href={item.to!}
+            onClick={onNavigate}
+            className={cn(
+              'side-menu group/item transition-colors',
+              active
+                ? 'side-menu--active bg-page !text-slate-900 font-semibold dark:!text-slate-100'
+                : 'text-white/80 hover:text-white hover:bg-white/[0.08]'
+            )}
+            aria-current={active ? 'page' : undefined}
+          >
+            <Icon
+              className={cn(
+                'mr-3 h-5 w-5 shrink-0 transition-colors',
+                active ? '!text-primary dark:!text-blue-400' : 'text-white/75 group-hover/item:text-white'
+              )}
+            />
+            <span
+              className={cn(
+                'whitespace-nowrap transition-colors',
+                active ? '!text-slate-900 dark:!text-slate-100 font-semibold' : 'text-white/80 group-hover/item:text-white',
+                rail && 'side-label'
+              )}
+            >
+              {item.label}
+            </span>
           </Link>
         );
       })}

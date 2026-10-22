@@ -40,5 +40,3 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# daftar API key lokal, jangan pernah di-commit (template: groq_keys.example.txt)
-groq_keys.txt

@@ -115,7 +115,7 @@ export default function DeviceDetail() {
                     </td>
                   </tr>
                 ))}
-                {!pg.slice.length && <tr><td colSpan={9} className="px-5 py-10 text-center text-muted-foreground">Tidak ada rekaman yang cocok.</td></tr>}
+                {!pg.slice.length && <tr><td colSpan={9} className="px-5 py-10 text-center text-muted-foreground">Kosong</td></tr>}
               </tbody>
             </table>
           </div>

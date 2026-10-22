@@ -25,9 +25,23 @@ export function useDarkMode() {
 
 function Brand({ rail }: { rail?: boolean }) {
   return (
-    <Link href="/" className={cn('flex items-center pt-4 text-white', rail && 'pl-4')}>
-      <Logo className="h-7 w-7 shrink-0" />
-      <span className={cn('ml-3 whitespace-nowrap text-lg font-medium', rail && 'side-label')}>TB Guard</span>
+    <Link
+      href="/"
+      className={cn(
+        'flex items-center pt-4 text-white transition-all',
+        rail ? 'pl-2.5 lg:pl-3' : 'pl-0'
+      )}
+      title="TB Guard"
+    >
+      <Logo className="h-10 w-10 sm:h-11 sm:w-11 lg:h-12 lg:w-12 shrink-0 drop-shadow-sm transition-transform duration-200 group-hover/side:scale-105" />
+      <span
+        className={cn(
+          'ml-3.5 whitespace-nowrap text-xl lg:text-2xl font-bold tracking-tight',
+          rail && 'side-label'
+        )}
+      >
+        TB Guard
+      </span>
     </Link>
   );
 }
