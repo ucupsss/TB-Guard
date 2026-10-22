@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { usePathname } from 'next/navigation';
 import {
   ArrowRightIcon, CheckIcon, ChevronDownIcon, CounterClockwiseClockIcon, ClockIcon, Cross2Icon, CrossCircledIcon, ExclamationTriangleIcon, ExternalLinkIcon, MagicWandIcon,
@@ -19,6 +20,7 @@ import { ModelPicker } from './ModelPicker';
 import { ChatHistory } from './ChatHistory';
 import { suggestions, pageLabel } from '@/lib/agent/suggest';
 import { loadAgents } from '@/lib/agent/orchestrator';
+import { backendFetch } from '@/lib/backend';
 
 /** baris `<<saran: a | b | c>>` di akhir jawaban; saat streaming potongan yang belum lengkap ikut disembunyikan */
 const SARAN = /<<\s*saran\s*:?([\s\S]*?)(>>|$)/i;
@@ -165,6 +167,22 @@ function GenStats({ turn }: { turn: Turn }) {
   );
 }
 
+/** periksa tiap model AI dan tampilkan hasilnya (Admin), supaya penyebab error terlihat jelas */
+async function diagnose() {
+  const t = toast.loading('Memeriksa koneksi AI...');
+  try {
+    const res = await backendFetch('/api/ai/diagnose');
+    if (res.status === 403) { toast.error('Diagnosa hanya untuk Admin.', { id: t }); return; }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const j = await res.json() as { gemini_auth?: string; gemini?: { model: string; ok: boolean; status?: number; ms: number; error?: string }[]; groq?: { keys?: { ready?: number; total?: number }; test?: { ok?: boolean; status?: number; error?: string } | string } };
+    const lines = (j.gemini ?? []).map((m) => `${m.ok ? 'OK' : 'GAGAL'} ${m.model} ${m.ms} ms${m.ok ? '' : ` (${m.status ?? '-'}: ${m.error ?? ''})`}`);
+    const g = j.groq?.test;
+    lines.push(`Groq: ${typeof g === 'string' ? g : g?.ok ? 'OK' : `GAGAL ${g?.status ?? ''} ${g?.error ?? ''}`} (${j.groq?.keys?.ready ?? 0}/${j.groq?.keys?.total ?? 0} key siap)`);
+    if (j.gemini_auth && j.gemini_auth !== 'ok') lines.unshift(`Autentikasi Gemini: ${j.gemini_auth}`);
+    toast(lines.join(String.fromCharCode(10)), { id: t, duration: 20000, className: 'whitespace-pre-line text-xs' });
+  } catch (e) { toast.error(`Diagnosa gagal: ${e instanceof Error ? e.message : 'koneksi'}`, { id: t }); }
+}
+
 function AssistantTurn({ turn, last, fallback, onPick }: { turn: Turn; last: boolean; fallback: string[]; onPick: (q: string) => void }) {
   const { decide, retry, running } = useAgent();
   const saran = turnSaran(turn);
@@ -184,6 +202,7 @@ function AssistantTurn({ turn, last, fallback, onPick }: { turn: Turn; last: boo
         <div className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
           {turn.error}
           {last && !running && <button type="button" onClick={retry} className="ml-2 inline-flex items-center gap-1 font-medium underline"><ReloadIcon className="h-3 w-3" />Coba lagi</button>}
+          {last && !running && <button type="button" onClick={() => void diagnose()} className="ml-3 font-medium underline">Diagnosa</button>}
         </div>
       )}
       {turn.done && !turn.error && !turn.parts.length && <p className="text-xs text-muted-foreground">Dihentikan.</p>}

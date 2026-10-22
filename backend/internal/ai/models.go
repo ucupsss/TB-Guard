@@ -2,10 +2,10 @@ package ai
 
 import "strings"
 
-const defaultModelID = "gemini-3.8-flash"
+const defaultModelID = "gemini-3.5-flash"
 
 // geminiFallbackModels dicoba berurutan bila model pilihan tidak tersedia (404) atau sibuk.
-var geminiFallbackModels = []string{"gemini-3.7-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"}
+var geminiFallbackModels = []string{"gemini-3.8-flash", "gemini-3.1-flash-lite", "gemini-3.7-flash"}
 
 // groqFallbackModels dicoba berurutan bila model Groq pilihan gagal.
 var groqFallbackModels = []string{"qwen/qwen3.8-27b", "openai/gpt-oss-120b", "llama-3.3-70b-versatile"}

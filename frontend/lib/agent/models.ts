@@ -10,20 +10,20 @@ export interface ModelOption {
 export const AVAILABLE_MODELS: ModelOption[] = [
   // Google Cloud (Vertex AI, endpoint global): Gemini 2.x sudah tidak tersedia di project ini
   {
-    id: 'gemini-3.8-flash',
-    name: 'Gemini 3.8 Flash',
-    provider: 'Google Cloud',
-    badge: 'Rekomendasi Utama',
-    category: 'google',
-    description: 'Multimodal cepat, penalaran dan tool calling presisi.',
-  },
-  {
     id: 'gemini-3.5-flash',
     name: 'Gemini 3.5 Flash',
     provider: 'Google Cloud',
-    badge: 'Stabil',
+    badge: 'Rekomendasi Utama',
     category: 'google',
-    description: 'Seimbang untuk perintah sehari-hari dan analisis data.',
+    description: 'Cepat dan stabil untuk perintah sehari-hari, tool calling presisi.',
+  },
+  {
+    id: 'gemini-3.8-flash',
+    name: 'Gemini 3.8 Flash',
+    provider: 'Google Cloud',
+    badge: 'Terbaru',
+    category: 'google',
+    description: 'Penalaran lebih dalam untuk analisis data yang rumit.',
   },
   {
     id: 'gemini-3.1-flash-lite',
@@ -77,7 +77,7 @@ export const AVAILABLE_MODELS: ModelOption[] = [
   },
 ];
 
-export const DEFAULT_MODEL_ID = 'gemini-3.8-flash';
+export const DEFAULT_MODEL_ID = 'gemini-3.5-flash';
 
 /** id Gemini lama (chat tersimpan / pengaturan lama) dipetakan ke model aktif */
 export const migrateModelId = (id: string) => (/^gemini-[12]\./.test(id) ? DEFAULT_MODEL_ID : id);

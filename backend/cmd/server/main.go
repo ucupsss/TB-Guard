@@ -109,6 +109,7 @@ func main() {
 	mux.HandleFunc("GET /api/orchestra/runs/{id}", protect(orchSvc.Get()))
 	mux.HandleFunc("PUT /api/orchestra/runs/{id}", protect(orchSvc.Save()))
 	mux.HandleFunc("DELETE /api/orchestra/runs/{id}", protect(orchSvc.Remove()))
+	mux.HandleFunc("GET /api/ai/diagnose", admin(aiSvc.HandleDiagnose))
 	mux.HandleFunc("POST /api/agent", metered(aiSvc.HandleAgent))
 	mux.HandleFunc("POST /api/agent/transcribe", metered(aiSvc.HandleTranscribe))
 

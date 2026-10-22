@@ -61,7 +61,7 @@ func Load() Config {
 
 		ProjectID:      env("GCP_PROJECT_ID", "hackathon-primestep-19"),
 		Location:       env("GCP_LOCATION", "us-central1"),
-		GeminiModel:    env("GEMINI_MODEL", "gemini-3.8-flash"),
+		GeminiModel:    env("GEMINI_MODEL", "gemini-3.5-flash"),
 		GeminiLocation: env("GEMINI_LOCATION", "global"),
 		GeminiAPIKey:   env("GEMINI_API_KEY", ""),
 		GroqKeysFile:   env("GROQ_KEYS_FILE", ""),

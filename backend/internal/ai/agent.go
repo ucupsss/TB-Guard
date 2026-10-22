@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"math/rand"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"tbguard/backend/internal/httpx"
@@ -120,18 +121,12 @@ func pruneMessages(msgs []message, maxTurns int) []message {
 	if len(msgs) <= maxTurns {
 		return msgs
 	}
-	sliced := msgs[len(msgs)-maxTurns:]
-	// potongan tidak boleh diawali 'tool' tanpa assistant pemanggilnya
-	if sliced[0].Role == "tool" {
-		for i := 0; i < len(msgs)-maxTurns; i++ {
-			for _, tc := range msgs[i].ToolCalls {
-				if tc.ID == sliced[0].ToolCallID {
-					return append([]message{msgs[i]}, sliced...)
-				}
-			}
-		}
+	// Keep the entire user turn, including every parallel tool result.
+	start := len(msgs) - maxTurns
+	for start > 0 && msgs[start].Role != "user" {
+		start--
 	}
-	return sliced
+	return msgs[start:]
 }
 
 // prunedToolContent mengompres isi pesan tool; bila bukan JSON, dikembalikan apa adanya.
@@ -217,9 +212,26 @@ func friendlyErr(err string) string {
 		return "Waktu habis sebelum agen selesai menjawab. Coba lagi."
 	case strings.Contains(err, "Gemini API Error"), strings.Contains(err, "Groq API Error"), strings.Contains(err, "Koneksi ke"),
 		strings.Contains(err, "Stream"), strings.Contains(err, "autentikasi"), strings.Contains(err, "Kuota"), strings.Contains(err, "API key"):
-		return "Layanan AI sedang sibuk atau tidak tersedia. Silakan coba lagi sebentar."
+		return "Layanan AI sedang sibuk atau tidak tersedia. Silakan coba lagi sebentar." + errCode(err)
 	}
 	return err
+}
+
+var codeRe = regexp.MustCompile(`\((\d{3})\)`)
+
+// errCode: kode HTTP singkat untuk membantu diagnosa tanpa membocorkan detail internal.
+func errCode(err string) string {
+	prov := "AI"
+	switch {
+	case strings.Contains(err, "Gemini"):
+		prov = "Gemini"
+	case strings.Contains(err, "Groq"):
+		prov = "Groq"
+	}
+	if m := codeRe.FindStringSubmatch(err); m != nil {
+		return " (" + prov + " " + m[1] + ")"
+	}
+	return ""
 }
 
 func (a *agentRun) gone() bool { return a.ctx.Err() != nil }
@@ -425,8 +437,8 @@ func (a *agentRun) runGemini(auth *geminiAuth, model string) string {
 		r.Body.Close()
 		c()
 		lastErr = fmt.Sprintf("Gemini API Error (%d): %s", r.StatusCode, errMessage(b))
-		// 404 "Publisher model not found" kadang muncul sesaat di Vertex: ulangi, bukan langsung beralih model
-		if r.StatusCode != http.StatusTooManyRequests && r.StatusCode != http.StatusNotFound && r.StatusCode < 500 {
+		// A missing model will not recover by repeating the same request.
+		if r.StatusCode != http.StatusTooManyRequests && r.StatusCode < 500 {
 			return lastErr
 		}
 	}
