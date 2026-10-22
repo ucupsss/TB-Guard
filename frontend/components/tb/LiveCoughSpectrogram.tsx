@@ -167,13 +167,13 @@ export function LiveCoughSpectrogram({
     ctx.fillStyle = 'rgba(2, 3, 15, 0.8)';
     ctx.fillRect(w - 216, yTop + 5, 210, 18);
     ctx.fillStyle = '#38bdf8';
-    ctx.font = '500 10px Roboto, sans-serif';
+    ctx.font = '500 10px Poppins, sans-serif';
     ctx.fillText('Pita Resonansi TB (1.200 - 3.500 Hz)', w - 210, yTop + 18);
 
     // Frequency axis labels on the left (kHz), as in audio-analysis tools
     const tickStep = nyquist / 1000 > 6 ? 2 : 1;
     ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-    ctx.font = '10px Roboto, sans-serif';
+    ctx.font = '10px Poppins, sans-serif';
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
     ctx.lineWidth = 1;
     for (let khz = 0; khz <= nyquist / 1000 + 1e-6; khz += tickStep) {

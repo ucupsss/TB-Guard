@@ -4,7 +4,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
-  --font-sans: Roboto, ui-sans-serif, system-ui, sans-serif;
+  --font-sans: Poppins, ui-sans-serif, system-ui, sans-serif;
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
@@ -100,7 +100,7 @@
   }
   * { @apply border-border; }
   html { font-size: 14px; }
-  body { @apply bg-shell text-foreground antialiased; font-family: Roboto, ui-sans-serif, system-ui, sans-serif; }
+  body { @apply bg-shell text-foreground antialiased; font-family: Poppins, ui-sans-serif, system-ui, sans-serif; }
   .num { font-variant-numeric: tabular-nums; }
 }
 
