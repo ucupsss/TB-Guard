@@ -16,31 +16,51 @@ export function ProductIntro() {
   const router = useRouter();
   const { user } = useStore();
   const [open, setOpen] = React.useState(false);
-  const [muted, setMuted] = React.useState(true);
-  const [tap, setTap] = React.useState(false); // browser menolak suara otomatis: tampilkan ajakan untuk menyalakan
+  const [muted, setMuted] = React.useState(false);
+  const [tap, setTap] = React.useState(false); // browser menolak suara otomatis tanpa interaksi: ajak mengetuk
   const vid = React.useRef<HTMLVideoElement | null>(null);
   // tampil SETIAP kali beranda dibuka: pertama kali, refresh, atau kembali ke beranda lewat tombol/menu
   // (komponen ini dipasang ulang setiap kali halaman "/" dimasuki)
   // eslint-disable-next-line react-hooks/set-state-in-effect -- membuka popup saat halaman dimasuki
   React.useEffect(() => { setOpen(true); }, []);
 
-  /** coba putar DENGAN suara (diizinkan bila pengguna sudah berinteraksi dengan halaman); jika ditolak, putar senyap dan ajak menyalakan suara */
+  /** putar audio default ON; tangani kebijakan autoplay browser dengan un-mute otomatis pada interaksi pertama */
   const attach = React.useCallback((el: HTMLVideoElement | null) => {
     vid.current = el;
     if (!el || el.dataset.started) return;
     el.dataset.started = '1';
-    el.volume = 0.7;
+    el.volume = 0.8;
     el.muted = false;
-    el.play().then(() => { setMuted(false); setTap(false); }).catch(() => {
-      el.muted = true; setMuted(true); setTap(true);
-      void el.play().catch(() => { /* autoplay sepenuhnya diblokir */ });
+    el.play().then(() => {
+      setMuted(false);
+      setTap(false);
+    }).catch(() => {
+      // Kebijakan browser: autoplay bersuara diblokir bila tab belum pernah di-klik pengguna
+      el.muted = true;
+      setMuted(true);
+      setTap(true);
+      void el.play().catch(() => { /* autoplay diblokir total */ });
+
+      // Begitu pengguna melakukan klik/tap pertama di mana saja pada layar, suara langsung aktif otomatis
+      const unmuteOnFirstGesture = () => {
+        if (vid.current) {
+          vid.current.muted = false;
+          vid.current.volume = 0.8;
+          setMuted(false);
+          setTap(false);
+        }
+        window.removeEventListener('pointerdown', unmuteOnFirstGesture);
+        window.removeEventListener('keydown', unmuteOnFirstGesture);
+      };
+      window.addEventListener('pointerdown', unmuteOnFirstGesture, { once: true });
+      window.addEventListener('keydown', unmuteOnFirstGesture, { once: true });
     });
   }, []);
   const toggleSound = () => {
     const el = vid.current;
     if (!el) return;
     el.muted = !el.muted;
-    if (!el.muted) { el.volume = 0.7; void el.play().catch(() => {}); }
+    if (!el.muted) { el.volume = 0.8; void el.play().catch(() => {}); }
     setMuted(el.muted); setTap(false);
   };
 
