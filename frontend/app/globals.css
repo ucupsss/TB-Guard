@@ -98,9 +98,10 @@
     --shell: 222 34% 24%;
     --page: 222 32% 21%;
   }
-  * { @apply border-border; }
-  html { font-size: 14px; }
+  * { @apply border-border; font-family: inherit; }
+  html { font-size: 14px; font-family: Poppins, ui-sans-serif, system-ui, sans-serif; }
   body { @apply bg-shell text-foreground antialiased; font-family: Poppins, ui-sans-serif, system-ui, sans-serif; }
+  input, button, textarea, select { font-family: inherit; }
   .num { font-variant-numeric: tabular-nums; }
 }
 

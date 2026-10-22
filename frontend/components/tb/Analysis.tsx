@@ -5,6 +5,7 @@ import type WaveSurfer from 'wavesurfer.js';
 import { PauseIcon, PlayIcon } from '@radix-ui/react-icons';
 import { Button } from '@/components/ui/button';
 import { synthCough, toWavBlob } from '@/lib/audio';
+import { backendFetch } from '@/lib/backend';
 import { azText } from '@/lib/format';
 import type { Detection, Device } from '@/lib/types';
 
@@ -23,15 +24,25 @@ export function CoughAudio({ d, autoplayRef }: { d: Detection; autoplayRef?: Rea
     if (!wave.current || !spec.current) return;
     let alive = true;
     let w: WaveSurfer | null = null;
-    const url = URL.createObjectURL(toWavBlob(synthCough(d.uuid, { tb, coughs: d.type === '-' ? 1 : d.coughs, seconds })));
+    let url = '';
+    let blobUrl = '';
     // colormap: putih → biru muda → biru primer → navy
     const stops = [[255, 255, 255], [190, 207, 245], [28, 63, 170], [12, 24, 70]];
     const cmap = Array.from({ length: 256 }, (_, i) => {
       const t = (i / 255) * (stops.length - 1), k = Math.min(stops.length - 2, Math.floor(t)), f = t - k;
       return [...stops[k].map((c, j) => (c + (stops[k + 1][j] - c) * f) / 255), 1];
     });
+    // rekaman dari Neon Object Storage; bila belum ada, pakai suara sintetis sebagai cadangan
+    const source = backendFetch(`/api/detections/${encodeURIComponent(d.uuid)}/audio`)
+      .then((r) => (r.ok ? r.json() : null)).then((j) => (j?.url as string | undefined) || '').catch(() => '')
+      .then((remote) => {
+        if (remote) return remote;
+        blobUrl = URL.createObjectURL(toWavBlob(synthCough(d.uuid, { tb, coughs: d.type === '-' ? 1 : d.coughs, seconds })));
+        return blobUrl;
+      });
     // wavesurfer dimuat di browser saja
-    Promise.all([import('wavesurfer.js'), import('wavesurfer.js/dist/plugins/spectrogram.esm.js')]).then(([{ default: WS }, { default: Spectrogram }]) => {
+    Promise.all([source, import('wavesurfer.js'), import('wavesurfer.js/dist/plugins/spectrogram.esm.js')]).then(([src, { default: WS }, { default: Spectrogram }]) => {
+    url = src;
     if (!alive || !wave.current || !spec.current) return;
     w = WS.create({
       container: wave.current, height: 110, sampleRate: 16000, waveColor: tb ? '#f3a5a5' : '#93b4f5', progressColor: tb ? '#D32929' : '#1C3FAA',
@@ -45,7 +56,7 @@ export function CoughAudio({ d, autoplayRef }: { d: Detection; autoplayRef?: Rea
     ws.current = ww;
     if (autoplayRef) autoplayRef.current = () => { if (!ww.isPlaying()) ww.play(); };
     });
-    return () => { alive = false; w?.destroy(); ws.current = null; URL.revokeObjectURL(url); };
+    return () => { alive = false; w?.destroy(); ws.current = null; if (blobUrl) URL.revokeObjectURL(blobUrl); };
   }, [d.uuid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

@@ -49,9 +49,11 @@ type Config struct {
 	UploadTotalMax int64
 	UploadPerDay   int
 	UploadTTLDays  int
+	SeedAudioMax   int // jumlah rekaman simulasi yang disimpan di storage saat seed (0 = nonaktif)
 }
 
 func Load() Config {
+	loadDotEnv()
 	return Config{
 		Port:           env("PORT", "8080"),
 		AllowedOrigins: env("ALLOWED_ORIGINS", "*"),
@@ -87,6 +89,7 @@ func Load() Config {
 		UploadTotalMax: int64(atoi(env("UPLOAD_TOTAL_MAX_BYTES", "104857600"), 100<<20)), // 100 MB total
 		UploadPerDay:   atoi(env("UPLOAD_MAX_PER_DAY", "30"), 30),                        // per pengguna
 		UploadTTLDays:  atoi(env("UPLOAD_TTL_DAYS", "30"), 30),
+		SeedAudioMax:   atoi(env("SEED_AUDIO_MAX", "60"), 60), // ~110 KB/rekaman
 	}
 }
 
@@ -123,4 +126,31 @@ func secretBytes(s string) []byte {
 	b := make([]byte, 32)
 	_, _ = rand.Read(b)
 	return b
+}
+
+func loadDotEnv() {
+	paths := []string{".env", "backend/.env", "../backend/.env", "../../backend/.env"}
+	for _, p := range paths {
+		data, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		for _, rawLine := range strings.Split(string(data), "\n") {
+			line := strings.TrimSpace(rawLine)
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+			k, v, ok := strings.Cut(line, "=")
+			if !ok {
+				continue
+			}
+			k = strings.TrimSpace(k)
+			v = strings.TrimSpace(v)
+			v = strings.Trim(v, `"'`)
+			if os.Getenv(k) == "" {
+				os.Setenv(k, v)
+			}
+		}
+		break
+	}
 }

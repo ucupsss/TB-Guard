@@ -40,6 +40,7 @@ func main() {
 	defer stopBg()
 	go database.Connect(bg, data.Migrate(cfg.Seed), storage.Migrate)
 	go store.Janitor(bg)
+	go store.SeedAudio(bg)
 
 	mux := http.NewServeMux()
 	protect := authSvc.RequireAuth
@@ -69,6 +70,7 @@ func main() {
 	mux.HandleFunc("POST /api/patients", protect(records.Create(data.PatientEntity)))
 	mux.HandleFunc("PATCH /api/patients/{id}", protect(records.Patch(data.PatientEntity)))
 	mux.HandleFunc("DELETE /api/patients/{id}", protect(records.Remove(data.PatientEntity)))
+	mux.HandleFunc("GET /api/detections/{id}/audio", protect(store.DetectionAudio()))
 	mux.HandleFunc("POST /api/uploads", protect(store.Upload()))
 	mux.HandleFunc("GET /api/uploads/usage", protect(store.Usage()))
 	mux.HandleFunc("GET /api/uploads/{id}/url", protect(store.URL()))

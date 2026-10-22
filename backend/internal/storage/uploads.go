@@ -178,7 +178,7 @@ func (s *Service) Janitor(ctx context.Context) {
 
 func (s *Service) expireUploads(ctx context.Context, db *pgxpool.Pool) {
 	cutoff := time.Now().AddDate(0, 0, -s.cfg.UploadTTLDays).UnixMilli()
-	rows, err := db.Query(ctx, "SELECT id, key FROM uploads WHERE created_at < $1 LIMIT 200", cutoff)
+	rows, err := db.Query(ctx, "SELECT id, key FROM uploads WHERE created_at < $1 AND owner <> 'seed' LIMIT 200", cutoff)
 	if err != nil {
 		slog.Warn("janitor: query gagal", "err", err)
 		return
@@ -202,4 +202,19 @@ func (s *Service) expireUploads(ctx context.Context, db *pgxpool.Pool) {
 	if len(old) > 0 {
 		slog.Info("janitor: rekaman kedaluwarsa dihapus", "jumlah", len(old))
 	}
+}
+
+// DetectionAudio mengembalikan URL unduh rekaman milik sebuah deteksi (404 bila belum ada).
+func (s *Service) DetectionAudio() http.HandlerFunc {
+	return s.db.Handler(func(ctx context.Context, db *pgxpool.Pool, r *http.Request) (any, error) {
+		if s.s3 == nil {
+			return nil, httpx.Errf(http.StatusServiceUnavailable, "Object storage belum dikonfigurasi")
+		}
+		var id, key string
+		if err := db.QueryRow(ctx, "SELECT id, key FROM uploads WHERE detection=$1 ORDER BY created_at DESC LIMIT 1", r.PathValue("id")).Scan(&id, &key); err != nil {
+			return nil, err
+		}
+		const ttl = 10 * time.Minute
+		return map[string]any{"id": id, "url": s.s3.PresignGet(key, ttl), "expiresIn": int(ttl.Seconds())}, nil
+	})
 }

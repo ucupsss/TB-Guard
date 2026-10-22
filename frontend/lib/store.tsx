@@ -2,15 +2,18 @@
 
 /* State aplikasi. Sumber data: backend Go + PostgreSQL (GET /api/bootstrap, lalu POST/PATCH/DELETE).
    Perubahan diterapkan langsung di UI (optimistik) lalu disimpan ke backend; bila gagal, data dimuat ulang dari server.
-   Data contoh (lib/data.ts) hanya tampil sementara dimuat atau bila backend tidak terjangkau. */
+   Tidak ada data contoh di frontend: semua data simulasi berasal dari database. */
 import * as React from 'react';
-import { seed, NOW, STAGES } from './data';
+import { NOW, STAGES } from './data';
 import { backendFetch, setToken } from './backend';
 import type { Device, Detection, Patient, User, WebformRow, OfflineRow, PrimerRow } from './types';
 
 export interface Store {
   user: User | null;
   ready: boolean;   // sesi sudah dibaca dari sessionStorage (hanya di browser)
+  loaded: boolean;  // data sudah dimuat dari backend
+  loadError: string; // pesan bila pemuatan gagal
+  reload: () => void;
   devices: Device[];
   detections: Detection[];
   patients: Patient[];
@@ -47,10 +50,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = React.useState(false);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage hanya ada di browser
   React.useEffect(() => { setUser(readUser()); setReady(true); }, []);
-  const [devices, setDevices] = React.useState<Device[]>(() => structuredClone(seed.devices));
-  const [detections, setDetections] = React.useState<Detection[]>(() => structuredClone(seed.detections));
-  const [patients, setPatients] = React.useState<Patient[]>(() => structuredClone(seed.patients));
-  const [datasets, setDatasets] = React.useState<Store['datasets']>(() => ({ webform: seed.webform, offline: seed.offline, primer: seed.primer }));
+  const [devices, setDevices] = React.useState<Device[]>([]);
+  const [detections, setDetections] = React.useState<Detection[]>([]);
+  const [patients, setPatients] = React.useState<Patient[]>([]);
+  const [datasets, setDatasets] = React.useState<Store['datasets']>({ webform: [], offline: [], primer: [] });
+  const [loaded, setLoaded] = React.useState(false);
+  const [loadError, setLoadError] = React.useState('');
 
   const load = React.useCallback(async (signal?: AbortSignal) => {
     try {
@@ -58,11 +63,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const d = await res.json();
       setDevices(d.devices); setDetections(d.detections); setPatients(d.patients); setDatasets(d.datasets);
+      setLoadError(''); setLoaded(true);
     } catch (e) {
-      if (!signal?.aborted) console.warn('[store] backend tidak terjangkau, memakai data contoh:', e);
+      if (!signal?.aborted) { console.warn('[store] gagal memuat data:', e); setLoadError('Data belum bisa dimuat dari server.'); }
     }
   }, []);
-  const logout = React.useCallback(() => { setToken(''); setUser(null); try { sessionStorage.removeItem(KEY); } catch { /* mode privat */ } }, []);
+  const logout = React.useCallback(() => { setToken(''); setUser(null); setLoaded(false); try { sessionStorage.removeItem(KEY); } catch { /* mode privat */ } }, []);
   // sesi kedaluwarsa / ditolak server -> keluar
   React.useEffect(() => { window.addEventListener('tbv:unauthorized', logout); return () => window.removeEventListener('tbv:unauthorized', logout); }, [logout]);
   // data hanya dimuat setelah login (backend menolak tanpa token)
@@ -72,7 +78,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const sync = (...args: Parameters<typeof api>) => { api(...args).catch((e) => { console.warn('[store] gagal menyimpan:', e); load(); }); };
 
   const value: Store = {
-    user, ready, devices, detections, patients, datasets,
+    user, ready, loaded, loadError, reload: () => { setLoadError(''); load(); }, devices, detections, patients, datasets,
     login: (u, token) => { setToken(token); setUser(u); try { sessionStorage.setItem(KEY, JSON.stringify(u)); } catch { /* mode privat */ } },
     logout,
     addDetection: (d) => { setDetections((all) => [d, ...all]); sync('POST', '/detections', d); },
