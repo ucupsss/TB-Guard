@@ -13,7 +13,9 @@ import { toolKind } from '@/lib/agent/tools';
 import { DEFAULT_MODEL_ID, migrateModelId } from '@/lib/agent/models';
 import { backendFetch } from '@/lib/backend';
 import { agentForTool, loadAgents } from '@/lib/agent/orchestrator';
-import { emitSwarm } from '@/lib/agent/swarm-bus';
+import { emitSwarm, subscribeSwarm } from '@/lib/agent/swarm-bus';
+import { applyLive, type LiveState } from '@/components/orchestra/useLiveSwarm';
+import { saveRun } from '@/lib/agent/orchestra-runs';
 
 type Args = Record<string, unknown>;
 export type StepStatus = 'running' | 'done' | 'error' | 'awaiting' | 'rejected';
@@ -97,6 +99,18 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   const live = React.useRef({ store, confirmRisky, model });
   React.useEffect(() => { live.current = { store, confirmRisky, model }; });
   const history = React.useRef<ApiMessage[]>([]);
+  // Orchestra: setiap pertanyaan chat direkam (langkah, tool, latensi) dan disimpan ke database saat selesai
+  React.useEffect(() => {
+    let state: LiveState = { steps: [], running: false };
+    let runId = '';
+    return subscribeSwarm((ev) => {
+      state = applyLive(state, ev, loadAgents());
+      if (ev.event.type === 'chat:start') runId = `live-${Date.now().toString(36)}${uid()}`;
+      if (ev.event.type === 'chat:done' && runId && live.current.store.user && state.steps.length) {
+        void saveRun(runId, { source: 'live', prompt: state.steps[0].inputData, steps: state.steps, totalMs: state.totalMs ?? 0, tokens: state.tokens ?? 0 });
+      }
+    });
+  }, []);
   const abort = React.useRef<AbortController | null>(null);
   const pending = React.useRef(new Map<string, (ok: boolean) => void>());
 

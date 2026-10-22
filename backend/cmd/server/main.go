@@ -19,6 +19,7 @@ import (
 	"tbguard/backend/internal/data"
 	"tbguard/backend/internal/db"
 	"tbguard/backend/internal/httpx"
+	"tbguard/backend/internal/orchestra"
 	"tbguard/backend/internal/storage"
 	"tbguard/backend/internal/users"
 )
@@ -39,11 +40,12 @@ func main() {
 	records := data.NewHandlers(database)
 	userSvc := users.New(cfg, database)
 	chatSvc := chats.New(database)
+	orchSvc := orchestra.New(database)
 	authSvc.UseDirectory(userSvc)
 
 	bg, stopBg := context.WithCancel(context.Background())
 	defer stopBg()
-	go database.Connect(bg, data.Migrate(cfg.Seed), users.Migrate, chats.Migrate, storage.Migrate)
+	go database.Connect(bg, data.Migrate(cfg.Seed), users.Migrate, chats.Migrate, orchestra.Migrate, storage.Migrate)
 	go store.Janitor(bg)
 	go store.SeedAudio(bg)
 
@@ -103,6 +105,10 @@ func main() {
 	mux.HandleFunc("PATCH /api/chats/{id}", protect(chatSvc.Patch()))
 	mux.HandleFunc("DELETE /api/chats/{id}", protect(chatSvc.Remove()))
 	mux.HandleFunc("DELETE /api/chats", protect(chatSvc.RemoveAll()))
+	mux.HandleFunc("GET /api/orchestra/runs", protect(orchSvc.List()))
+	mux.HandleFunc("GET /api/orchestra/runs/{id}", protect(orchSvc.Get()))
+	mux.HandleFunc("PUT /api/orchestra/runs/{id}", protect(orchSvc.Save()))
+	mux.HandleFunc("DELETE /api/orchestra/runs/{id}", protect(orchSvc.Remove()))
 	mux.HandleFunc("POST /api/agent", metered(aiSvc.HandleAgent))
 	mux.HandleFunc("POST /api/agent/transcribe", metered(aiSvc.HandleTranscribe))
 

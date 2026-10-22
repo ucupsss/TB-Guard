@@ -14,6 +14,8 @@ import { AgentBuilderDialog } from '@/components/orchestra/AgentBuilderDialog';
 import { useSwarmPlayer } from '@/components/orchestra/useSwarmPlayer';
 import { useLiveSwarm } from '@/components/orchestra/useLiveSwarm';
 import { OrchestraWorkflowBar } from '@/components/orchestra/OrchestraWorkflowBar';
+import { OrchestraRunHistory } from '@/components/orchestra/OrchestraRunHistory';
+import { saveRun } from '@/lib/agent/orchestra-runs';
 import { DEFAULT_AGENTS, deleteCustomAgent, loadAgents, toggleAgentStatus, type SubAgent } from '@/lib/agent/orchestrator';
 
 export default function OrchestraView() {
@@ -34,6 +36,18 @@ export default function OrchestraView() {
     : chatLive.steps[0]?.status === 'completed' ? 2 : 1;
   const live = agents.filter((a) => a.status !== 'disabled').length;
   const [tab, setTab] = React.useState('canvas');
+  // simulasi yang selesai dijalankan juga disimpan ke database agar bisa dibaca ulang seperti percakapan
+  const wasRunning = React.useRef(false);
+  React.useEffect(() => {
+    const finished = wasRunning.current && !player.running && player.done === player.steps.length && player.steps.length > 0;
+    wasRunning.current = player.running;
+    if (!finished) return;
+    const ok = player.steps.filter((x) => !x.skipped);
+    void saveRun(`sim-${player.scenario.id}-${Date.now().toString(36)}`, {
+      source: 'simulation', scenario: player.scenario.title, prompt: player.scenario.intent, steps: player.steps,
+      totalMs: ok.reduce((n, x) => n + x.latencyMs, 0), tokens: ok.reduce((n, x) => n + x.tokensUsed, 0),
+    });
+  }, [player.running]); // eslint-disable-line react-hooks/exhaustive-deps
   // chat yang baru berjalan selalu mengambil alih kanvas: pindah ke tab kanvas dan hentikan simulasi
   const chatRunning = chatLive.running;
   // eslint-disable-next-line react-hooks/set-state-in-effect -- bereaksi pada awal chat dari panel agen
@@ -52,9 +66,10 @@ export default function OrchestraView() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid w-full max-w-sm grid-cols-2">
+        <TabsList className="grid w-full max-w-lg grid-cols-3">
           <TabsTrigger value="canvas">Live Swarm Canvas</TabsTrigger>
           <TabsTrigger value="registry">Agent Registry</TabsTrigger>
+          <TabsTrigger value="history">Riwayat</TabsTrigger>
         </TabsList>
 
         <TabsContent value="canvas" className="mt-5 grid gap-5">
@@ -106,6 +121,7 @@ export default function OrchestraView() {
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">Metrik contoh untuk demo. Agen kustom tersimpan di browser ini (localStorage).</p>
         </TabsContent>
+        <TabsContent value="history" className="mt-5"><OrchestraRunHistory agents={agents} /></TabsContent>
       </Tabs>
     </AppLayout>
   );
