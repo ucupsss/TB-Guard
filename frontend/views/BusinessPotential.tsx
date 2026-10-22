@@ -246,7 +246,7 @@ export default function BusinessPotential() {
             </p>
           </div>
           <Badge variant="outline" className="text-[11px]">
-            Klik kartu untuk memperbesar bukti dokumen
+            Klik kartu untuk memperbesar
           </Badge>
         </div>
 
@@ -379,18 +379,6 @@ export default function BusinessPotential() {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Footer Navigasi */}
-      <div className="mt-8 mb-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200/60 pt-4 dark:border-white/10">
-        <div className="text-xs text-muted-foreground">
-          Simulasi lengkap penghematan biaya negara berdasarkan skenario kasus:
-        </div>
-        <Button asChild variant="default" size="sm">
-          <Link href="/market">
-            Buka Simulasi Angka di Potensi Pasar ↗
-          </Link>
-        </Button>
-      </div>
     </AppLayout>
   );
 }
