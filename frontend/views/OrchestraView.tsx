@@ -33,6 +33,11 @@ export default function OrchestraView() {
     : chatLive.steps.some((s) => s.toolCalled) ? 3
     : chatLive.steps[0]?.status === 'completed' ? 2 : 1;
   const live = agents.filter((a) => a.status !== 'disabled').length;
+  const [tab, setTab] = React.useState('canvas');
+  // chat yang baru berjalan selalu mengambil alih kanvas: pindah ke tab kanvas dan hentikan simulasi
+  const chatRunning = chatLive.running;
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- bereaksi pada awal chat dari panel agen
+  React.useEffect(() => { if (chatRunning) { setTab('canvas'); player.reset(); } }, [chatRunning]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <AppLayout crumbs={[{ label: 'Orchestra AI' }]}>
@@ -46,7 +51,7 @@ export default function OrchestraView() {
         </div>
       </div>
 
-      <Tabs defaultValue="canvas">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="grid w-full max-w-sm grid-cols-2">
           <TabsTrigger value="canvas">Live Swarm Canvas</TabsTrigger>
           <TabsTrigger value="registry">Agent Registry</TabsTrigger>

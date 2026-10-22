@@ -1,9 +1,10 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  CheckIcon, ChevronDownIcon, CounterClockwiseClockIcon, ClockIcon, Cross2Icon, CrossCircledIcon, ExclamationTriangleIcon, ExternalLinkIcon, MagicWandIcon,
+  ArrowRightIcon, CheckIcon, ChevronDownIcon, CounterClockwiseClockIcon, ClockIcon, Cross2Icon, CrossCircledIcon, ExclamationTriangleIcon, ExternalLinkIcon, MagicWandIcon,
   MagnifyingGlassIcon, PaperPlaneIcon, Pencil1Icon, PlusIcon, ReloadIcon, SewingPinIcon, SpeakerLoudIcon, SpeakerOffIcon, StopIcon, TrashIcon,
 } from '@radix-ui/react-icons';
 import { Button } from '@/components/ui/button';
@@ -129,12 +130,13 @@ function SpecialistBadges({ turn }: { turn: Turn }) {
   }, [turn.parts]);
   if (!rows.length) return null;
   return (
-    <div className="flex flex-wrap gap-1.5" aria-label="Spesialis yang bekerja">
+    <div className="flex flex-wrap items-center gap-1.5" aria-label="Spesialis yang bekerja">
       {rows.map((r) => (
         <span key={r.name} className="inline-flex items-center gap-1 rounded-full border bg-primary/5 px-2 py-0.5 text-[11px] text-foreground" title={`${r.n} tool`}>
           <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />{r.name}<span className="tabular-nums text-muted-foreground">· {r.ms} ms</span>
         </span>
       ))}
+      <Link href="/orchestra" className="inline-flex items-center gap-0.5 text-[11px] text-primary hover:underline">Lihat di Orchestra<ArrowRightIcon className="h-3 w-3" /></Link>
     </div>
   );
 }
