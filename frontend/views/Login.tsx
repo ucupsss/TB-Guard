@@ -60,13 +60,13 @@ export default function Login() {
 
   useDarkMode();
   React.useEffect(() => {
-    if (user) router.replace('/');
+    if (user) router.replace('/dashboard');
   }, [user, router]);
 
   const enter = (mail: string) => {
     const name = mail.split('@')[0].replace(/[._\d]+/g, ' ').trim() || role;
     login({ email: mail, role, name: name.replace(/\b\w/g, (c) => c.toUpperCase()) });
-    router.push('/');
+    router.push('/dashboard');
   };
 
   const submit = (e: React.FormEvent) => {
@@ -83,7 +83,7 @@ export default function Login() {
         {/* kiri: info */}
         <div className="relative hidden flex-col px-12 pb-16 pt-10 text-white lg:flex xl:px-20">
           <div className="flex items-center">
-            <Logo variant="full" tone="white" className="h-14 w-auto" />
+            <Logo variant="full" tone="white" className="h-20 lg:h-24 xl:h-28 w-auto drop-shadow-sm" />
           </div>
           <div className="my-auto">
             <Illustration />
@@ -101,7 +101,7 @@ export default function Login() {
             className="mx-auto w-full max-w-md rounded-md bg-card px-5 py-8 shadow-box sm:px-8 lg:bg-transparent lg:shadow-none"
           >
             <div className="mb-8 flex items-center lg:hidden">
-              <Logo variant="full" tone="primary" className="h-12 w-auto" />
+              <Logo variant="full" tone="primary" className="h-16 w-auto" />
             </div>
             <h1 className="text-2xl font-bold xl:text-3xl text-foreground">Sign In</h1>
             
