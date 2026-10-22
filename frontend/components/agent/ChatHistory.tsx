@@ -19,7 +19,7 @@ function ago(t: number) {
 
 /** Daftar chat tersimpan (database): buka, ganti nama, sematkan, hapus. */
 export function ChatHistory({ onClose }: { onClose: () => void }) {
-  const { chats, chatsLoading, chatId, running, openChat, renameChat, pinChat, deleteChat, clearChats, reset } = useAgent();
+  const { chats, chatsLoading, chatId, running, openChat, renameChat, pinChat, deleteChat, clearChats, reset, historyError, retrySave } = useAgent();
   const [q, setQ] = React.useState('');
   const [editing, setEditing] = React.useState<string | null>(null);
   const [draft, setDraft] = React.useState('');
@@ -43,6 +43,12 @@ export function ChatHistory({ onClose }: { onClose: () => void }) {
         <Button size="sm" className="h-9 gap-1" disabled={running} onClick={() => { reset(); onClose(); }}><PlusIcon />Baru</Button>
       </div>
 
+      {historyError && (
+        <div role="alert" className="mx-3 mt-3 flex items-start gap-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
+          <span className="min-w-0 flex-1">{historyError}</span>
+          <button type="button" className="shrink-0 font-medium underline" onClick={retrySave}>Coba lagi</button>
+        </div>
+      )}
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {chatsLoading && chats.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">Memuat…</p>}
         {!chatsLoading && shown.length === 0 && (

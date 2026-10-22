@@ -18,8 +18,9 @@ export async function saveRun(id: string, run: { source: 'live' | 'simulation'; 
       body: JSON.stringify({ ...run, steps: run.steps.map((s) => ({ ...s, status: 'completed' })) }),
     });
     if (res.ok && typeof window !== 'undefined') window.dispatchEvent(new Event(RUN_SAVED_EVENT));
+    if (!res.ok) console.warn('[orchestra] rekaman gagal disimpan: HTTP', res.status);
     return res.ok;
-  } catch { return false; }
+  } catch (e) { console.warn('[orchestra] rekaman gagal disimpan:', e); return false; }
 }
 
 export async function listRuns(): Promise<RunSummary[]> {
