@@ -236,18 +236,13 @@ export default function BusinessPotential() {
 
       {/* Bagian 2: Galeri Bukti Dokumen & Screenshot Regulasi (Visual untuk Juri) */}
       <div className="mt-8">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-sm font-semibold text-foreground sm:text-base">
-              Bukti Dokumen Regulasi &amp; Data Resmi Pemerintah
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Tangkapan layar lembar regulasi negara dan data resmi Kemenkes/WHO yang membuktikan landasan TB Guard.
-            </p>
-          </div>
-          <Badge variant="outline" className="text-[11px]">
-            Klik kartu untuk memperbesar
-          </Badge>
+        <div className="mb-3">
+          <h2 className="text-sm font-semibold text-foreground sm:text-base">
+            Bukti Dokumen Regulasi &amp; Data Resmi Pemerintah
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Tangkapan layar lembar regulasi negara dan data resmi Kemenkes/WHO yang membuktikan landasan TB Guard.
+          </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -294,9 +289,8 @@ export default function BusinessPotential() {
                 <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground line-clamp-2">
                   {doc.keyTakeaway}
                 </p>
-                <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2 dark:border-white/5">
-                  <span className="text-[10px] font-medium text-primary dark:text-blue-400">Klik untuk perbesar</span>
-                  {doc.pdfUrl && (
+                {doc.pdfUrl && (
+                  <div className="mt-2.5 flex items-center justify-end border-t border-slate-100 pt-2 dark:border-white/5">
                     <a 
                       href={doc.pdfUrl} 
                       target="_blank" 
@@ -306,8 +300,8 @@ export default function BusinessPotential() {
                     >
                       <FileText className="h-3 w-3" /> PDF Resmi
                     </a>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}
