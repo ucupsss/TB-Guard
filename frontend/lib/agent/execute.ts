@@ -4,6 +4,7 @@ import { NOW, STAGES } from '@/lib/data';
 import { fmt } from '@/lib/format';
 import type { Store } from '@/lib/store';
 import type { Detection, Device, DeviceStatus, Patient } from '@/lib/types';
+import { sendUi, type CameraPreset } from '@/lib/agent/ui-bus';
 
 const DAY = 86400000;
 type Args = Record<string, unknown>;
@@ -290,6 +291,47 @@ export function prepareTool(name: string, a: Args, env: ToolEnv, opts: { confirm
       };
     }
 
+    case 'ui_show_3d': {
+      const camera = has(a, 'camera') ? String(a.camera) : undefined;
+      if (camera && !['overview', 'sensor', 'target'].includes(camera)) fail('camera harus overview, sensor, atau target.');
+      const trigger = a.trigger_cough === true;
+      if (!camera && !trigger) fail('Isi camera dan/atau trigger_cough.');
+      return { confirm: null, run: () => {
+        env.navigate('/');
+        sendUi({ type: '3d', camera: camera as CameraPreset | undefined, triggerCough: trigger });
+        return { ok: true, opened: '/', camera: camera ?? null, cough_triggered: trigger };
+      } };
+    }
+
+    case 'ui_filter_devices': {
+      const status = has(a, 'status') ? String(a.status) : '';
+      if (status && !['active', 'inactive', 'broken'].includes(status)) fail('status harus active, inactive, atau broken.');
+      const query = has(a, 'query') ? String(a.query).trim() : '';
+      const total = s.devices.filter((d) => (!status || d.status === status) && (!query || [d.name, d.location, d.zone, d.id, d.type].join(' ').toLowerCase().includes(query.toLowerCase()))).length;
+      return { confirm: null, run: () => {
+        env.navigate('/devices');
+        sendUi({ type: 'filter-devices', status: status as DeviceStatus | '', query });
+        return { ok: true, opened: '/devices', filter: { status: status || null, query: query || null }, matches: total };
+      } };
+    }
+
+    case 'ui_open_detection': {
+      const uuid = String(a.uuid ?? '');
+      const det = s.detection(uuid) ?? fail(`Deteksi ${uuid} tidak ditemukan. Gunakan list_detections untuk mencari UUID.`);
+      const page = a.view === 'page';
+      return { confirm: null, run: () => {
+        if (page) env.navigate(`/detections/${det.uuid}`);
+        else { env.navigate('/dashboard'); sendUi({ type: 'open-detection', uuid: det.uuid }); }
+        return { ok: true, shown: detOut(det, s) };
+      } };
+    }
+
+    case 'ui_theme': {
+      const mode = String(a.mode);
+      if (mode !== 'dark' && mode !== 'light') fail('mode harus dark atau light.');
+      return { confirm: null, run: () => { sendUi({ type: 'theme', mode: mode as 'dark' | 'light' }); return { ok: true, theme: mode }; } };
+    }
+
     case 'navigate': {
       let path = String(a.path || '').trim();
       if (!path.startsWith('/')) path = '/' + path;
@@ -331,6 +373,10 @@ export function describeTool(name: string, a: Args): string {
     case 'update_patient': return `Mengubah pasien ${a.id}`;
     case 'delete_patient': return `Menghapus pasien ${a.id}`;
     case 'navigate': return `Membuka ${a.path}`;
+    case 'ui_show_3d': return a.trigger_cough ? 'Menyorot lokasi batuk di 3D' : `Mengarahkan kamera 3D (${a.camera ?? 'overview'})`;
+    case 'ui_filter_devices': return `Memfilter perangkat${a.status ? ` (${a.status})` : ''}${a.query ? ` "${a.query}"` : ''}`;
+    case 'ui_open_detection': return `Menampilkan deteksi ${a.uuid}`;
+    case 'ui_theme': return `Mengganti tema ke ${a.mode === 'dark' ? 'gelap' : 'terang'}`;
     default: return name;
   }
 }

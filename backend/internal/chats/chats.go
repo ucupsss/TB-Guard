@@ -111,7 +111,8 @@ func (s *Service) Get() http.HandlerFunc {
 	})
 }
 
-// Save: upsert chat (dipanggil klien setelah tiap jawaban selesai). Kepemilikan dipaksa dari sesi.
+// Save: upsert chat (dipanggil klien saat pesan dikirim dan setelah tiap jawaban selesai). Kepemilikan dipaksa dari sesi.
+// Judul hanya diisi saat chat pertama dibuat; nama yang diubah pengguna tidak ditimpa simpanan berikutnya.
 func (s *Service) Save() http.HandlerFunc {
 	return s.db.Handler(func(ctx context.Context, pool *pgxpool.Pool, r *http.Request) (any, error) {
 		id := r.PathValue("id")
@@ -144,7 +145,7 @@ func (s *Service) Save() http.HandlerFunc {
 		// ID milik pengguna lain tidak boleh ditimpa
 		tag, err := tx.Exec(ctx, `INSERT INTO agent_chats (id, owner, title, model, turns, history, tokens, created_at, updated_at)
 			VALUES ($1,$2,$3,$4,$5::jsonb,$6::jsonb,$7,$8,$8)
-			ON CONFLICT (id) DO UPDATE SET title = CASE WHEN EXCLUDED.title <> '' THEN EXCLUDED.title ELSE agent_chats.title END,
+			ON CONFLICT (id) DO UPDATE SET
 				model=EXCLUDED.model, turns=EXCLUDED.turns, history=EXCLUDED.history, tokens=EXCLUDED.tokens, updated_at=EXCLUDED.updated_at
 			WHERE agent_chats.owner = EXCLUDED.owner`,
 			id, who, cleanTitle(body.Title), body.Model, string(body.Turns), string(body.History), body.Tokens, now)

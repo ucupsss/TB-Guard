@@ -106,6 +106,22 @@ export const TOOLS: ToolDef[] = [
   { name: 'navigate', kind: 'ui',
     parameters: obj({ path: str('Path tujuan: / (3D Public Area), /dashboard, /design, /live-test, /devices, /devices/new, /devices/{id}, /detections/{uuid}, /data/webform, /data/offline, /data/primer, /patients, /patients?open={id}, /login') }, ['path']),
     description: 'Buka halaman atau navigasi ke rute yang diminta pengguna.' },
+  // kendali tampilan: dipakai saat pengguna meminta "tunjukkan/perlihatkan/buka/lihat"
+  { name: 'ui_show_3d', kind: 'ui',
+    parameters: obj({
+      camera: str('preset kamera 3D', { enum: ['overview', 'sensor', 'target'] }),
+      trigger_cough: bool(),
+    }),
+    description: 'Buka 3D Public Area lalu gerakkan kamera (overview/sensor/target) dan/atau picu simulasi batuk yang menyorot orang yang batuk. Untuk "tunjukkan lokasi batuk": trigger_cough=true, camera=target.' },
+  { name: 'ui_filter_devices', kind: 'ui',
+    parameters: obj({ status: STATUS, query: str('cari nama/lokasi/zona/ID') }),
+    description: 'Buka Device List dan terapkan filter di tabel di depan pengguna (status dan/atau kata kunci). Tanpa argumen = hapus filter.' },
+  { name: 'ui_open_detection', kind: 'ui',
+    parameters: obj({ uuid: str(), view: str('modal = jendela edit di Dashboard, page = halaman detail', { enum: ['modal', 'page'] }) }, ['uuid']),
+    description: 'Tampilkan satu deteksi langsung di layar: modal di Dashboard (default) atau halaman detailnya. Cari UUID lewat list_detections dahulu.' },
+  { name: 'ui_theme', kind: 'ui',
+    parameters: obj({ mode: str('', { enum: ['dark', 'light'] }) }, ['mode']),
+    description: 'Ganti tema tampilan aplikasi (gelap/terang).' },
 ];
 
 export const TOOL_SCHEMAS = TOOLS.map((t) => ({ type: 'function' as const, function: { name: t.name, description: t.description, parameters: t.parameters } }));

@@ -20,6 +20,7 @@ import { TablePager, usePaged } from '@/components/tb/TablePager';
 import { DeviceMap } from '@/components/tb/DeviceMap';
 import { NurseIllustration, PhoneIllustration } from '@/components/tb/Illustrations';
 import { useStore, NOW, STAGES } from '@/lib/store';
+import { useUiCommand } from '@/lib/agent/ui-bus';
 import { fmt, downloadCSV } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +33,7 @@ export default function Dashboard() {
   const [period, setPeriod] = React.useState('7');
   const [notice, setNotice] = React.useState(true);
   const [editing, setEditing] = React.useState<string | null>(null);
+  useUiCommand('open-detection', (c) => setEditing(c.uuid)); // dibuka oleh agen AI
   const [mix, setMix] = React.useState('hasil');
   const [city, setCity] = React.useState('');
   const [note, setNote] = React.useState(0);

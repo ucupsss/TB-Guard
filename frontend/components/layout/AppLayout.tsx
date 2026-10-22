@@ -1,5 +1,6 @@
 'use client';
 
+import { useUiCommand } from '@/lib/agent/ui-bus';
 import * as React from 'react';
 import Link from 'next/link';
 import { MoonIcon } from '@radix-ui/react-icons';
@@ -100,6 +101,7 @@ function useAgentWidth() {
 export function AppLayout({ crumbs, children, guest }: { crumbs: Crumb[]; children: React.ReactNode; guest?: boolean }) {
   const [menu, setMenu] = React.useState(false);
   const [dark, setDark] = useDarkMode();
+  useUiCommand('theme', (c) => setDark(c.mode === 'dark')); // diganti oleh agen AI
   const [mounted, setMounted] = React.useState(false);
   const agent = useAgent();
   // panel agen: kolom kanan di desktop, sheet di layar kecil

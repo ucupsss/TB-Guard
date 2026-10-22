@@ -12,6 +12,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { ReportBox } from '@/components/tb/ReportBox';
 import { DeviceStatus } from '@/components/tb/common';
 import { useStore } from '@/lib/store';
+import { useUiCommand } from '@/lib/agent/ui-bus';
 import { fmt } from '@/lib/format';
 import type { DeviceStatus as S } from '@/lib/types';
 
@@ -20,6 +21,8 @@ export default function Devices() {
   const router = useRouter();
   const [filter, setFilter] = React.useState<'' | S>('');
   const [q, setQ] = React.useState('');
+  // filter diterapkan oleh agen AI di depan pengguna
+  useUiCommand('filter-devices', (c) => { setFilter(c.status ?? ''); setQ(c.query ?? ''); });
   const count = (s: S) => devices.filter((d) => d.status === s).length;
   const list = devices.filter((d) => (!filter || d.status === filter) && (!q || [d.name, d.location, d.zone, d.id, d.type].join(' ').toLowerCase().includes(q.toLowerCase())));
 

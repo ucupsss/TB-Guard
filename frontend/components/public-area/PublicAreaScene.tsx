@@ -13,6 +13,7 @@ import { DoaBeamCone } from './DoaBeamCone';
 import { CaptureCard, TargetHudOverlay } from './TargetHudOverlay';
 import { DirectionProtractor } from './DirectionRadar';
 import { SavingsCalculatorPopup } from './SavingsCalculatorPopup';
+import { useUiCommand } from '@/lib/agent/ui-bus';
 import { agentPose, angles, DURATION, randomRisk, RISK_COLORS, SENSOR, type CameraMode, type Capture, type Detection } from './simulation';
 
 const subscribeTheme = (callback: () => void) => {
@@ -131,6 +132,11 @@ export default function PublicAreaScene() {
     const timer = window.setTimeout(() => setDetection(null), DURATION);
     return () => window.clearTimeout(timer);
   }, [detection]);
+  // dikendalikan agen AI: pindah preset kamera dan/atau picu batuk agar langsung tersorot
+  useUiCommand('3d', (c) => {
+    if (c.camera) { setAuto(false); setMode(c.camera); }
+    if (c.triggerCough) { setAuto(false); setMode(c.camera ?? 'target'); window.setTimeout(trigger, 350); }
+  });
   const failCapture = useCallback(() => setCaptureError(true), []);
   const freeCamera = useCallback(() => setMode('free'), []);
   return <section className="pa-workspace" aria-label="Simulasi 3D deployment TB-Guard">

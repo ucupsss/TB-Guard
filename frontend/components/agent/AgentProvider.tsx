@@ -240,6 +240,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
     history.current.push({ role: 'user', content: q });
     setTurns((all) => [...all, { id: uid(), role: 'user', text: q, parts: [] }, { id: turnId, role: 'assistant', text: '', parts: [] }]);
     void loop(turnId);
+    void persistSoon(); // pertanyaan langsung tersimpan; jawaban menyusul saat selesai
   };
 
   const retry = () => {
@@ -270,7 +271,7 @@ export function AgentProvider({ children }: { children: React.ReactNode }) {
   async function persistSoon() {
     await new Promise((r) => setTimeout(r, 60));
     const turnsNow = turnsRef.current, id = chatIdRef.current;
-    if (!id || !live.current.store.user || !turnsNow.some((t) => t.role === 'assistant' && t.done)) return;
+    if (!id || !live.current.store.user || !turnsNow.some((t) => t.role === 'user')) return;
     let saveTurns = turnsNow, saveHist = history.current;
     let body = JSON.stringify({ turns: saveTurns, history: saveHist });
     // terlalu besar: buang bagian paling lama (riwayat dipotong mulai dari pesan user)
